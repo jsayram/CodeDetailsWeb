@@ -3,10 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "validate-env": "node -r ts-node/register ./scripts/validateEnv.ts",
+    "set-env": "node -r ts-node/register ./scripts/setEnv.ts",
+    "dev": "npm run validate-env && cross-env NODE_ENV=development next dev",
+    "test": "npm run validate-env && jest && playwright test",
+    "build": "npm run validate-env && cross-env NODE_ENV=production next build",
+    "start": "npm run validate-env && cross-env NODE_ENV=production next start"
   },
   "dependencies": {
     "@algolia/client-search": "^5.20.3",
@@ -28,10 +30,12 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.0.9",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
