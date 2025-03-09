@@ -5,10 +5,10 @@
   "scripts": {
     "validate-env": "node -r ts-node/register ./scripts/validateEnv.ts",
     "set-env": "node -r ts-node/register ./scripts/setEnv.ts",
-    "dev": "npm run validate-env && cross-env NODE_ENV=development next dev",
-    "test": "npm run validate-env && jest && playwright test",
-    "build": "npm run validate-env && cross-env NODE_ENV=production next build",
-    "start": "npm run validate-env && cross-env NODE_ENV=production next start"
+    "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev",
+    "test": "cross-env NODE_ENV=test npm run set-env && npm run validate-env && jest && playwright test",
+    "build": "cross-env NODE_ENV=production npm run set-env && npm run validate-env && next build",
+    "start": "cross-env NODE_ENV=production npm run set-env && npm run validate-env && next start"
   },
   "dependencies": {
     "@algolia/client-search": "^5.20.3",
@@ -18,6 +18,7 @@
     "framer-motion": "^12.4.7",
     "lucide-react": "^0.476.0",
     "next": "15.1.7",
+    "postcss-load-config": "^6.0.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
@@ -28,6 +29,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
+    "@types/postcss-load-config": "^3.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cross-env": "^7.0.3",
