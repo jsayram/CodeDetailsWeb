@@ -1,12 +1,21 @@
-//validateEnvs.ts - Ensures all required environment variables are set before the app runs.
+// validateEnvs.ts - Ensures all required environment variables are set before the app runs.
 const requiredEnvVars = [
-    "NEXT_PUBLIC_SUPABASE_URL",      // Public Supabase API URL (safe to expose)
-    "SUPABASE_SERVICE_ROLE_KEY",     // Secret Supabase service role key (DO NOT expose)
-    "NEXT_PUBLIC_ALGOLIA_APP_ID",     // Public Algolia App ID (search functionality)
-    "NEXT_PUBLIC_ALGOLIA_SEARCH_KEY", // Public Algolia Search Key (used in frontend search)
-    "ALGOLIA_ADMIN_KEY",              // Secret Algolia Admin Key (server-side indexing)
-  ];
-  
+  // Secret keys (DO NOT expose)
+  "SUPABASE_SERVICE_ROLE_KEY",  // Secret Supabase service role key (DO NOT expose)
+  "CLERK_SECRET_KEY", // Secret API key for Clerk authentication (server-side)
+  "STRIPE_SECRET_KEY", // Secret Stripe API key (server-side only)
+  "DATABASE_URL", // Database connection string (PostgreSQL, MySQL, etc.)
+  "JWT_SECRET", // Secret key used for JWT token encryption/authentication
+  "ALGOLIA_ADMIN_KEY", // Secret Algolia Admin Key (server-side indexing)
+
+  // Public keys (Safe to expose)
+  "NEXT_PUBLIC_SUPABASE_URL", // Public Supabase API URL (safe to expose)
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", // Public API key for Clerk authentication
+  "NEXT_PUBLIC_STRIPE_PUBLIC_KEY", // Public Stripe API key (frontend usage)
+  "NEXT_PUBLIC_ALGOLIA_APP_ID", // Public Algolia App ID (search functionality)
+  "NEXT_PUBLIC_ALGOLIA_SEARCH_KEY", // Public Algolia Search Key (used in frontend search)
+];
+
   //Check which required environment variables are missing.
   const missingVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
   

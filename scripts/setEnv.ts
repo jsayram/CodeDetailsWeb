@@ -4,14 +4,18 @@ import path from "path";
 //Get the current environment (defaults to "development" if not explicitly set)
 const currentEnvironment = process.env.NODE_ENV || "development";
 
-//Define the expected environment file path based on the environment
-const environmentFilePath = path.resolve(__dirname, `../.env.${currentEnvironment}`);
+// Define possible `.env` file paths
+const envFiles = [
+  ...(currentEnvironment !== "test" ? [path.resolve(__dirname, "../.env.local")] : []), // Load `.env.local` only if NOT in test mode (to avoid conflicts with Jest) 
+  path.resolve(__dirname, `../.env.${currentEnvironment}`), // Environment-specific file
+];
 
-//Check if the required .env file exists
-if (!fs.existsSync(environmentFilePath)) {
-  console.error(`🚨 Missing environment file: ${environmentFilePath}`);
-  console.error("Please create the appropriate .env file before running the application.");
-  process.exit(1); // Exit the process to prevent the app from running without the correct environment variables
+// Find the first existing `.env` file
+const foundEnvFile = envFiles.find(fs.existsSync);
+
+if (!foundEnvFile) {
+  console.error(`🚨 Missing environment file: No valid .env file found for ${currentEnvironment}`);
+  process.exit(1);
 } else {
-  console.log(`✅ Using environment configuration from: ${environmentFilePath}`);
+  console.log(`✅ Using environment configuration from: ${foundEnvFile}`);
 }
