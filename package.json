@@ -2,7 +2,7 @@
   "name": "codedetailsweb",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
+ "scripts": {
     "validate-env": "node -r ts-node/register ./scripts/validateEnv.ts",
     "set-env": "node -r ts-node/register ./scripts/setEnv.ts",
     "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev",
@@ -15,6 +15,7 @@
     "@clerk/nextjs": "^6.12.1",
     "@supabase/supabase-js": "^2.49.1",
     "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.7",
     "framer-motion": "^12.4.7",
     "lucide-react": "^0.476.0",
     "next": "15.1.7",
@@ -36,6 +37,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.1.7",
     "postcss": "^8.5.3",
+    "supabase": "^2.15.8",
     "tailwindcss": "^4.0.9",
     "ts-node": "^10.9.2",
     "typescript": "^5"
