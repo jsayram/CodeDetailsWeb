@@ -1,13 +1,32 @@
-// src/services/supabase.ts
 import { createClient } from '@supabase/supabase-js';
-// Get the Supabase URL and Anon Key from the environment variables
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-// Check if the Supabase URL and Anon Key are set in the environment variables
+// Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase URL or Anon Key environment variables');
+  throw new Error('Missing required Supabase environment variables');
 }
 
-// Create a new Supabase client using the Supabase URL and Anon Key
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Type for Clerk-authenticated client configuration
+interface SupabaseClientConfig {
+  supabaseAccessToken?: string;
+}
+
+// Create Clerk-authenticated Supabase client
+export const createClerkSupabaseClient = ({ supabaseAccessToken }: SupabaseClientConfig = {}) => {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+    global: {
+      headers: {
+        Authorization: supabaseAccessToken ? `Bearer ${supabaseAccessToken}` : '',
+      },
+    },
+  });
+};
+
+// Client for public access (browser)
+export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);

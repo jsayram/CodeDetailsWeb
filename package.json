@@ -2,7 +2,7 @@
   "name": "codedetailsweb",
   "version": "0.1.0",
   "private": true,
- "scripts": {
+  "scripts": {
     "validate-env": "node -r ts-node/register ./scripts/validateEnv.ts",
     "set-env": "node -r ts-node/register ./scripts/setEnv.ts",
     "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev",
@@ -25,6 +25,7 @@
     "react-hook-form": "^7.54.2",
     "shadcn-ui": "^0.9.5",
     "stripe": "^17.7.0",
+    "svix": "^1.61.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
