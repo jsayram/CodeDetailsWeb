@@ -1,7 +1,7 @@
-import { loadEnv } from "./loadEnv";
+import { setEnv } from "./setEnv";
 
-// Load environment variables
-loadEnv();
+// load and set environment variables
+setEnv();
 
 // validateEnvs.ts - Ensures all required environment variables are set before the app runs.
 const requiredEnvVars = [

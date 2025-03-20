@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/services/supabase";
+import { createClerkSupabaseClient } from "@/services/supabase";
 
 export async function GET() {
   try {
-    console.log("Fetching data from Supabase...");
+    console.log("Fetching projects from Supabase...");
 
-    // Fetch data with explicit logging
-    const { data, error, count } = await supabase
+    // Fetch projects with explicit logging
+    const { data, error, count } = await createClerkSupabaseClient()
       .from("projects")
       .select("*", { count: "exact" }) // Fetch total count
-      .limit(5);
-
+      .order("id", { ascending: true });
+      
     if (error) {
       console.error("Supabase Error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    console.log("Total Items in DB:", count); // Logs total rows in DB
-    console.log("Supabase Data:", data);
+    console.log("Total Projects in DB:", count); // Logs total rows in DB
+    console.log("Projects Data:", data);
 
     return NextResponse.json({ data, count });
 
@@ -26,4 +26,3 @@ export async function GET() {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
