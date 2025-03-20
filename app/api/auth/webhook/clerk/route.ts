@@ -1,27 +1,13 @@
 import { NextResponse } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
+import { ClerkUserData } from "@/types";
 
+// Create a Supabase client (not public) for server-side operations
 const supabaseServer = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-
-// ✅ Define TypeScript Interface for Clerk User Data
-interface ClerkUserData {
-  id: string; // or user_id? confirm
-  email_addresses?: {
-    email_address: string;
-  }[];
-  first_name?: string;
-  last_name?: string;
-  full_name?: string;
-  username?: string;
-  public_metadata?: {
-    role?: string;
-    tier?: string;
-  };
-}
 
 async function extractClerkUserData(data: ClerkUserData) {
   const user_id = data.id; // unique Clerk user ID
@@ -38,15 +24,13 @@ async function extractClerkUserData(data: ClerkUserData) {
   
   return { user_id, email_address, first_name, last_name, full_name, username, role, tier };
 }
-
-
-// 1️⃣ Handle user.created
+// Handle user.created
 async function handleUserCreated(data: ClerkUserData) {
   // Function to extract user data from Clerk webhook data
   const { user_id, email_address, first_name, last_name, full_name, username, role, tier } = await extractClerkUserData(data);
-  console.log(`🆕 Creating user: ${user_id} in Supabase profiles (no collisions assumed)`);
+  console.log(`Creating user: ${user_id} in Supabase profiles (no collisions assumed)`);
 
-  // 🚀 Insert without conflict
+  // Insert without conflict
   const { error } = await supabaseServer
     .from("profiles")
     .insert([
@@ -63,21 +47,19 @@ async function handleUserCreated(data: ClerkUserData) {
     ]);
 
   if (error) {
-    console.error("❌ Supabase insert error (user.created):", error);
+    console.error("Supabase insert error (user.created):", error);
     return NextResponse.json({ error: "Error creating profile" }, { status: 500 });
   }
-
-  return NextResponse.json({ message: "✅ User created successfully (no collisions)" });
+  return NextResponse.json({ message: "User created successfully (no collisions)" });
 }
 
-// 2️⃣ Handle user.updated
+// Handle user.updated
 async function handleUserUpdated(data: ClerkUserData) {
      // 1. Extract fields from the Clerk event
-  
    const { user_id, email_address, first_name, last_name, full_name, username, role, tier } = await extractClerkUserData(data);
    console.log(`🔄 Updating user: ${user_id} in Supabase profiles (selective field updates)`);
 
-  // 1. 🧐 Fetch existing record
+  // 1. Fetch existing record
   const { data: existingProfile, error: fetchError } = await supabaseServer
     .from("profiles")
     .select("*")
@@ -86,22 +68,25 @@ async function handleUserUpdated(data: ClerkUserData) {
 
    // 2. If the user doesn’t exist (0 rows), fallback to handleUserCreated
    if (fetchError && fetchError.details?.includes("0 rows")) {
-    console.warn("❌ No existing profile found. Fallback to create user.");
+    console.warn(" No existing profile found. Fallback to create user.");
     return await handleUserCreated(data);  // Or any create logic
   } else if (fetchError) {
     // If another error, bail out
-    console.error("❌ Could not find existing profile (user.updated):", fetchError);
+    console.error(" Could not find existing profile (user.updated):", fetchError);
     return NextResponse.json({ error: "Profile not found for update" }, { status: 404 });
   }
 
-  // 2. 📋 Build an object of only changed fields
+  // Build an object of only changed fields
   // Define field mappings with validation rules
 const fieldUpdates = [
+  //required fields
+  { key: 'user_id', value: user_id, requireDefined: true },
   { key: 'email_address', value: email_address, requireDefined: true },
   { key: 'first_name', value: first_name, requireDefined: true },
   { key: 'last_name', value: last_name, requireDefined: true },
   { key: 'full_name', value: full_name, requireDefined: true },
   { key: 'username', value: username, requireDefined: true },
+  //optional metadata
   { key: 'role', value: role, requireDefined: false },
   { key: 'tier', value: tier, requireDefined: false }
 ];
@@ -119,25 +104,24 @@ const updatedFields: Record<string, any> = {};
   // If no fields changed, no need to update
   if (Object.keys(updatedFields).length === 0) {
     console.log("No changes detected, skipping update");
-    return NextResponse.json({ message: "✅ No changes detected" });
+    return NextResponse.json({ message: "No changes detected" });
   }
 
-  // 3. 🔧 Perform partial update
+  // 3.  Perform partial update
   const { error: updateError } = await supabaseServer
     .from("profiles")
     .update(updatedFields)
     .eq("user_id", user_id);
 
   if (updateError) {
-    console.error("❌ Supabase update error (user.updated):", updateError);
+    console.error("Supabase update error (user.updated):", updateError);
     return NextResponse.json({ error: "Error updating profile" }, { status: 500 });
   }
 
-  return NextResponse.json({ message: "✅ User updated successfully with changed fields" });
+  return NextResponse.json({ message: "User updated successfully with changed fields" });
 }
 
-
-// 3️⃣ Handle user.deleted
+// Handle user.deleted
 async function handleUserDeleted(data: ClerkUserData) {
   const { id:user_id} = data;
 
@@ -148,21 +132,19 @@ async function handleUserDeleted(data: ClerkUserData) {
   });
 
   if (error) {
-    console.error("❌ Supabase deletion error:", error);
+    console.error("Supabase deletion error:", error);
     return NextResponse.json({ error: "Error deleting profile" }, { status: 500 });
   }
 
-  return NextResponse.json({ message: "✅ User deleted successfully" });
+  return NextResponse.json({ message: "User deleted successfully" });
 }
 
-
-// 4️⃣ Main Webhook Handler
+// Main Webhook Handler for Clerk events
 export async function POST(req: Request) {
   try {
     const event: WebhookEvent = await req.json();
     const { type: eventType, data } = event as { type: string; data: ClerkUserData };
     
-
     switch (eventType) {
       case "user.created":
         console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
@@ -177,11 +159,11 @@ export async function POST(req: Request) {
         return await handleUserDeleted(data);
 
       default:
-        console.warn(`⚠️ Unhandled event type: ${eventType}`);
+        console.warn(`Unhandled event type: ${eventType}`);
         return NextResponse.json({ error: "Unhandled event" }, { status: 400 });
     }
   } catch (error) {
-    console.error("❌ Error processing webhook:", error);
+    console.error("Error processing webhook:", error);
     return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
   }
 }

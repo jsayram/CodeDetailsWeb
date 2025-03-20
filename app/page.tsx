@@ -1,20 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { SignedIn, SignedOut, SignInButton, SignOutButton, UserButton, useSession, useUser } from '@clerk/nextjs'
-import { createClerkSupabaseClient } from '@/services/supabase'
-import DebugJwt from '@/components/debug/page'
+import React, { useEffect, useState, useMemo } from 'react'
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  SignOutButton,
+  UserButton,
+  useSession,
+  useUser
+} from '@clerk/nextjs'
+import { getAnonymousClient, getAuthenticatedClient} from '@/services/supabase'
+import { DebugJwt } from '@/components/debug/page'
+import { AddProjectForm } from '@/components/AddProjectForm/page'
+import { Project } from '@/types'
+import '@/styles/globals.css'
 
-interface Project {
-  id: string
-  title: string
-  slug: string
-  tags: string[]
-  description: string
-  tier: string
-  difficulty: string
-  created_at: string
-}
+// Define valid tier types
+type ValidTier = 'free' | 'pro' | 'diamond';
+
+// Define tier hierarchy with proper typing
+const TIER_HIERARCHY: Record<ValidTier, number> = {
+  'free': 0,
+  'pro': 1,
+  'diamond': 2,
+  // Add more tiers here if needed in the future (e.g., 'enterprise': 3)
+};
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([])
@@ -23,39 +34,150 @@ export default function Home() {
   const { user } = useUser()
   const { session } = useSession()
 
-  const [newProject, setNewProject] = useState({
-    title: '',
-    slug: '',
-    tags: '',
-    description: '',
-    tier: 'free',
-    difficulty: 'beginner'
-  })
+  // Add state for free projects
+  const [freeProjects, setFreeProjects] = useState<Project[]>([])
+  const [freeLoading, setFreeLoading] = useState(true)
 
-  // ✅ Fetch token only once
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+
+  // Get Supabase clients for anonymous and authenticated access
+  const anonymousClient = getAnonymousClient();
+  const authenticatedClient = useMemo(() => {
+    return getAuthenticatedClient(token);
+  }, [token]);
+  
+  // Initialize user tier state with default value of 'free'
+  const [userTier, setUserTier] = useState<ValidTier>('free')
+
+  // Helper function to check if user can access a specific tier
+  const canAccessTier = (userTierValue: string, projectTierValue: string) => {
+    // Cast to ValidTier if possible, or default to 'free'
+    const userTier = (userTierValue as ValidTier) in TIER_HIERARCHY ? (userTierValue as ValidTier) : 'free';
+    const projectTier = (projectTierValue as ValidTier) in TIER_HIERARCHY ? (projectTierValue as ValidTier) : 'free';
+      
+    // Get numeric values from hierarchy
+    const userTierLevel = TIER_HIERARCHY[userTier];
+    const projectTierLevel = TIER_HIERARCHY[projectTier];
+    
+    // User can access if their tier level is >= the project's tier level
+    return userTierLevel >= projectTierLevel;
+  }
+
+  // Helper function to get all accessible tiers for a user
+  const getAccessibleTiers = (userTierValue: string) => {
+    // Cast to ValidTier if possible, or default to 'free'
+    const userTier = (userTierValue as ValidTier) in TIER_HIERARCHY ? (userTierValue as ValidTier) : 'free';
+    const userTierLevel = TIER_HIERARCHY[userTier];
+    
+    // Get all tiers with level <= user's tier level
+    return Object.entries(TIER_HIERARCHY)
+      .filter(([_, level]) => level <= userTierLevel)
+      .map(([tier, _]) => tier);
+  }
+  
+    // Fetch Clerk-Supabase token once
+    useEffect(() => {
+      const getToken = async () => {
+        if (!session) return
+        try {
+          const newToken = await session.getToken({ template: 'supabase' })
+          setToken(newToken)
+        } catch (error) {
+          console.error('Error getting token from Clerk:', error)
+        }
+      }
+      getToken()
+    }, [session])
+
+    // Fetch user tier from Supabase function instead of direct profile access
+    useEffect(() => {
+      if (!user || !authenticatedClient) return
+      
+      const fetchUserTier = async () => {
+        setProfileLoading(true)
+        setProfileError(null)
+        
+        try {
+          // Use a Supabase RPC function to safely get user tier
+          const { data, error } = await authenticatedClient
+            .rpc('get_user_tier', { user_id_param: user.id })
+          
+          if (error) {
+            console.error('Error fetching user tier:', error)
+            setProfileError(`Error fetching tier: ${error.message}`)
+            return
+          }
+          
+          if (data) {
+            // Validate tier before setting
+            if (data === 'free' || data === 'pro' || data === 'diamond') {
+              console.log(`User tier from database: ${data}`)
+              setUserTier(data as ValidTier)
+            } else {
+              console.warn(`Unknown tier value: ${data}, defaulting to 'free'`)
+              setUserTier('free')
+            }
+          } else {
+            console.log('No tier data found, using default tier: free')
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.error('Failed to fetch user tier:', errorMessage)
+          setProfileError(`Failed to fetch tier: ${errorMessage}`)
+        } finally {
+          setProfileLoading(false)
+        }
+      }
+      
+      fetchUserTier()
+    }, [user, authenticatedClient])
+
+  // Fetch free projects for everyone without requiring authentication
   useEffect(() => {
-    async function getToken() {
-      if (!session) return
-      const token = await session.getToken({ template: 'supabase' })
-      setToken(token)
+    const fetchFreeProjects = async () => {
+      try {
+        setFreeLoading(true)
+        const { data, error } = await anonymousClient
+          .from('projects')
+          .select('*')
+          .eq('tier', 'free')
+        
+        if (error) throw error
+        setFreeProjects(data || [])
+      } catch (error) {
+        console.error('Failed to load free projects:', error)
+        setFreeProjects([])
+      } finally {
+        setFreeLoading(false)
+      }
     }
-    getToken()
-  }, [session])
 
-  // ✅ Fetch projects only when the token is ready
+    fetchFreeProjects()
+  }, [anonymousClient])
+
+  // Fetch projects based on user's tier
   useEffect(() => {
-    if (!user || !token) return
+    if (!user || !authenticatedClient) return
 
-    const fetchProjects = async () => {
+    const fetchAccessibleProjects = async () => {
       try {
         setLoading(true)
-        const supabase = createClerkSupabaseClient({ supabaseAccessToken: token })
-        const { data, error } = await supabase.from('projects').select('*')
-
+        
+        // Get all tiers the user can access based on hierarchy
+        const accessibleTiers = getAccessibleTiers(userTier);
+        
+        // Fetch projects for all tiers the user can access
+        const { data, error } = await authenticatedClient
+          .rpc('get_accessible_projects', { 
+            user_tier_param: userTier 
+          })
+        
         if (error) {
-          console.error('Failed to load projects:', JSON.stringify(error, null, 2));
-          throw error;
+          console.error('Failed to load projects:', error)
+          throw error
         }
+        
         setProjects(data || [])
       } catch (error) {
         console.error('Failed to load projects:', error)
@@ -64,40 +186,20 @@ export default function Home() {
         setLoading(false)
       }
     }
+    
+    fetchAccessibleProjects()
+  }, [authenticatedClient, user, userTier])
 
-    fetchProjects()
-  }, [token, user]) // ✅ No unnecessary re-fetches
-
-  // ✅ Keep form state independent to prevent jumping
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setNewProject(prev => ({ ...prev, [e.target.name]: e.target.value }))
-  }
-
-  const handleAddProject = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newProject.title || !newProject.slug) {
-      alert("Title and Slug are required.")
-      return
+  // Handler to add a newly created project to local state
+  const handleProjectAdded = (newProject: Project) => {
+    // Only add to visible projects if user can access this tier
+    if (canAccessTier(userTier, newProject.tier)) {
+      setProjects((prev) => [...prev, newProject])
     }
-
-    try {
-      const supabase = createClerkSupabaseClient({ supabaseAccessToken: token })
-      const { data, error } = await supabase.from('projects').insert([
-        {
-          title: newProject.title,
-          slug: newProject.slug,
-          tags: newProject.tags.split(',').map(tag => tag.trim()), // Convert string to array
-          description: newProject.description,
-          tier: newProject.tier,
-          difficulty: newProject.difficulty
-        }
-      ]).select().single()
-
-      if (error) throw error
-      setProjects(prev => [...prev, data]) // ✅ Instantly update UI
-      setNewProject({ title: '', slug: '', tags: '', description: '', tier: 'free', difficulty: 'beginner' }) // ✅ Reset form
-    } catch (error) {
-      console.error('Failed to add project:', error)
+    
+    // Also add to free projects if it's a free tier project
+    if (newProject.tier === 'free') {
+      setFreeProjects((prev) => [...prev, newProject])
     }
   }
 
@@ -107,70 +209,43 @@ export default function Home() {
         <h1 className="text-xl font-bold">My Projects</h1>
         <div className="flex items-center space-x-4 min-w-[150px] justify-end">
           <SignedIn>
-        <UserButton />
-        <DebugJwt token={token} />
-        <SignOutButton />
+            <UserButton />
+            <DebugJwt token={token} />
+            <SignOutButton />
           </SignedIn>
           <SignedOut>
-        <SignInButton />
+            <SignInButton />
           </SignedOut>
         </div>
       </header>
 
       <SignedIn>
-        {/* ✅ Prevents re-rendering on input */}
-        <form onSubmit={handleAddProject} className="border p-4 rounded-lg shadow-md mb-6">
-          <h2 className="text-lg font-semibold mb-2">Add New Project</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <input 
-              type="text" 
-              name="title" 
-              placeholder="Project Title" 
-              value={newProject.title} 
-              onChange={handleInputChange}
-              className="border p-2 rounded w-full"
-            />
-            <input 
-              type="text" 
-              name="slug" 
-              placeholder="Slug (unique)" 
-              value={newProject.slug} 
-              onChange={handleInputChange}
-              className="border p-2 rounded w-full"
-            />
-            <input 
-              type="text" 
-              name="tags" 
-              placeholder="Tags (comma-separated)" 
-              value={newProject.tags} 
-              onChange={handleInputChange}
-              className="border p-2 rounded w-full"
-            />
-            <textarea 
-              name="description" 
-              placeholder="Project Description" 
-              value={newProject.description} 
-              onChange={handleInputChange}
-              className="border p-2 rounded w-full"
-            />
-            <select name="tier" value={newProject.tier} onChange={handleInputChange} className="border p-2 rounded w-full">
-              <option value="free">Free</option>
-              <option value="pro">Pro</option>
-              <option value="diamond">Diamond</option>
-            </select>
-            <select name="difficulty" value={newProject.difficulty} onChange={handleInputChange} className="border p-2 rounded w-full">
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
-            </select>
+        {profileLoading && <p className="text-center text-gray-600">Loading your subscription tier...</p>}
+        
+        {profileError && (
+          <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-800">
+            <p><strong>Note:</strong> {profileError}</p>
+            <p>Using default 'free' tier access.</p>
           </div>
-          <button type="submit" className="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
-            Add Project
-          </button>
-        </form>
+        )}
 
-        {/* ✅ Project List */}
-        {loading && <p>Loading...</p>}
+        {/* Show user tier information with accessible tiers */}
+        <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-sm text-blue-800">
+            You are on the <span className="font-semibold">{userTier}</span> tier. 
+            You can access: {getAccessibleTiers(userTier).map(tier => (
+              <span key={tier} className="ml-1 px-2 py-0.5 bg-blue-100 rounded-full text-xs">
+                {tier}
+              </span>
+            ))}
+          </p>
+        </div>
+
+        {/* Form as a separate child component */}
+        <AddProjectForm token={token} onProjectAdded={handleProjectAdded} />
+
+        {/* Project List */}
+        {loading && <p>Loading projects...</p>}
         {!loading && projects.length > 0 ? (
           <table className="w-full border-collapse border border-gray-300">
             <thead>
@@ -188,26 +263,72 @@ export default function Home() {
               {projects.map((project) => (
                 <tr key={project.id} className="border">
                   <td className="border p-2">{project.title}</td>
-                  <td className="border p-2">{project.title}</td>
                   <td className="border p-2">{project.slug}</td>
                   <td className="border p-2">{project.tags.join(', ')}</td>
                   <td className="border p-2">{project.description}</td>
-                  <td className="border p-2">{project.tier}</td>
+                  <td className="border p-2">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      project.tier === 'free' ? 'bg-green-100 text-green-800' : 
+                      project.tier === 'pro' ? 'bg-blue-100 text-blue-800' :
+                      project.tier === 'diamond' ? 'bg-purple-100 text-purple-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {project.tier}
+                    </span>
+                  </td>
                   <td className="border p-2">{project.difficulty}</td>
-                  <td className="border p-2">{new Date(project.created_at).toLocaleDateString()}</td>
+                  <td className="border p-2">
+                    {new Date(project.created_at).toLocaleDateString()}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          !loading && <p>No projects found</p>
+          !loading && <p>No projects found for your tier level</p>
         )}
       </SignedIn>
-      
 
+      {/* SignedOut section - unchanged */}
       <SignedOut>
-        <div className="text-center p-4">
-          <h2>Please sign in to view and manage your projects</h2>
+        <div className="p-4">
+          <h2 className="text-xl font-bold mb-4 text-center">Explore Free Projects</h2>
+          <p className="text-gray-600 mb-6 text-center">
+            Sign in to see premium projects and create your own
+          </p>
+          
+          {freeLoading && <p className="text-center">Loading free projects...</p>}
+          
+          {!freeLoading && freeProjects.length > 0 ? (
+            <table className="w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-200">
+                  <th className="border p-2">Title</th>
+                  <th className="border p-2">Description</th>
+                  <th className="border p-2">Difficulty</th>
+                  <th className="border p-2">Tags</th>
+                  <th className="border p-2">Tier</th>
+                </tr>
+              </thead>
+              <tbody>
+                {freeProjects.map((project) => (
+                  <tr key={project.id} className="border hover:bg-gray-50">
+                    <td className="border p-2 font-medium">{project.title}</td>
+                    <td className="border p-2">{project.description}</td>
+                    <td className="border p-2">{project.difficulty}</td>
+                    <td className="border p-2">{project.tags.join(', ')}</td>
+                    <td className="border p-2">
+                      <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
+                        {project.tier}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            !freeLoading && <p className="text-center">No free projects available at the moment</p>
+          )}
         </div>
       </SignedOut>
     </div>
