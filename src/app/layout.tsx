@@ -1,5 +1,6 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import '@/styles/globals.css';
+import { ThemeProvider } from '@/providers/theme-provider';
 
 export const metadata = {
   title: 'Code Details',
@@ -15,7 +16,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ClerkProvider>
-          {children}
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              {children}
+          </ThemeProvider>
         </ClerkProvider>
       </body>
     </html>
