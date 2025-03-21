@@ -27,7 +27,7 @@ function DebugJwt({ token }: { token: string | null }) {
   return (
     <details className="mt-8 border p-4 rounded">
       <summary>Debug JWT (Developer Only)</summary>
-      <div className="mt-2 p-2 bg-gray-100 rounded overflow-auto">
+      <div className="mt-2 p-2 rounded overflow-auto">
         <p><strong>sub claim:</strong> {decodedJwt.sub}</p>
         <p><strong>role:</strong> {decodedJwt.role}</p>
         <pre>{JSON.stringify(decodedJwt, null, 2)}</pre>

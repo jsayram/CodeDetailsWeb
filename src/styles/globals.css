@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
 @tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -18,4 +17,10 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.test-css {
+  color: red;
+  font-size: 20px;
+  @apply bg-blue-500;
 }
