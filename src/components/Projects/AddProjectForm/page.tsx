@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { createClerkSupabaseClient } from '@/services/supabase'
+import { supabaseClient } from '@/services/supabase'
 import { Project } from '@/types'
 
 /**
@@ -39,7 +39,7 @@ export const AddProjectForm = (function AddProjectForm({
         return
       }
       try {
-        const supabase = createClerkSupabaseClient({
+        const supabase = SupabaseClient({
           supabaseAccessToken: token ?? undefined
         })
   

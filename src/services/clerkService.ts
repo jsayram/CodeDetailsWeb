@@ -1,5 +1,5 @@
-import { useSession } from '@clerk/nextjs';
 import { useEffect, useState, useCallback } from 'react';
+import { useSession } from '@clerk/nextjs';
 
 /**
  * Hook to get and manage the Supabase JWT token from Clerk
@@ -9,19 +9,22 @@ export function useSupabaseToken() {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { session } = useSession();
+  const { session, isLoaded } = useSession(); // Use isLoaded
 
   const fetchToken = useCallback(async () => {
-    if (!session) return null;
-    
+    if (!session) {
+      setToken(null); // Explicitly set token to null when no session
+      return null;
+    }
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const newToken = await session.getToken({ template: 'supabase' });
       setToken(newToken);
       return newToken;
-    } catch (err) {
+    } catch (err: any) {
       const error = err instanceof Error ? err : new Error('Unknown error fetching token');
       console.error('Error getting token from Clerk:', error);
       setError(error);
@@ -31,10 +34,12 @@ export function useSupabaseToken() {
     }
   }, [session]);
 
-  // Fetch token on session change
+  // Fetch token on session change, and when session is loaded
   useEffect(() => {
-    fetchToken();
-  }, [fetchToken]);
+    if (isLoaded) { // Only fetch if Clerk is loaded
+      fetchToken();
+    }
+  }, [fetchToken, isLoaded]);
 
   return {
     token,
