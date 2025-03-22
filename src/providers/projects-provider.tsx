@@ -1,3 +1,4 @@
+'use client'
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Project } from '@/types';
 import { getAnonymousClient, getAuthenticatedClient } from '@/services/supabase';
