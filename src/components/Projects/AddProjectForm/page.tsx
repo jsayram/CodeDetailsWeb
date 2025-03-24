@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { supabaseClient } from '@/services/supabase'
+import { getAuthenticatedClient } from '@/services/supabase'
 import { Project } from '@/types'
 
 /**
@@ -39,10 +39,12 @@ export const AddProjectForm = (function AddProjectForm({
         return
       }
       try {
-        const supabase = SupabaseClient({
-          supabaseAccessToken: token ?? undefined
-        })
-  
+        const supabase = getAuthenticatedClient(token);
+        
+        if (!supabase) {
+          throw new Error('Authentication required');
+        }
+
         const { data, error } = await supabase
           .from('projects')
           .insert([

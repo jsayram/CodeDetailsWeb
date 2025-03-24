@@ -1,6 +1,4 @@
 'use client'
-'use client'
-
 // React Core
 import React, { useMemo } from 'react'
 
@@ -13,15 +11,10 @@ import { useSupabaseToken } from '@/services/clerkService'
 import { useUserTier, getAccessibleTiers } from '@/services/tierService'
 
 // Application Components and Pages (Custom) 
-import { DebugJwt } from '@/components/debug/page'
 import { ProjectsProvider } from '@/providers/projects-provider'
 import { AuthenticatedProjectList, FreeProjectList, ProjectForm} from '@/components/Projects'
 
-// Icons
-import { MoonIcon, SunIcon } from "lucide-react"
-
 // UI Components (Tailwind CSS) and shadcn/ui components
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
