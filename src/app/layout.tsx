@@ -1,7 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import '@/styles/globals.css';
 import { ThemeProvider } from '@/providers/theme-provider';
-import Header from '@/components/layout/Header';
+import Header from '@/components/layout/header';
 
 export const metadata = {
   title: 'Code Details',
