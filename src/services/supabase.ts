@@ -11,20 +11,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Use a global variable to store the Supabase client instance
 let supabaseClient: SupabaseClient | null = null;
 
-// Define the type for the function parameters
-interface SupabaseClientConfig {
-  supabaseAccessToken?: string | null; // Make the token nullable
-}
-
 /**
  * Returns a Supabase client, optionally with an authentication token.
  * Uses a single global instance to avoid multiple client initializations.
- * @param {SupabaseClientConfig} config - Optional configuration object with supabaseAccessToken.
+ * @param {string | null} token - Optional JWT token for authentication.
  * @returns {SupabaseClient} - The Supabase client instance.
  */
-const getSupabaseClient = (config: SupabaseClientConfig = {}): SupabaseClient => {
-    const { supabaseAccessToken } = config;
-
+const getSupabaseClient = (token?: string | null): SupabaseClient => {
     // Initialize the client only once if it doesn't exist
     if (!supabaseClient) {
         supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -34,31 +27,24 @@ const getSupabaseClient = (config: SupabaseClientConfig = {}): SupabaseClient =>
             },
         });
     }
-
-    // Update the client's authorization header if a token is provided.
-    // Important: Do this *outside* the initial client creation.  This allows
-    // the client to be re-used for both anonymous and authenticated requests.
-    if (supabaseAccessToken) {
+    // Set or clear the session based on token presence
+    if (token) {
         supabaseClient.auth.setSession({
-            access_token: supabaseAccessToken,
-            refresh_token: '',  //  No refresh token needed for this use case
-            expires_in: 0,
-            token_type: 'Bearer',
-            user: null,
+            access_token: token,
+            refresh_token: '',
         });
     } else {
-        supabaseClient.auth.signOut(); // Ensure we clear any existing session.
+        supabaseClient.auth.signOut();
     }
-
     return supabaseClient;
 };
 
 /**
  * Returns the anonymous Supabase client.
- * @returns {SupabaseClient} -  Supabase client without authentication.
+ * @returns {SupabaseClient} - Supabase client without authentication.
  */
 export function getAnonymousClient(): SupabaseClient {
-  return getSupabaseClient({ supabaseAccessToken: null });
+  return getSupabaseClient(null);
 }
 
 /**
@@ -68,7 +54,7 @@ export function getAnonymousClient(): SupabaseClient {
  */
 export function getAuthenticatedClient(token: string | null): SupabaseClient | null {
     if (!token) {
-        return null; //  Return null, do NOT call getSupabaseClient with null token.
+        return null; // Return null, do NOT call getSupabaseClient with null token.
     }
-    return getSupabaseClient({ supabaseAccessToken: token });
+    return getSupabaseClient(token);
 }
