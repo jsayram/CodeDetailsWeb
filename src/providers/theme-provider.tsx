@@ -1,22 +1,21 @@
-"use client"
+"use client";
 
-import { ThemeProvider as NextThemesProvider } from "next-themes"
-import { type ThemeProviderProps } from "next-themes"
-import { useEffect, useState } from "react"
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { type ThemeProviderProps } from "next-themes";
+import { useEffect, useState } from "react";
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
-  // prevent hydration mismatch
-  const [mounted, setMounted] = useState(false)
+  // Prevent hydration mismatch with SSR
+  const [mounted, setMounted] = useState(false);
 
-  // Only after the component is mounted, we can render the children
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
-  // Return null or a simple placeholder during SSR
+  // Don't render children until mounted to prevent theme flash
   if (!mounted) {
-    return <>{children}</>
+    return <div style={{ visibility: "hidden" }}>{children}</div>;
   }
 
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
