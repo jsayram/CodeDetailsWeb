@@ -14,50 +14,94 @@ async function extractClerkUserData(data: ClerkUserData) {
   const email_address = data.email_addresses?.[0]?.email_address || "";
   const first_name = data.first_name || "Code";
   const last_name = data.last_name || "Minion";
-  const full_name = (data.first_name && data.last_name) 
-                          ? `${data.first_name} ${data.last_name}` 
-                          : `_${data.email_addresses?.[0]?.email_address?.split('@')[0] || "FN_user-"+data.id.substring(5, 15)}`;
-  const username = data.username || data.email_addresses?.[0]?.email_address || "Code_User-"+(data.first_name ? data.first_name.substring(0, 3) : "") + "_" + (data.last_name || data.id.substring(5, 10)); // use email or generate username from first and last name if not provided
+  const full_name =
+    data.first_name && data.last_name
+      ? `${data.first_name} ${data.last_name}`
+      : `_${
+          data.email_addresses?.[0]?.email_address?.split("@")[0] ||
+          "FN_user-" + data.id.substring(5, 15)
+        }`;
+  const username =
+    data.username ||
+    data.email_addresses?.[0]?.email_address ||
+    "Code_User-" +
+      (data.first_name ? data.first_name.substring(0, 3) : "") +
+      "_" +
+      (data.last_name || data.id.substring(5, 10)); // use email or generate username from first and last name if not provided
   // optional metadata
   const role = data.public_metadata?.role || "authenticated";
   const tier = data.public_metadata?.tier || "free";
-  
-  return { user_id, email_address, first_name, last_name, full_name, username, role, tier };
+
+  return {
+    user_id,
+    email_address,
+    first_name,
+    last_name,
+    full_name,
+    username,
+    role,
+    tier,
+  };
 }
 // Handle user.created
 async function handleUserCreated(data: ClerkUserData) {
   // Function to extract user data from Clerk webhook data
-  const { user_id, email_address, first_name, last_name, full_name, username, role, tier } = await extractClerkUserData(data);
-  console.log(`Creating user: ${user_id} in Supabase profiles (no collisions assumed)`);
+  const {
+    user_id,
+    email_address,
+    first_name,
+    last_name,
+    full_name,
+    username,
+    role,
+    tier,
+  } = await extractClerkUserData(data);
+  console.log(
+    `Creating user: ${user_id} in Supabase profiles (no collisions assumed)`
+  );
 
   // Insert without conflict
-  const { error } = await supabaseServer
-    .from("profiles")
-    .insert([
-      {
-        user_id,
-        email_address,
-        first_name,
-        full_name,
-        last_name,
-        role,
-        username,
-        tier,
-      },
-    ]);
+  const { error } = await supabaseServer.from("profiles").insert([
+    {
+      user_id,
+      email_address,
+      first_name,
+      full_name,
+      last_name,
+      role,
+      username,
+      tier,
+    },
+  ]);
 
   if (error) {
     console.error("Supabase insert error (user.created):", error);
-    return NextResponse.json({ error: "Error creating profile" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error creating profile" },
+      { status: 500 }
+    );
   }
-  return NextResponse.json({ message: "User created successfully (no collisions)" });
+  return NextResponse.json({
+    message: "User created successfully (no collisions)",
+  });
 }
 
 // Handle user.updated
 async function handleUserUpdated(data: ClerkUserData) {
-     // 1. Extract fields from the Clerk event
-   const { user_id, email_address, first_name, last_name, full_name, username, role, tier } = await extractClerkUserData(data);
-   console.log(`🔄 Updating user: ${user_id} in Supabase profiles (selective field updates)`);
+  // 1. Extract fields from the Clerk event
+  const {
+    user_id,
+    email_address,
+    first_name,
+    last_name,
+    full_name,
+    username,
+    role,
+    tier,
+  } = await extractClerkUserData(data);
+  console.log(
+    `🔄 Updating user: ${user_id} in Supabase profiles (selective field updates)`
+  );
 
   // 1. Fetch existing record
   const { data: existingProfile, error: fetchError } = await supabaseServer
@@ -66,37 +110,46 @@ async function handleUserUpdated(data: ClerkUserData) {
     .eq("user_id", user_id)
     .single();
 
-   // 2. If the user doesn’t exist (0 rows), fallback to handleUserCreated
-   if (fetchError && fetchError.details?.includes("0 rows")) {
+  // 2. If the user doesn’t exist (0 rows), fallback to handleUserCreated
+  if (fetchError && fetchError.details?.includes("0 rows")) {
     console.warn(" No existing profile found. Fallback to create user.");
-    return await handleUserCreated(data);  // Or any create logic
+    return await handleUserCreated(data); // Or any create logic
   } else if (fetchError) {
     // If another error, bail out
-    console.error(" Could not find existing profile (user.updated):", fetchError);
-    return NextResponse.json({ error: "Profile not found for update" }, { status: 404 });
+    console.error(
+      " Could not find existing profile (user.updated):",
+      fetchError
+    );
+    return NextResponse.json(
+      { error: "Profile not found for update" },
+      { status: 404 }
+    );
   }
 
   // Build an object of only changed fields
   // Define field mappings with validation rules
-const fieldUpdates = [
-  //required fields
-  { key: 'user_id', value: user_id, requireDefined: true },
-  { key: 'email_address', value: email_address, requireDefined: true },
-  { key: 'first_name', value: first_name, requireDefined: true },
-  { key: 'last_name', value: last_name, requireDefined: true },
-  { key: 'full_name', value: full_name, requireDefined: true },
-  { key: 'username', value: username, requireDefined: true },
-  //optional metadata
-  { key: 'role', value: role, requireDefined: false },
-  { key: 'tier', value: tier, requireDefined: false }
-];
+  const fieldUpdates = [
+    //required fields
+    { key: "user_id", value: user_id, requireDefined: true },
+    { key: "email_address", value: email_address, requireDefined: true },
+    { key: "first_name", value: first_name, requireDefined: true },
+    { key: "last_name", value: last_name, requireDefined: true },
+    { key: "full_name", value: full_name, requireDefined: true },
+    { key: "username", value: username, requireDefined: true },
+    //optional metadata
+    { key: "role", value: role, requireDefined: false },
+    { key: "tier", value: tier, requireDefined: false },
+  ];
 
-// Initialize the updatedFields object
-const updatedFields: Record<string, any> = {};
+  // Initialize the updatedFields object
+  const updatedFields: Record<string, any> = {};
 
-// Process all field updates with one loop
+  // Process all field updates with one loop
   fieldUpdates.forEach(({ key, value, requireDefined }) => {
-    if (existingProfile[key] !== value && (!requireDefined || value !== undefined)) {
+    if (
+      existingProfile[key] !== value &&
+      (!requireDefined || value !== undefined)
+    ) {
       updatedFields[key] = value;
     }
   });
@@ -115,15 +168,20 @@ const updatedFields: Record<string, any> = {};
 
   if (updateError) {
     console.error("Supabase update error (user.updated):", updateError);
-    return NextResponse.json({ error: "Error updating profile" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error updating profile" },
+      { status: 500 }
+    );
   }
 
-  return NextResponse.json({ message: "User updated successfully with changed fields" });
+  return NextResponse.json({
+    message: "User updated successfully with changed fields",
+  });
 }
 
 // Handle user.deleted
 async function handleUserDeleted(data: ClerkUserData) {
-  const { id:user_id} = data;
+  const { id: user_id } = data;
 
   console.log(`🗑️ Deleting user: ${user_id} from Supabase profiles`);
 
@@ -133,7 +191,10 @@ async function handleUserDeleted(data: ClerkUserData) {
 
   if (error) {
     console.error("Supabase deletion error:", error);
-    return NextResponse.json({ error: "Error deleting profile" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Error deleting profile" },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ message: "User deleted successfully" });
@@ -143,8 +204,11 @@ async function handleUserDeleted(data: ClerkUserData) {
 export async function POST(req: Request) {
   try {
     const event: WebhookEvent = await req.json();
-    const { type: eventType, data } = event as { type: string; data: ClerkUserData };
-    
+    const { type: eventType, data } = event as {
+      type: string;
+      data: ClerkUserData;
+    };
+
     switch (eventType) {
       case "user.created":
         console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
@@ -164,6 +228,9 @@ export async function POST(req: Request) {
     }
   } catch (error) {
     console.error("Error processing webhook:", error);
-    return NextResponse.json({ error: "Invalid request payload" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request payload" },
+      { status: 400 }
+    );
   }
 }
