@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
-import { TableIcon, GridIcon, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 import { ProjectCard } from "../ProjectCard/page";
 import { Badge } from "@/components/ui/badge";
 import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";

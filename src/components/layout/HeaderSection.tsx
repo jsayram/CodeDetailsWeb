@@ -10,7 +10,6 @@ import {
 } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { DarkModeButton } from "@/components/DarkModeButton/page";
 import { Logo } from "../Logo/page";
 

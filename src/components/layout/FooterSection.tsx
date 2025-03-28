@@ -3,7 +3,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 
 // Import icons
-import { Github, Linkedin, ArrowUp, Mail, Instagram } from "lucide-react";
+import { Github, ArrowUp } from "lucide-react";
 
 export const FooterSection = () => {
   const scrollToTop = () => {

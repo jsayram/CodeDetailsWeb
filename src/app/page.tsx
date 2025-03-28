@@ -15,7 +15,7 @@ export default function Home() {
         <HeaderSection />
         <main className="flex-1">
           {/* Hero Section */}
-          {/* <HeroSection /> */} {/* Hero section Uncommented when ready */}
+          <HeroSection /> {/* Hero section Uncommented when ready */}
           
           {/* Fixed centered Temporary content */}
           <div className="flex flex-col items-center justify-center h-[calc(100vh-250px)] px-4 text-center">

@@ -14,8 +14,6 @@ import { LogIn } from "lucide-react";
 
 export function UserProfileButton() {
   const { user, isLoaded } = useUser();
-  const { signOut } = useClerk();
-  const router = useRouter();
 
   if (!isLoaded) {
     return null; // Only return null if still loading

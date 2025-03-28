@@ -1,7 +1,7 @@
 "use client";
+
 import React, { useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 
@@ -10,20 +10,11 @@ import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 
 // UI Components
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
-// Icons
-import {
-  Search,
-  Code,
-  BrainCircuit,
-  BookOpen,
-  ArrowRight,
-  Rocket,
-} from "lucide-react";
 import { CodeParticlesElement } from "../Elements/CodeParticlesElement";
 import { TextTypingEffectAnimation } from "@/animations/TextTypingEffectAnimation";
 import { TerminalWindowSection } from "./TerminalWindowSection";
+
 export const HeroSection = () => {
   // State for typing animation completion check
   const [typingComplete, setTypingComplete] = useState(false);

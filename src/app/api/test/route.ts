@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { createClerkSupabaseClient } from "@/services/supabase";
+import { getAnonymousClient } from "@/services/supabase";
 
 export async function GET() {
   try {
     console.log("Fetching projects from Supabase...");
 
     // Fetch projects with explicit logging
-    const { data, error, count } = await createClerkSupabaseClient()
+    const { data, error, count } = await getAnonymousClient()
       .from("projects")
       .select("*", { count: "exact" }) // Fetch total count
       .order("id", { ascending: true });

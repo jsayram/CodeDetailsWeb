@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from "react";
 import { getAuthenticatedClient } from "@/services/supabase";
 import { Project } from "@/types";
