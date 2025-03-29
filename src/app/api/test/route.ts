@@ -22,7 +22,9 @@ export async function GET() {
     return NextResponse.json({ data, count });
 
   } catch (err: any) {
-    console.error("Server Error:", err.message);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+     // Type-safe error handling
+     const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+     console.error("Server Error:", errorMessage);
+     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

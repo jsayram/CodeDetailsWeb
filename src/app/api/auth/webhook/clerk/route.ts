@@ -142,7 +142,8 @@ async function handleUserUpdated(data: ClerkUserData) {
   ];
 
   // Initialize the updatedFields object
-  const updatedFields: Record<string, any> = {};
+  type ProfileFieldValue = string | number | boolean | null | undefined;
+  const updatedFields: Record<string, ProfileFieldValue> = {};
 
   // Process all field updates with one loop
   fieldUpdates.forEach(({ key, value, requireDefined }) => {

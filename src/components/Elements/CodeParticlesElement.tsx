@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
+import { useIsBrowser, ClientOnly } from "@/utils/ClientSideUtils";
 
 // Enhanced interface with more customization options
 interface CodeParticlesProps {
@@ -32,13 +33,15 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
 }) => {
   // Get current theme once - use resolvedTheme for the actual applied theme
   const { resolvedTheme } = useTheme();
+  // Check if we're in a browser environment
+  const isBrowser = useIsBrowser();
 
   // Determine if we're in light mode
   const isLightMode = useMemo(() => resolvedTheme === "light", [resolvedTheme]);
-
+  
   // Light mode has higher opacity for better visibility
   const currentOpacityRange = useMemo(
-    () => (isLightMode ? [0.5, 0.9] : opacityRange),
+    () => (isLightMode ? [0.2, 1] : opacityRange),
     [isLightMode, opacityRange]
   );
 
@@ -319,6 +322,9 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
   // Generate particles - this is the most important part to memoize!
   // We use a seed to ensure particles don't regenerate on theme change
   const particles = useMemo(() => {
+    // Return empty array during server-side rendering
+    if (!isBrowser) return [];
+    
     // Determine number of particles
     const particleCount = {
       low: 10,
@@ -400,6 +406,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
     baseSpeedFactor,
     baseSizeClasses,
     codeSymbols.length,
+    isBrowser
   ]);
 
   return (
@@ -407,6 +414,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
       className={`absolute inset-0 overflow-hidden ${containerClassName}`}
       aria-hidden="true"
     >
+      <ClientOnly>
       {particles.map((particle) => {
         // Look up the current symbol with current colors
         const symbol = codeSymbols[particle.symbolIndex];
@@ -449,6 +457,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
           </motion.div>
         );
       })}
+      </ClientOnly>
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { ProjectCard } from "../ProjectCard/page";
 import { Badge } from "@/components/ui/badge";
 import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
 import { PaginatedControls } from "@/components/PaginatedControls/page";
+import { FormattedDate } from "@/utils/FormattedDate";
 
 interface ProjectListProps {
   projectType?: "free" | "authenticated";
@@ -183,8 +184,13 @@ export function ProjectList({
                     {project.difficulty}
                   </td>
                   <td className="border p-2" data-label="Created">
-                    {project.created_at &&
-                      new Date(project.created_at).toLocaleDateString()}
+                    {project.created_at && (
+                      <FormattedDate
+                        date={project.created_at}
+                        format="date"
+                        fallback="N/A"
+                      />
+                    )}
                   </td>
                   <td className="border p-2" data-label="Actions">
                     <div className="flex gap-2">

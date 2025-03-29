@@ -6,7 +6,7 @@ import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useIsBrowser, getClientSideValue } from "@/utils/ClientSideUtils";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -606,10 +607,15 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean;
 }) {
+  const { isBrowser } = useIsBrowser();
   // Random width between 50 to 90%.
+  // Generate random width between 50% and 90% only on client side
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
-  }, []);
+    return getClientSideValue(
+      () => `${Math.floor(Math.random() * 40) + 50}%`,
+      "70%" // Use consistent default for server rendering
+    );
+  }, [isBrowser]); // Re-compute when browser state changes
 
   return (
     <div

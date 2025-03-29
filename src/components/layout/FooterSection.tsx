@@ -11,7 +11,7 @@ export const FooterSection = () => {
   };
 
   return (
-    <footer className="border-t border-border/40 pt-10 pb-8 bg-gradient-to-b from-background to-muted/5">
+    <footer className="pt-10 pb-8 bg-gradient-to-b from-background to-muted/5">
       {/* Main container - Make it a flex container */}
       <div className="container px-2 flex flex-col items-center">
         {/* Newsletter Column - Already centered with items-center */}
