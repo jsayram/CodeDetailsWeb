@@ -30,7 +30,7 @@ export function getAccessibleTiers(userTier: string): string[] {
   const userLevel =
     TIER_LEVELS[isValidTier(userTier) ? (userTier as ValidTier) : "free"];
   return Object.entries(TIER_LEVELS)
-    .filter(([_, level]) => level <= userLevel)
+    .filter(([, level]) => level <= userLevel)
     .map(([tier]) => tier);
 }
 
@@ -92,7 +92,7 @@ export function useUserTier(
         );
         setUserTier("free");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error("Failed to fetch user tier:", errorMessage);
       setError(`Failed to fetch tier: ${errorMessage}`);

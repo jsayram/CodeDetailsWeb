@@ -19,7 +19,7 @@ import {
 import React, { useMemo, useState } from "react";
 
 // Authentication (Clerk)
-import { SignedIn, SignedOut, SignIn, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 
 // Custom Services
 import { getAuthenticatedClient } from "@/services/supabase";
@@ -131,7 +131,7 @@ export default function DashBoard() {
                           <AlertTitle>Note</AlertTitle>
                           <AlertDescription>
                             <p>{profileError}</p>
-                            <p>Using default 'free' tier access.</p>
+                            <p>Using default &apos;free&apos; tier access.</p>
                           </AlertDescription>
                         </Alert>
                       )}

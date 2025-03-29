@@ -3,7 +3,6 @@ import Link from "next/link";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { TextTypingEffectAnimation } from "@/animations/TextTypingEffectAnimation";
 import {
-  useIsBrowser,
   ClientOnly,
   getClientSideValue,
 } from "@/utils/ClientSideUtils";
@@ -69,7 +68,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
 }) => {
   // Get the user info if not provided as prop
   const { user: clerkUser } = useUser();
-  const isBrowser = useIsBrowser();
+  
 
   // Handle Clerk user email address properly
   const userEmail =

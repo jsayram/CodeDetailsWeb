@@ -4,16 +4,12 @@ import {
   SignedIn,
   SignedOut,
   SignInButton,
-  useUser,
-  UserButton,
   SignOutButton,
 } from "@clerk/nextjs";
 import {
   BookOpen,
   Bot,
-  ChevronsUpDown,
   Code,
-  Command,
   Database,
   FileCode,
   Frame,
@@ -25,13 +21,11 @@ import {
   Settings2,
   Smartphone,
   SquareTerminal,
-  User,
 } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavSecondary } from "@/components/sidebar/nav-secondary";
-import { NavUser } from "@/components/sidebar/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -220,20 +214,6 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, isLoaded } = useUser();
-
-  const userData = user
-    ? {
-        name: user.fullName || user.username || "User",
-        email: user.primaryEmailAddress?.emailAddress || "",
-        avatar: user.imageUrl || "",
-      }
-    : {
-        name: "Guest",
-        email: "Not signed in",
-        avatar: "",
-      };
-
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>

@@ -21,7 +21,7 @@ export async function GET() {
 
     return NextResponse.json({ data, count });
 
-  } catch (err: any) {
+  } catch (err: unknown) {
      // Type-safe error handling
      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
      console.error("Server Error:", errorMessage);

@@ -38,7 +38,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
 
   // Determine if we're in light mode
   const isLightMode = useMemo(() => resolvedTheme === "light", [resolvedTheme]);
-  
+
   // Light mode has higher opacity for better visibility
   const currentOpacityRange = useMemo(
     () => (isLightMode ? [0.2, 1] : opacityRange),
@@ -324,7 +324,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
   const particles = useMemo(() => {
     // Return empty array during server-side rendering
     if (!isBrowser) return [];
-    
+
     // Determine number of particles
     const particleCount = {
       low: 10,
@@ -405,8 +405,8 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
     depth,
     baseSpeedFactor,
     baseSizeClasses,
-    codeSymbols.length,
-    isBrowser
+    isBrowser,
+    codeSymbols,
   ]);
 
   return (
@@ -415,48 +415,50 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
       aria-hidden="true"
     >
       <ClientOnly>
-      {particles.map((particle) => {
-        // Look up the current symbol with current colors
-        const symbol = codeSymbols[particle.symbolIndex];
+        {particles.map((particle) => {
+          // Look up the current symbol with current colors
+          const symbol = codeSymbols[particle.symbolIndex];
 
-        return (
-          <motion.div
-            key={particle.id}
-            className={`absolute font-mono ${
-              symbol.color || colors.foreground
-            } ${particle.sizeClass} pointer-events-none select-none`}
-            style={{
-              top: particle.top,
-              left: particle.left,
-              zIndex: particle.zIndex,
-              // Enhanced visibility for light mode
-              textShadow: isLightMode
-                ? "0 0 2px rgba(0,0,0,0.3)"
-                : "0 0 1px rgba(0,0,0,0.2)",
-              filter: symbol.symbol.includes("emoji") ? "none" : "blur(0.2px)",
-            }}
-            animate={{
-              y: [0, particle.yMovement, 0],
-              x: [0, particle.xMovement, 0],
-              opacity: [
-                currentOpacityRange[0],
-                currentOpacityRange[1],
-                currentOpacityRange[0],
-              ],
-              rotate: particle.rotate,
-              scale: particle.scale,
-            }}
-            transition={{
-              duration: particle.duration,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: particle.delay,
-            }}
-          >
-            {symbol.symbol}
-          </motion.div>
-        );
-      })}
+          return (
+            <motion.div
+              key={particle.id}
+              className={`absolute font-mono ${
+                symbol.color || colors.foreground
+              } ${particle.sizeClass} pointer-events-none select-none`}
+              style={{
+                top: particle.top,
+                left: particle.left,
+                zIndex: particle.zIndex,
+                // Enhanced visibility for light mode
+                textShadow: isLightMode
+                  ? "0 0 2px rgba(0,0,0,0.3)"
+                  : "0 0 1px rgba(0,0,0,0.2)",
+                filter: symbol.symbol.includes("emoji")
+                  ? "none"
+                  : "blur(0.2px)",
+              }}
+              animate={{
+                y: [0, particle.yMovement, 0],
+                x: [0, particle.xMovement, 0],
+                opacity: [
+                  currentOpacityRange[0],
+                  currentOpacityRange[1],
+                  currentOpacityRange[0],
+                ],
+                rotate: particle.rotate,
+                scale: particle.scale,
+              }}
+              transition={{
+                duration: particle.duration,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: particle.delay,
+              }}
+            >
+              {symbol.symbol}
+            </motion.div>
+          );
+        })}
       </ClientOnly>
     </div>
   );

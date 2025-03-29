@@ -3,12 +3,10 @@
 import {
   UserButton,
   useUser,
-  useClerk,
   SignedIn,
   SignedOut,
   SignInButton,
 } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
 import { Button } from "../ui/button";
 import { LogIn } from "lucide-react";
 

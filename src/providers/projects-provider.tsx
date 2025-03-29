@@ -17,7 +17,6 @@ import {
 import { canAccessTier } from "@/services/tierService";
 import { useIsBrowser, getClientSideValue } from "@/utils/ClientSideUtils";
 
-
 // Cache constants
 const FREE_PROJECTS_CACHE_KEY = "cached_free_projects";
 const CACHE_EXPIRY_KEY = "free_projects_cache_expiry";
@@ -99,7 +98,7 @@ export function ProjectsProvider({
 
   // Helper function to load cached free projects
   const loadCachedFreeProjects = useCallback(() => {
-    if(!isBrowser) return null;
+    if (!isBrowser) return null;
 
     // Check if localStorage is available
     try {
@@ -131,30 +130,40 @@ export function ProjectsProvider({
   }, [isBrowser]);
 
   // Helper function to save free projects to cache
-  const cacheFreeProjects = useCallback((projectsToCache: Project[]) => {
-    if(!isBrowser) return;
+  const cacheFreeProjects = useCallback(
+    (projectsToCache: Project[]) => {
+      if (!isBrowser) return;
 
-    try {
-      // Only use Date.now() on client to prevent SSR issues and hydration errors
-      const expiryTime = getClientSideValue(() => Date.now(), 0) + CACHE_DURATION;
-    
-      localStorage.setItem(
-        FREE_PROJECTS_CACHE_KEY,
-        JSON.stringify(projectsToCache)
-      );
-      localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
-      localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
-      // Only use Date.now() on client to prevent SSR issues and hydration errors
-      localStorage.setItem(CACHE_LAST_UPDATED_KEY, getClientSideValue(() => Date.now(), 0).toString());
-      console.log(
-        "💾 Free projects cached until",
-        // hydration error fix always wrap date in getClientSideValue
-        getClientSideValue(() => new Date(expiryTime).toLocaleTimeString(), "[Time will display client-side]")
-      );
-    } catch (error) {
-      console.error("Error caching free projects:", error);
-    }
-  }, [isBrowser]);
+      try {
+        // Only use Date.now() on client to prevent SSR issues and hydration errors
+        const expiryTime =
+          getClientSideValue(() => Date.now(), 0) + CACHE_DURATION;
+
+        localStorage.setItem(
+          FREE_PROJECTS_CACHE_KEY,
+          JSON.stringify(projectsToCache)
+        );
+        localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
+        localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+        // Only use Date.now() on client to prevent SSR issues and hydration errors
+        localStorage.setItem(
+          CACHE_LAST_UPDATED_KEY,
+          getClientSideValue(() => Date.now(), 0).toString()
+        );
+        console.log(
+          "💾 Free projects cached until",
+          // hydration error fix always wrap date in getClientSideValue
+          getClientSideValue(
+            () => new Date(expiryTime).toLocaleTimeString(),
+            "[Time will display client-side]"
+          )
+        );
+      } catch (error) {
+        console.error("Error caching free projects:", error);
+      }
+    },
+    [isBrowser]
+  );
 
   // Function to check for data updates in the background
   const checkForDataUpdates = useCallback(async () => {
@@ -169,8 +178,9 @@ export function ProjectsProvider({
       const lastUpdated = localStorage.getItem(CACHE_LAST_UPDATED_KEY);
       if (!lastUpdated) return;
 
-       //Only use Date.now() on client to prevent SSR issues and hydration errors
-      const cacheAge = getClientSideValue(() => Date.now(), 0) - parseInt(lastUpdated);
+      //Only use Date.now() on client to prevent SSR issues and hydration errors
+      const cacheAge =
+        getClientSideValue(() => Date.now(), 0) - parseInt(lastUpdated);
 
       // Only check for updates if cache is older than the background refresh interval
       if (cacheAge < BACKGROUND_REFRESH_INTERVAL) return;
@@ -192,7 +202,10 @@ export function ProjectsProvider({
       } else {
         // Update the last checked time even if no changes
         // Only use Date.now() on client to prevent SSR issues and hydration errors
-        localStorage.setItem(CACHE_LAST_UPDATED_KEY, getClientSideValue(() => Date.now(), 0).toString());
+        localStorage.setItem(
+          CACHE_LAST_UPDATED_KEY,
+          getClientSideValue(() => Date.now(), 0).toString()
+        );
         console.log("✅ Free projects are up to date");
       }
     } catch (error) {
@@ -485,7 +498,7 @@ export function ProjectsProvider({
     setFreeLoading(true);
 
     // Clear cache when manually refreshing
-    if (isBrowser){
+    if (isBrowser) {
       localStorage.removeItem(FREE_PROJECTS_CACHE_KEY);
       localStorage.removeItem(CACHE_EXPIRY_KEY);
       localStorage.removeItem(CACHE_VERSION_KEY);

@@ -6,7 +6,7 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react";
-import { useClerk, useAuth } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,7 +37,6 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar();
   const { signOut } = useClerk();
-  const { userId } = useAuth();
   const router = useRouter();
 
   const handleSignOut = async () => {

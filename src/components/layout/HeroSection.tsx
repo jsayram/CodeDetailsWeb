@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 
 // Authentication (Clerk)
-import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
+import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,6 @@ import { TerminalWindowSection } from "./TerminalWindowSection";
 
 export const HeroSection = () => {
   // State for typing animation completion check
-  const [typingComplete, setTypingComplete] = useState(false);
   const animationRef = useRef(null);
   const { user } = useUser();
 
@@ -90,7 +89,7 @@ export const HeroSection = () => {
               
                               md:w-[700px] md:ml-50 md:-mt-15 md:mr-120
                               
-                              lg:ml-100 lg:w-[1000px] lg:mt-30 max-w-[100%] lg:mr-200
+                              lg:ml-60 lg:w-[1000px] lg:mt-30 max-w-[100%] lg:mr-200
                               xl:-mt-20 xl:ml-120 xl:w-[80%]
                               "
                     src="/images/mascot.png"
@@ -118,7 +117,7 @@ export const HeroSection = () => {
             <div className="w-full h-[80px]">
               <div
                 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-medium tracking-tight
-                    sm:-ml-20 
+                    sm:-ml-20
                     lg:ml-70 lg:-mr-100 lg:-mt-10
                     text-center lg:text-left"
                 ref={animationRef}
@@ -131,8 +130,7 @@ export const HeroSection = () => {
                       duration: 0.7,
                       ease: [0.25, 0.1, 0.25, 1.0],
                     }}
-                    className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-400"
-                    onAnimationComplete={() => setTypingComplete(true)}
+                    className="lg:p-2 md:ml-10  lg:-ml-40   lg: xl:ml-30 bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-400"
                   >
                     ...because the magic is in the
                   </motion.div>
@@ -179,7 +177,7 @@ export const HeroSection = () => {
                       xl:ml-200 xl:-mr-300"
                 >
                   <SignedOut>
-                    <h1 className="text-4xl lg:text-7xl xl:text-7xl xl:mt-10 xl:-ml-45 text-center lg:text-left bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-600 font-black">
+                    <h1 className="text-3xl md:text-6xl lg:-ml-150 xl:-ml-200 lg:mt-10 xl:text-7xl xl:mt-10 text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-600 font-black">
                       {"{ Details }"}
                     </h1>
                   </SignedOut>
@@ -190,10 +188,10 @@ export const HeroSection = () => {
             <div
               className="p-1 w-full mb-20 mt-10 
                         sm:max-w-[630px] sm:ml-10
-                        md:max-w-fit
+                        md:max-w-dvh 
                         lg:ml-20 lg:max-w-[900px] lg:min-w-[800px] lg:-mr-30
-                        min-h-[300px]
-                        xl:ml-20
+                        min-h-[300px] pb-20
+                        xl:ml-50
                         shadow-xl rounded-lg overflow-hidden
                         backdrop-filter backdrop-blur-none"
             >
@@ -219,27 +217,27 @@ export const HeroSection = () => {
                     label: "git push -f origin main:prod # friday 5pm",
                     clickable: false,
                     className: "text-xl font-medium cursor-text text-gray-400",
-                    visibleOn: ['mobile','md', 'lg', 'xl', '2xl'],
+                    visibleOn: ["mobile", "md", "lg", "xl", "2xl"],
                   },
                   {
                     href: "#",
-                    label: "git commit -m 'Fix bugs that never existed'", 
+                    label: "git commit -m 'Fix bugs that never existed'",
                     clickable: false,
                     className: "text-xl font-medium cursor-text text-gray-400",
-                    visibleOn: ['sm','lg', 'xl', '2xl'],
+                    visibleOn: ["sm", "lg", "xl", "2xl"],
                   },
                   {
                     href: "#",
-                    label: "docker run --rm -d my-responsibilities", 
+                    label: "docker run --rm -d my-responsibilities",
                     clickable: false,
                     className: "text-xl font-medium cursor-text text-gray-400",
-                    visibleOn: ['lg', 'xl', '2xl'],
+                    visibleOn: ["lg", "xl", "2xl"],
                   },
                   {
                     href: "#",
                     label: "npm i --s caffeine patience stackoverflow",
                     clickable: false,
-                    visibleOn: ['lg', 'xl', '2xl'],
+                    visibleOn: ["lg", "xl", "2xl"],
                     className: "text-xl font-medium cursor-text",
                   },
 
@@ -248,21 +246,21 @@ export const HeroSection = () => {
                     href: "/learn",
                     label: "Learn",
                     clickable: true,
-                    visibleOn: 'all'  // Default if not specified
+                    visibleOn: "all", // Default if not specified
                   },
                   // Implement section - CLICKABLE
                   {
                     href: "/implement",
                     label: "Implement",
                     clickable: true,
-                    visibleOn: 'all'  // Default if not specified
+                    visibleOn: "all", // Default if not specified
                   },
                   // Deploy section - CLICKABLE
                   {
                     href: "/deploy",
                     label: "Deploy",
                     clickable: true,
-                    visibleOn: 'all'  // Default if not specified
+                    visibleOn: "all", // Default if not specified
                   },
                 ]}
               />
@@ -277,26 +275,31 @@ export const HeroSection = () => {
                 <div
                   className="p-1 font-black text-center
                   w-[50%] xl:w-[80%]
-             -mt-20 ml-4 mr-35 text-2xl 
-             sm:ml-10 sm:mr-10 sm:-mt-15
-             sm:font-medium lg:w-[90%]
-             md:ml-20 md:mr-20 md:-mt-15 md:text-5xl
-             lg:text-7xl lg:-mr-40
-             xl:text-6xl 
-             xl:ml-50 xl:-mr-50
-             bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-400
-              backdrop-blur-[5px] bg-background/30 rounded-lg "
+                  -mt-35 ml-4 mr-35 text-2xl 
+                  sm:ml-10 sm:mr-10 sm:-mt-15
+                  sm:font-medium lg:w-[90%] 
+                  md:ml-15 md:mr-20 md:-mt-20 md:text-5xl
+                  lg:text-6xl lg:-mr-40
+                  xl:text-6xl 
+                  xl:ml-50 xl:-mr-50
+                  bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-400
+                    backdrop-blur-[5px] bg-background/30 rounded-lg "
                 >
                   <SignedOut>
                     <p>{"Welcome"}</p>
                     <p className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-400">
                       {user?.fullName || "Code Minion!"}
                     </p>
-                    <p>{"Let's get started!"}<span className="text-3xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-300"> ✨</span></p>
-
+                    <p>
+                      {"Let's get started!"}
+                      <span className="text-3xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-amber-300">
+                        {" "}
+                        ✨
+                      </span>
+                    </p>
                   </SignedOut>
                   <SignedIn>
-                    <div>
+                    <div className="flex flex-col items-center :-pt-30">
                       <p>{"Welcome"}</p>
                       <p className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-400">
                         {user?.fullName + "!" || "Code Minion!"}

@@ -1,11 +1,11 @@
+"use client";
 import React, { useState } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
-import { Heart } from "lucide-react";
+import { GridIcon, Heart, TableIcon } from "lucide-react";
 import { ProjectCard } from "../ProjectCard/page";
 import { Badge } from "@/components/ui/badge";
 import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
-import { PaginatedControls } from "@/components/PaginatedControls/page";
 import { FormattedDate } from "@/utils/FormattedDate";
 
 interface ProjectListProps {
@@ -69,7 +69,7 @@ export function ProjectList({
   return (
     <div>
       {/* View toggle buttons */}
-      {/* <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4">
         <div className="flex rounded-md overflow-hidden">
           <Button
             variant={viewMode === 'card' ? 'default' : 'outline'}
@@ -90,7 +90,7 @@ export function ProjectList({
             Table
           </Button>
         </div>
-      </div> */}
+      </div>
 
       {/* Empty page message */}
       {displayProjects.length === 0 && (

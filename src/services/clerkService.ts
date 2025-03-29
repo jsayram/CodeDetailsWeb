@@ -24,7 +24,7 @@ export function useSupabaseToken() {
       const newToken = await session.getToken({ template: "supabase" });
       setToken(newToken);
       return newToken;
-    } catch (err: any) {
+    } catch (err: unknown) {
       const error =
         err instanceof Error ? err : new Error("Unknown error fetching token");
       console.error("Error getting token from Clerk:", error);

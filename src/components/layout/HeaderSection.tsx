@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, memo } from "react";
+import React, { useState } from "react";
 import {
   SignedIn,
   SignedOut,

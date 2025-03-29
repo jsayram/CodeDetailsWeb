@@ -1,10 +1,10 @@
+"use client";
 import { useEffect, useState } from "react";
-import { 
-  isClient, 
-  getClientSideValue, 
-  useClientEffect, 
-  useIsBrowser 
-} from './ClientSideUtils';
+import {
+  getClientSideValue,
+  useClientEffect,
+  useIsBrowser,
+} from "./ClientSideUtils";
 
 /**
  * Determines if the user's system is set to dark mode preference.
@@ -59,15 +59,17 @@ export function useSystemDarkModeListener(
   useClientEffect(() => {
     try {
       const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      
+
       // Set up listener based on browser support
       const changeHandler = (e: MediaQueryListEvent) => {
         console.log(
-          `System theme preference changed to: ${e.matches ? "dark" : "light"} mode`
+          `System theme preference changed to: ${
+            e.matches ? "dark" : "light"
+          } mode`
         );
         onChange(e.matches);
       };
-      
+
       if (typeof darkModeQuery.addEventListener === "function") {
         // Modern browsers
         darkModeQuery.addEventListener("change", changeHandler);
@@ -90,17 +92,17 @@ export function useSystemDarkModeListener(
 export function useSystemDarkMode(): boolean {
   const isBrowser = useIsBrowser();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  
+
   // Initialize on mount
   useEffect(() => {
     if (isBrowser) {
       setIsDarkMode(isSystemDarkMode());
     }
   }, [isBrowser]);
-  
+
   // Set up listener for changes
   useSystemDarkModeListener(setIsDarkMode);
-  
+
   return isDarkMode;
 }
 
@@ -147,12 +149,16 @@ export function useThemeManager(
 ): [string, (theme: string) => void, "dark" | "light"] {
   const [theme, setTheme] = useState(initialTheme);
   const systemIsDark = useSystemDarkMode();
-  
+
   // Calculate effective theme (what's actually applied)
-  const effectiveTheme: "dark" | "light" = 
-    theme === "dark" ? "dark" :
-    theme === "light" ? "light" :
-    systemIsDark ? "dark" : "light";
-  
+  const effectiveTheme: "dark" | "light" =
+    theme === "dark"
+      ? "dark"
+      : theme === "light"
+      ? "light"
+      : systemIsDark
+      ? "dark"
+      : "light";
+
   return [theme, setTheme, effectiveTheme];
 }
