@@ -91,7 +91,8 @@ export function useSystemDarkModeListener(
  */
 export function useSystemDarkMode(): boolean {
   const isBrowser = useIsBrowser();
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Default to false during server-side rendering
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   // Initialize on mount
   useEffect(() => {
@@ -149,16 +150,15 @@ export function useThemeManager(
 ): [string, (theme: string) => void, "dark" | "light"] {
   const [theme, setTheme] = useState(initialTheme);
   const systemIsDark = useSystemDarkMode();
-
+  
   // Calculate effective theme (what's actually applied)
-  const effectiveTheme: "dark" | "light" =
-    theme === "dark"
-      ? "dark"
-      : theme === "light"
-      ? "light"
-      : systemIsDark
-      ? "dark"
-      : "light";
+  const effectiveTheme: "dark" | "light" = theme === "dark" 
+    ? "dark" 
+    : theme === "light" 
+      ? "light" 
+      : systemIsDark 
+        ? "dark" 
+        : "light";
 
   return [theme, setTheme, effectiveTheme];
 }
