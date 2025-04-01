@@ -3,7 +3,15 @@ import { useState, useEffect } from 'react';
 
 // component definitions
 function DebugJwt({ token }: { token: string | null }) {
-  const [decodedJwt, setDecodedJwt] = useState<any>(null)
+  interface JwtPayload {
+    sub?: string;
+    role?: string;
+    exp?: number;
+    iat?: number;
+    error?: string;
+  }
+  
+  const [decodedJwt, setDecodedJwt] = useState<JwtPayload | null>(null);
   
   useEffect(() => {
     if (!token) return

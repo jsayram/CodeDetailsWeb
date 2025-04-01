@@ -1,11 +1,12 @@
+"use client";
 import React, { useState } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
-import { TableIcon, GridIcon, Heart } from "lucide-react";
+import { GridIcon, Heart, TableIcon } from "lucide-react";
 import { ProjectCard } from "../ProjectCard/page";
 import { Badge } from "@/components/ui/badge";
 import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
-import { PaginatedControls } from "@/components/PaginatedControls/page";
+import { FormattedDate } from "@/utils/FormattedDate";
 
 interface ProjectListProps {
   projectType?: "free" | "authenticated";
@@ -68,7 +69,7 @@ export function ProjectList({
   return (
     <div>
       {/* View toggle buttons */}
-      {/* <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-4">
         <div className="flex rounded-md overflow-hidden">
           <Button
             variant={viewMode === 'card' ? 'default' : 'outline'}
@@ -89,7 +90,7 @@ export function ProjectList({
             Table
           </Button>
         </div>
-      </div> */}
+      </div>
 
       {/* Empty page message */}
       {displayProjects.length === 0 && (
@@ -183,8 +184,13 @@ export function ProjectList({
                     {project.difficulty}
                   </td>
                   <td className="border p-2" data-label="Created">
-                    {project.created_at &&
-                      new Date(project.created_at).toLocaleDateString()}
+                    {project.created_at && (
+                      <FormattedDate
+                        date={project.created_at}
+                        format="date"
+                        fallback="N/A"
+                      />
+                    )}
                   </td>
                   <td className="border p-2" data-label="Actions">
                     <div className="flex gap-2">

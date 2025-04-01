@@ -1,7 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import "@/styles/globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
-import Header from "@/components/layout/header";
 
 export const metadata = {
   title: "Code Details",
@@ -14,18 +13,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col">
+    <html lang="en">
+      <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
+      </head>
+      <body className="overflow-x-hidden">
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {/* Fixed height header to prevent shifts */}
-            <Header />
             {/* Main content with centered container and responsive padding */}
-            <main className="flex-grow">
-              <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-                {children}
-              </div>
-            </main>
+            <div className="max-w-[100vw] overflow-x-hidden">{children}</div>
           </ThemeProvider>
         </ClerkProvider>
       </body>
