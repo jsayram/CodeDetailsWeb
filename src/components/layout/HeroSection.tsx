@@ -63,14 +63,14 @@ export const HeroSection = () => {
               <div className="absolute inset-0 z-0 -m-50">
                 <CodeParticlesElement
                   quantity="ultra"
-                  speed="variable"
-                  size="mixed"
+                  speed="fast"
+                  size="large"
                   includeEmojis={true}
                   includeKeywords={true}
                   includeSymbols={true}
                   syntaxHighlight="vscode"
                   depth="layered"
-                  opacityRange={[0.01, 0.3]}
+                  opacityRange={[0.1, 0.3]}     
                 />
               </div>
 
@@ -192,7 +192,7 @@ export const HeroSection = () => {
                         lg:ml-20 lg:max-w-[900px] lg:min-w-[800px] lg:-mr-30
                         min-h-[300px] pb-20
                         xl:ml-50
-                        shadow-xl rounded-lg overflow-hidden
+                        rounded-lg overflow-hidden
                         backdrop-filter backdrop-blur-none"
             >
               <TerminalWindowSection
