@@ -147,7 +147,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
         <SignedOut>
           {/* Show sign in message for unauthenticated users */}
           <div className="space-y-4">
-            <div className="text-gray-500 mb-3">{unauthenticatedMessage}</div>
+            <div className="text-red-500 mb-3">{unauthenticatedMessage}</div>
 
             <div className="relative group">
               <div className="flex items-center">
@@ -176,7 +176,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
         <SignedIn>
           {/* Show greeting with user's name if available */}
           <div className="text-fuchsia-400 mb-3 font-medium">
-            {`Hello ${userName}! ${authenticatedMessage}`}
+            {`${authenticatedMessage}, ${userName}!`}
           </div>
 
           {/* Links styled as terminal commands */}
