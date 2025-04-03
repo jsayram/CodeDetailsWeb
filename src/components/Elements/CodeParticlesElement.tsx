@@ -16,6 +16,7 @@ interface CodeParticlesProps {
   syntaxHighlight?: "vscode" | "dark" | "light" | "vibrant";
   depth?: "flat" | "layered";
   opacityRange?: [number, number];
+  lightModeOpacityRange?: [number, number];
 }
 
 export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
@@ -30,6 +31,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
   syntaxHighlight = "vscode",
   depth = "layered",
   opacityRange = [0.3, 0.7],
+  lightModeOpacityRange = [0.5, 1],
 }) => {
   // Get current theme once - use resolvedTheme for the actual applied theme
   const { resolvedTheme } = useTheme();
@@ -41,8 +43,8 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
 
   // Light mode has higher opacity for better visibility
   const currentOpacityRange = useMemo(
-    () => (isLightMode ? [0.2, 1] : opacityRange),
-    [isLightMode, opacityRange]
+    () => (isLightMode ? lightModeOpacityRange : opacityRange),
+    [isLightMode, opacityRange, lightModeOpacityRange]
   );
 
   // Define color schemes with light and dark variants
@@ -411,7 +413,7 @@ export const CodeParticlesElement: React.FC<CodeParticlesProps> = ({
 
   return (
     <div
-      className={`absolute inset-0 overflow-hidden ${containerClassName}`}
+      className={`absolute inset-0 z-0 overflow-hidden ${containerClassName}`}
       aria-hidden="true"
     >
       <ClientOnly>

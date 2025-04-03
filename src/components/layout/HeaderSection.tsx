@@ -8,17 +8,16 @@ import {
   SignOutButton,
   UserButton,
 } from "@clerk/nextjs";
-import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DarkModeButton } from "@/components/DarkModeButton/page";
 import { Logo } from "../Logo/page";
 
 export function HeaderSection() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const showDebug = process.env.NODE_ENV === "development";
 
   return (
-    <header className="sticky mt-4 mb-4 top-0 bottom-4 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 ml-4 mr-4">
+    <header className="sticky top-0 bottom-4 z-50 border-b bg-transparent mx-7 my-4">
       <div className="container mx-auto py-4 md:py-3">
         {/* Fixed top bar that won't be affected by transitions */}
         <div className="flex items-center justify-between">
@@ -26,7 +25,7 @@ export function HeaderSection() {
           <div className="flex items-center hover:scale-102 z-20 transition-transform ">
             <Logo
               size="md"
-              className="font-bold bg-clip-text text-transparent bg-gradient-to-r  from-indigo-300 to-primary mx-auto text-center"
+              className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 to-primary mx-auto text-center"
               showText={true}
               showTagline={false}
               href="/"
@@ -36,11 +35,11 @@ export function HeaderSection() {
             />
           </div>
           {/* Mobile controls */}
-          <div className="flex items-center space-x-3 md:hidden z-5">
-            {/* Mobile dark mode toggle */}
+          {/* <div className="flex items-center space-x-3 md:hidden z-5">
+            
             <DarkModeButton isMobile={true} />
 
-            {/* Mobile menu button */}
+           
             <button
               className="p-2 rounded-md hover:bg-muted/10 transition-colors h-10 w-10 flex items-center justify-center"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -48,17 +47,22 @@ export function HeaderSection() {
             >
               <Menu className="h-6 w-6" />
             </button>
-          </div>
+          </div> */}
 
           {/* Desktop navigation */}
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="flex items-center space-x-4">
             {/* Theme toggle */}
             <DarkModeButton />
 
             {/* Auth section */}
             <div className="flex items-center">
               <SignedIn>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  {showDebug && (
+                    <div className="hidden lg:block">
+                      {/* <DebugJwt token={token} /> */}
+                    </div>
+                  )}
                   <UserButton
                     // afterSignOutUrl="/"
                     appearance={{
@@ -67,34 +71,6 @@ export function HeaderSection() {
                       },
                     }}
                   />
-
-                  {showDebug && (
-                    <div className="hidden lg:block">
-                      {/* <DebugJwt token={token} /> */}
-                    </div>
-                  )}
-
-                  <SignOutButton>
-                    {/* Apply the glow effect wrapper */}
-                    <div className="relative group inline-block">
-                      {/* Glow effect */}
-                      <div
-                        className="absolute transition-all duration-1000 opacity-70 inset-0 
-                     bg-gradient-to-r from-primary/40 to-secondary/40 
-                     rounded-lg blur-lg filter 
-                     group-hover:opacity-100 group-hover:duration-200
-                     -z-10 -m-1"
-                      ></div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="relative hover:scale-105 transition-transform"
-                      >
-                        Sign Out
-                      </Button>
-                    </div>
-                  </SignOutButton>
                 </div>
               </SignedIn>
 
@@ -124,9 +100,9 @@ export function HeaderSection() {
           </div>
         </div>
 
-        {/* Mobile menu - now with absolute positioning */}
-        <div
-          className={`md:hidden absolute left-0 right-0 bg-background z-10 border-b transition-all duration-300 ease-in-out ${
+        {/* Mobile menu - with absolute positioning */}
+        {/* <div
+          className={`sm:hidden absolute left-0 right-0 bg-background z-10 border-b transition-all duration-300 ease-in-out ${
             mobileMenuOpen
               ? "opacity-100 translate-y-0"
               : "opacity-0 -translate-y-full pointer-events-none"
@@ -169,7 +145,7 @@ export function HeaderSection() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </header>
   );
