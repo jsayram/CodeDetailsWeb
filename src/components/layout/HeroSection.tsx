@@ -106,7 +106,7 @@ export const HeroSection = () => {
                 }}
                 className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-400 p-2"
               >
-                ...the magic is in the
+                ...Let's get into the
               </motion.div>
             </SignedOut>
           </div>
@@ -128,7 +128,7 @@ export const HeroSection = () => {
                 className="p-2 bg-clip-text text-transparent bg-gradient-to-r
                  from-primary to-fuchsia-500"
               >
-                The Journey Begins here!
+                The Journey Begins Here!
               </motion.div>
             </SignedIn>
           </div>
