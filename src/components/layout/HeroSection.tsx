@@ -207,7 +207,6 @@ export const HeroSection = () => {
                 visibleOn: ["lg", "xl", "2xl"],
                 className: "text-xl font-medium cursor-text text-gray-400",
               },
-
               // Learn section - CLICKABLE
               {
                 href: "/learn",
@@ -222,10 +221,10 @@ export const HeroSection = () => {
                 clickable: true,
                 visibleOn: "all", // Default if not specified
               },
-              // Deploy section - CLICKABLE
+              // Projects section - CLICKABLE
               {
-                href: "/deploy",
-                label: "Deploy",
+                href: "/dashboard",
+                label: "Projects" ,
                 clickable: true,
                 visibleOn: "all", // Default if not specified
               },

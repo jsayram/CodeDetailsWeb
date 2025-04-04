@@ -154,7 +154,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
                 <span className="text-green-400 mr-2">$</span>
                 <SignInButton mode="modal">
                   <div className="flex items-center text-xl font-bold relative bg-clip-text text-transparent bg-gradient-to-r from-lime-500 to-green-500 hover:from-yellow-300 hover:to-orange-400 transition-all duration-300 cursor-pointer">
-                    {">_"}
+                    {"> "}
                     <TextTypingEffectAnimation
                       className="text-xl font-medium"
                       text={"Sign In"}
@@ -204,7 +204,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
                           color: link.textColor,
                         }}
                       >
-                        {">_ "}
+                        {"> "}
                         <TextTypingEffectAnimation
                           className="text-xl font-medium"
                           skipOnRerender={true}
@@ -235,7 +235,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
                         color: link.textColor || undefined,
                       }}
                     >
-                      {">_ "}
+                      {">"}
                       <TextTypingEffectAnimation
                         className="text-xl font-medium"
                         skipOnRerender={true}
