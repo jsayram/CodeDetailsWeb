@@ -240,6 +240,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
                         className="text-xl font-medium"
                         skipOnRerender={true}
                         text={link.label}
+                        speed={10}
                       />
                     </div>
                   )}

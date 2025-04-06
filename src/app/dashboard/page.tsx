@@ -1,15 +1,6 @@
 "use client";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
@@ -39,9 +30,8 @@ import { Badge } from "@/components/ui/badge";
 import { PaginatedControls } from "@/components/PaginatedControls/page";
 import { LoadingState } from "@/components/LoadingState/page";
 import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
-import { UserProfileButton } from "@/components/UserProfileButton/page";
-import { DarkModeButton } from "@/components/DarkModeButton/page";
-import { Logo } from "@/components/Logo/page";
+import { HeaderSection } from "@/components/layout/HeaderSection";
+import { FooterSection } from "@/components/layout/FooterSection";
 
 export default function DashBoard() {
   const { user, isLoaded: userLoaded } = useUser(); // auth from clerk
@@ -78,49 +68,12 @@ export default function DashBoard() {
           <AppSidebar />
         </SignedIn>
         <SidebarInset>
-          {/* Header stays full width to maintain connection with sidebar */}
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b mb-4">
-            <SignedOut>
-              <div className="flex items-center gap-2 px-4">
-                <Logo
-                  size="sm"
-                  showTagline={true}
-                  taglineSize="xs"
-                  className="flex items-center justify-center"
-                />
-              </div>
-            </SignedOut>
-            <SignedIn>
-              <div className="flex items-center gap-2 px-4">
-                <SidebarTrigger className="-ml-1" />
-                <Separator
-                  orientation="vertical"
-                  className="mr-2 data-[orientation=vertical]:h-4"
-                />
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="#">Dashboard</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="hidden md:block" />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>Projects</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
-              </div>
-            </SignedIn>
-            <div className="ml-auto mr-4 flex items-center gap-4">
-              <DarkModeButton />
-              <UserProfileButton />
-            </div>
-          </header>
-
+          <HeaderSection /> 
           {/* Centered content container */}
-          <div className="flex justify-center w-full">
+          <div className="flex justify-center w-full mb-20">
             <div className="w-full max-w-7xl px-4">
               {/* Main content */}
-              <div className="flex flex-1 flex-col gap-4">
+              <div className="flex flex-col gap-4">
                 <SignedIn>
                   {isLoading ? (
                     <LoadingState />
@@ -218,8 +171,16 @@ export default function DashBoard() {
               </div>
             </div>
           </div>
+          < FooterSection />
+
         </SidebarInset>
+      
       </SidebarProvider>
+     
+      
+        
     </ProjectsProvider>
+
+    
   );
 }
