@@ -22,6 +22,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 
 export function NavProjects({
   projects,
@@ -41,6 +42,14 @@ export function NavProjects({
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Projects</SidebarGroupLabel>
+      <SignedOut>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Sign in to see all projects
+          </p>
+        </div>
+      </SignedOut>
+      <SignedIn>
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
@@ -86,6 +95,7 @@ export function NavProjects({
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
+      </SignedIn>
     </SidebarGroup>
   );
 }

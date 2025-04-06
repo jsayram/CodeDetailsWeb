@@ -21,31 +21,15 @@ export const HeroSection = () => {
     : "pb-10 text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-500 font-medium pt-[20%] sm:-mt-[15%] sm:pr-[40%] sm:text-4xl md:pr-[35%] md:text-5xl md:-ml-[8%] lg:md:-ml-[15%] lg:text-6xl xl:text-7xl xl:-mt-[20%]";
 
   return (
-    <div className="flex items-center justify-center px-3">
+    <div className="flex items-center justify-center px-3 h-full">
       <div className="flex flex-col items-center justify-center mx-auto">
-        {/* Background gradient circle animation pulse */}
         <div
           className="fixed h-[120%] w-[120%] inset-0 -left-[10%] -top-[10%]
-             bg-gradient-to-br
-             from-primary/20 to-secondary/20 
-             rounded-full blur-2xl opacity-10 animate-pulse"
+                           bg-gradient-to-br
+                           from-primary/20 to-secondary/20 
+                           rounded-full blur-2xl opacity-10 animate-pulse"
           style={{ animationDuration: "10s" }}
         />
-        {/* particles background */}
-        <div className="absolute inset-0 z-0">
-          <CodeParticlesElement
-            quantity="ultra"
-            speed="fast"
-            size="large"
-            includeEmojis={true}
-            includeKeywords={true}
-            includeSymbols={true}
-            syntaxHighlight="vscode"
-            depth="layered"
-            opacityRange={[0.01, 0.2]}
-            lightModeOpacityRange={[0.01, 0.4]}
-          />
-        </div>
         {/* Mascot Image */}
         <div className=" inset-0 z-10 pointer-events-none">
           <motion.div
@@ -224,7 +208,7 @@ export const HeroSection = () => {
               // Projects section - CLICKABLE
               {
                 href: "/dashboard",
-                label: "Projects" ,
+                label: "Projects",
                 clickable: true,
                 visibleOn: "all", // Default if not specified
               },
