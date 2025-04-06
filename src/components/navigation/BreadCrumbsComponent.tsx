@@ -79,7 +79,7 @@ export function DynamicBreadcrumbs({
     });
     
     return result;
-  }, [pathname, items]);
+  }, [pathname, items, routeNames]);
 
   // If we're on the home page and using auto-generated breadcrumbs, show only "Home"
   if (pathname === '/' && !items) {
