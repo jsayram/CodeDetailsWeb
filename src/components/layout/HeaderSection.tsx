@@ -34,25 +34,12 @@ interface HeaderSectionProps {
 }
 
 export function HeaderSection({
-  isSticky = true,
   showDarkModeButton = true,
   showLogo = true,
   showMobileMenu = true, // Default to showing mobile menu on small screens
-  className = "",
-  // Default breadcrumbs
-  breadcrumbs = [
-    { label: "Dashboard", href: "/dashboard" },
-    { label: "Projects", isCurrentPage: true },
-  ],
 }: HeaderSectionProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const showDebug = process.env.NODE_ENV === "development";
-
-  // Dynamically determine the header classes based on the isSticky prop
-  const headerClasses = `${
-    isSticky ? "z-50 border-b bg-transparent mx-7" : ""
-  } z-50 border-b bg-transparent mx-7 ${className}`;
-
   return (
     <header className="sticky top-5 z-50 border-b bg-transparent mx-7 mb-5">
       {/* Header stays full width to maintain connection with sidebar when signed in */}

@@ -6,7 +6,6 @@ import Image from "next/image";
 
 // Authentication (Clerk)
 import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
-import { CodeParticlesElement } from "../Elements/CodeParticlesElement";
 import { TerminalWindowSection } from "./TerminalWindowSection";
 
 export const HeroSection = () => {
@@ -90,7 +89,7 @@ export const HeroSection = () => {
                 }}
                 className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-indigo-400 p-2"
               >
-                ...Let's get into the
+                ...Lets get into the
               </motion.div>
             </SignedOut>
           </div>
