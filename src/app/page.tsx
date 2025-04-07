@@ -5,7 +5,7 @@ import { HeroSection } from "@/components/layout/HeroSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn } from "@clerk/nextjs";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 
 export default function Home() {
@@ -29,9 +29,6 @@ export default function Home() {
         <SignedIn>
           <AppSidebar />
         </SignedIn>
-        <SignedOut>
-          <AppSidebar />
-        </SignedOut>
         <SidebarInset>
           <HeaderSection
             showLogo={true}
@@ -39,13 +36,10 @@ export default function Home() {
             showMobileMenu={false}
           />
           {/* Header stays full width to maintain connection with sidebar when signed in*/}
-          <HeroSection /> 
+          <HeroSection />
           <FooterSection />
         </SidebarInset>
       </SidebarProvider>
-     
-       
-
     </div>
   );
 }

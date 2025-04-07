@@ -12,10 +12,6 @@ import { Button } from "@/components/ui/button";
 import { DarkModeButton } from "@/components/DarkModeButton/page";
 import { Logo } from "../Logo/page";
 import { Menu } from "lucide-react";
-import { UserProfileButton } from "../UserProfileButton/page";
-import { Separator } from "@/components/ui/separator";
-import { SidebarTrigger } from "../ui/sidebar";
-import { DynamicBreadcrumbs } from "../navigation/BreadCrumbsComponent";
 
 // Define the breadcrumb item interface
 interface BreadcrumbItemData {
@@ -29,35 +25,22 @@ interface HeaderSectionProps {
   showDarkModeButton?: boolean; // Control dark mode button visibility
   showLogo?: boolean; // Control logo visibility
   showMobileMenu?: boolean; // Enable responsive mobile menu
+  showSignInButton?: boolean; // Control sign-in button visibility
   className?: string; // Additional classes
   breadcrumbs?: BreadcrumbItemData[]; // Dynamic breadcrumbs
 }
 
-export function HeaderSection({
+export function HeaderSectionNoSideBar({
   showDarkModeButton = true,
   showLogo = true,
   showMobileMenu = true, // Default to showing mobile menu on small screens
+  showSignInButton = true, // Default to showing sign-in button
 }: HeaderSectionProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const showDebug = process.env.NODE_ENV === "development";
 
   return (
     <header className="sticky top-5 z-50 border-b bg-transparent mx-7 mb-5">
-      {/* Header stays full width to maintain connection with sidebar when signed in */}
-      <SignedIn>
-        <div className="flex shrink-0 items-center gap-2 mb-4">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="h-4 mx-2" />
-          <div className="flex items-center gap-2 px-4">
-            <DynamicBreadcrumbs />
-          </div>
-          <div className="ml-auto mr-4 flex items-center gap-4">
-            <DarkModeButton />
-            <UserProfileButton />
-          </div>
-        </div>
-      </SignedIn>
-
       {/* Fixed top bar that won't be affected by transitions Signed out*/}
       <SignedOut>
         <div className="container mx-auto py-4 md:py-3">
@@ -108,29 +91,33 @@ export function HeaderSection({
                 </SignedIn>
 
                 <SignedOut>
-                  {/* Sign In button - conditionally visible based on showMobileMenu */}
-                  <div className={showMobileMenu ? "hidden sm:block" : "block"}>
-                    <SignInButton mode="modal">
-                      {/* Apply the glow effect wrapper */}
-                      <div className="relative group inline-block">
-                        {/* Glow effect */}
-                        <div
-                          className="absolute transition-all duration-1000 opacity-70 inset-0 
+                  {/* Sign In button - conditionally visible based on showMobileMenu and showSignInButton */}
+                  {showSignInButton && (
+                    <div
+                      className={showMobileMenu ? "hidden sm:block" : "block"}
+                    >
+                      <SignInButton mode="modal">
+                        {/* Apply the glow effect wrapper */}
+                        <div className="relative group inline-block">
+                          {/* Glow effect */}
+                          <div
+                            className="absolute transition-all duration-1000 opacity-70 inset-0 
                      bg-gradient-to-r from-primary/40 to-secondary/40 
                      rounded-lg blur-lg filter 
                      group-hover:opacity-100 group-hover:duration-200
                      -z-10 -m-1"
-                        ></div>
+                          ></div>
 
-                        <Button
-                          size="sm"
-                          className="relative hover:scale-105 transition-transform"
-                        >
-                          Sign In
-                        </Button>
-                      </div>
-                    </SignInButton>
-                  </div>
+                          <Button
+                            size="sm"
+                            className="relative hover:scale-105 transition-transform"
+                          >
+                            Sign In
+                          </Button>
+                        </div>
+                      </SignInButton>
+                    </div>
+                  )}
                 </SignedOut>
               </div>
 
