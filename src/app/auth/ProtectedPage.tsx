@@ -11,6 +11,8 @@ import {
 import { getAnonymousClient } from "@/services/supabase";
 import Link from "next/link";
 import { LockIcon, ArrowUpCircle, HomeIcon } from "lucide-react";
+import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
+import { ProjectListLoadingState } from "@/components/LoadingState/ProjestListLoadingState";
 
 /**
  * A component that protects content based on authentication status, user roles, or subscription tiers.
@@ -121,7 +123,11 @@ export default function ProtectedPage({
 
   // Show loading state
   if (!isLoaded || loadingTier) {
-    return <div>Loading...</div>;
+    return (
+      <div className="p-4 max-w-screen-xl mx-auto">
+        <ProjectListLoadingState />
+      </div>
+    );
   }
 
   // If user has access, show the protected content
@@ -134,7 +140,13 @@ export default function ProtectedPage({
     <div className="relative flex items-center justify-center">
       {/* Blurred content in the background */}
       <div className="filter blur-sm opacity-30 pointer-events-none ">
-        {children}
+        {!isLoaded || loadingTier ? (
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <GenericLoadingState className="w-full max-w-md mx-auto" />
+          </div>
+        ) : (
+          children
+        )}
       </div>
 
       {/* Paywall overlay */}

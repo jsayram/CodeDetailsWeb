@@ -5,10 +5,14 @@ import { HeroSection } from "@/components/layout/HeroSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { SignedIn } from "@clerk/nextjs";
+import { SignedIn, useUser } from "@clerk/nextjs"; // Added useUser
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
+import { HeroLoadingState } from "@/components/LoadingState/HeroLoadingState";
+import { SidebarLoadingState } from "@/components/LoadingState/SidebarLoadingState";
 
 export default function Home() {
+  const { isLoaded } = useUser(); // Get loading state from Clerk
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground theme-gradient-bg">
       <div className="absolute inset-0 z-11 pointer-events-none">
@@ -27,7 +31,7 @@ export default function Home() {
       </div>
       <SidebarProvider>
         <SignedIn>
-          <AppSidebar />
+          {!isLoaded ? <SidebarLoadingState /> : <AppSidebar />}
         </SignedIn>
         <SidebarInset>
           <HeaderSection
@@ -35,8 +39,11 @@ export default function Home() {
             showDarkModeButton={true}
             showMobileMenu={false}
           />
-          {/* Header stays full width to maintain connection with sidebar when signed in*/}
-          <HeroSection />
+          {!isLoaded ? (
+            <HeroLoadingState showActions={true} showImage={true} />
+          ) : (
+            <HeroSection />
+          )}
           <FooterSection />
         </SidebarInset>
       </SidebarProvider>
