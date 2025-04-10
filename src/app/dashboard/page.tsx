@@ -10,7 +10,7 @@ import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 
 // Custom Services
 import { getAuthenticatedClient } from "@/services/supabase";
-import { useSupabaseToken } from "@/services/clerkService";
+import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
 import { useUserTier, getAccessibleTiers } from "@/services/tierService";
 
 // Application Components and Pages (Custom)
