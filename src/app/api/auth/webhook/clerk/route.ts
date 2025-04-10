@@ -1,7 +1,15 @@
+/**
+ * Clerk Authentication Webhook Handler
+ *
+ * Processes Clerk auth events and synchronizes user data with Supabase.
+ * Handles: user.created, user.updated, user.deleted, session.created
+ */
 import { NextResponse } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import { ClerkUserData } from "@/types";
+import { ClerkUserData } from "@/types/models/clerkUserData";
+import { fetchClerkUser } from "@/services/clerkServerFetchUserService";
+import { ClerkSessionData } from "@/types/models/clerkSessionData";
 
 // Create a Supabase client (not public) for server-side operations
 const supabaseServer = createClient(
@@ -201,28 +209,142 @@ async function handleUserDeleted(data: ClerkUserData) {
   return NextResponse.json({ message: "User deleted successfully" });
 }
 
+// Cache to track recently verified user IDs and prevent redundant DB checks
+const recentlyVerifiedUsers = new Map<string, number>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Handle session.created
+async function handleSessionCreated(data: ClerkSessionData) {
+
+  // Extract the user ID from the session data
+  const userId = data.user_id;
+
+  if (!userId) {
+    console.error("No user ID found in session data");
+    return NextResponse.json(
+      { error: "Invalid session data" },
+      { status: 400 }
+    );
+  }
+
+  // Check if we've recently verified this user to avoid redundant DB checks
+  const cachedTimestamp = recentlyVerifiedUsers.get(userId);
+  const now = Date.now();
+
+  if (cachedTimestamp && now - cachedTimestamp < CACHE_TTL) {
+    console.log(`🔍 User ${userId} was recently verified, skipping DB check`);
+    return NextResponse.json({
+      message: "User recently verified, profile in sync",
+    });
+  }
+
+  console.log(
+    `🔍 Session created for user: ${userId}, checking profile existence`
+  );
+
+  // Check if the user already exists in the database
+  const { data: existingProfile, error: fetchError } = await supabaseServer
+    .from("profiles")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fetchError && !fetchError.details?.includes("0 rows")) {
+    console.error("Error checking profile existence:", fetchError);
+    return NextResponse.json(
+      { error: "Error verifying user profile" },
+      { status: 500 }
+    );
+  }
+
+  // User exists in database - update cache and return success
+  if (existingProfile) {
+    console.log(`✅ User ${userId} profile found and verified`);
+    // Update the cache with current timestamp
+    recentlyVerifiedUsers.set(userId, now);
+    // Clean up old cache entries periodically
+    if (recentlyVerifiedUsers.size > 100) {
+      // Arbitrary limit
+      cleanupCache();
+    }
+    return NextResponse.json({
+      message: "User profile verified and in sync",
+      status: "ok",
+    });
+  }
+
+  // User doesn't exist in profiles table, we need to fetch from Clerk and create
+  console.log(
+    `⚠️ User ${userId} not found in profiles during session creation. Syncing from Clerk...`
+  );
+
+  try {
+    // Fetch user data from Clerk API using our implemented service
+    const { data: clerkUser, error } = await fetchClerkUser(userId);
+
+    if (error || !clerkUser) {
+      console.error(`Failed to fetch Clerk user data for ${userId}:`, error);
+      return NextResponse.json(
+        { error: "Failed to synchronize user profile" },
+        { status: 500 }
+      );
+    }
+
+    // Use existing handleUserCreated function to create profile
+    const result = await handleUserCreated(clerkUser);
+    recentlyVerifiedUsers.set(userId, now);
+    return result;
+  } catch (error) {
+    console.error("Error syncing profile from session:", error);
+    return NextResponse.json(
+      { error: "Error synchronizing user profile" },
+      { status: 500 }
+    );
+  }
+}
+
+// Clean up old entries from the cache
+function cleanupCache() {
+  const now = Date.now();
+  for (const [userId, timestamp] of recentlyVerifiedUsers.entries()) {
+    if (now - timestamp > CACHE_TTL) {
+      recentlyVerifiedUsers.delete(userId);
+    }
+  }
+}
+
 // Main Webhook Handler for Clerk events
 export async function POST(req: Request) {
   try {
     const event: WebhookEvent = await req.json();
-    const { type: eventType, data } = event as {
-      type: string;
-      data: ClerkUserData;
-    };
-
+    const { type: eventType } = event;
+    
+    // Handle different data types based on event type
     switch (eventType) {
-      case "user.created":
-        console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
+      case "user.created": {
+        const { data } = event as { type: string; data: ClerkUserData };
+        console.log("Raw Clerk user.created event:", JSON.stringify(data, null, 2));
         return await handleUserCreated(data);
-
-      case "user.updated":
-        console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
+      }
+      
+      case "user.updated": {
+        const { data } = event as { type: string; data: ClerkUserData };
+        console.log("Raw Clerk user.updated event:", JSON.stringify(data, null, 2));
         return await handleUserUpdated(data);
-
-      case "user.deleted":
-        console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
+      }
+      
+      case "user.deleted": {
+        const { data } = event as { type: string; data: ClerkUserData };
+        console.log("Raw Clerk user.deleted event:", JSON.stringify(data, null, 2));
         return await handleUserDeleted(data);
-
+      }
+      
+      case "session.created": {
+        const { data } = event as { type: string; data: ClerkSessionData };
+        console.log("Raw Clerk session.created event:", JSON.stringify(data, null, 2));
+        return await handleSessionCreated(data);
+      }
+      
       default:
         console.warn(`Unhandled event type: ${eventType}`);
         return NextResponse.json({ error: "Unhandled event" }, { status: 400 });

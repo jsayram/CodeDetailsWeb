@@ -144,7 +144,7 @@ export function ProjectList({
                   </td>
                   <td className="border p-2" data-label="Tags">
                     <div className="flex flex-wrap gap-1">
-                      {project.tags.slice(0, 2).map((tag, index) => (
+                        {project.tags.slice(0, 2).map((tag: string, index: number) => (
                         <Badge
                           key={index}
                           variant="outline"
@@ -152,7 +152,7 @@ export function ProjectList({
                         >
                           {tag}
                         </Badge>
-                      ))}
+                        ))}
                       {project.tags.length > 2 && (
                         <Badge variant="outline" className="badge text-xs">
                           +{project.tags.length - 2}

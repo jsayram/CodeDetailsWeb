@@ -1,6 +1,6 @@
 import React from "react";
 import { useProjects } from "@/providers/projects-provider";
-import { useSupabaseToken } from "@/services/clerkService";
+import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
 import { AddProjectForm } from "@/components/Projects/AddProjectForm/page";
 
 export function ProjectForm() {

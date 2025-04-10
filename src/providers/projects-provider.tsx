@@ -9,7 +9,7 @@ import React, {
   useMemo,
   useRef,
 } from "react";
-import { Project } from "@/types";
+import { Project } from "@/types/models/project";
 import {
   getAnonymousClient,
   getAuthenticatedClient,

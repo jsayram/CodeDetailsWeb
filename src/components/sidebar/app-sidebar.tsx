@@ -225,7 +225,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   size="md"
                   showTagline={false}
                   taglineSize="xs"
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center mt-4"
                 />
               </div>
             </SidebarMenuButton>

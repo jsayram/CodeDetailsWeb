@@ -7,17 +7,29 @@ import Image from "next/image";
 // Authentication (Clerk)
 import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 import { TerminalWindowSection } from "./TerminalWindowSection";
+import { HeroLoadingState } from "../LoadingState/HeroLoadingState";
 
 export const HeroSection = () => {
   // State for typing animation completion check
   const animationRef = useRef(null);
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const terminalClass = user
     ? "border-green-400 xl:w-[70%] xl:ml-40"
     : "border-red-500 xl:w-[70%] xl:ml-40";
   const welcomeTextClassName = user
     ? "pb-10 text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-500 font-medium pt-[20%] sm:-mt-[15%] sm:pr-[40%] sm:text-4xl md:pr-[35%] md:text-5xl md:-ml-[8%] lg:md:-ml-[15%] lg:text-6xl xl:text-7xl xl:-mt-[20%]"
     : "pb-10 text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-500 font-medium pt-[20%] sm:-mt-[15%] sm:pr-[40%] sm:text-4xl md:pr-[35%] md:text-5xl md:-ml-[8%] lg:md:-ml-[15%] lg:text-6xl xl:text-7xl xl:-mt-[20%]";
+
+  // If not loaded yet, show loading state
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center px-3 h-full">
+        <div className="flex flex-col items-center justify-center mx-auto max-w-screen-xl w-full">
+          <HeroLoadingState showImage={true} showActions={true} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center px-3 h-full">

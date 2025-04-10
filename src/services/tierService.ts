@@ -45,32 +45,84 @@ type UserTierResult = {
   refreshUserTier: () => Promise<void>;
 };
 
+// In-memory cache for user tiers to prevent redundant fetches across the app
+const userTierCache: Record<string, {tier: ValidTier, timestamp: number}> = {};
+const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes in milliseconds
+
 /**
  * Hook that fetches a user's subscription tier from Supabase
  */
 export function useUserTier(
   client: SupabaseClient | null,
-  userId: string | null
+  userId: string | null,
+  skipFetch = false
 ): UserTierResult {
   const [userTier, setUserTier] = useState<ValidTier>("free");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasFetched = useRef(false);
+  const requestInProgress = useRef(false);
 
   // Reset when user changes
   useEffect(() => {
     hasFetched.current = false;
+    requestInProgress.current = false;
+    
+    // Check if we have a cached tier for this user
+    if (userId && userTierCache[userId]) {
+      const cachedData = userTierCache[userId];
+      const now = Date.now();
+      
+      // Use cached tier if it's still valid
+      if (now - cachedData.timestamp < CACHE_DURATION) {
+        console.log(`🎫 Using cached tier for user ${userId}: ${cachedData.tier}`);
+        setUserTier(cachedData.tier);
+        hasFetched.current = true;
+        return;
+      } else {
+        // Clear expired cache
+        console.log(`🎫 Cached tier for user ${userId} expired, will refetch`);
+        delete userTierCache[userId];
+      }
+    }
+    
     setUserTier("free");
   }, [userId]);
 
   const fetchUserTier = useCallback(async () => {
-    if (!client || !userId) {
+    // Skip if explicitly requested to do so
+    if (skipFetch) {
+      console.log("🎫 Skipping tier fetch as requested");
       setLoading(false);
       return;
     }
+    
+    // Skip if we don't have necessary data or a request is already in progress
+    if (!client || !userId || requestInProgress.current) {
+      setLoading(false);
+      return;
+    }
+    
+    // Skip if we already have a cached tier for this user
+    if (userId && userTierCache[userId]) {
+      const cachedData = userTierCache[userId];
+      const now = Date.now();
+      
+      if (now - cachedData.timestamp < CACHE_DURATION) {
+        console.log(`🎫 Using cached tier instead of fetching: ${cachedData.tier}`);
+        setUserTier(cachedData.tier);
+        setLoading(false);
+        hasFetched.current = true;
+        return;
+      }
+    }
 
+    // Set flag to prevent concurrent requests for the same data
+    requestInProgress.current = true;
     setLoading(true);
     setError(null);
+    
+    console.log(`🎫 Fetching tier for user ${userId}...`);
 
     try {
       const { data, error } = await client.rpc("get_user_tier", {
@@ -84,8 +136,14 @@ export function useUserTier(
       }
 
       if (isValidTier(data)) {
-        console.log(`User tier from database: ${data}`);
+        console.log(`🎫 User tier from database: ${data}`);
         setUserTier(data as ValidTier);
+        
+        // Cache the result
+        userTierCache[userId] = {
+          tier: data as ValidTier,
+          timestamp: Date.now()
+        };
       } else {
         console.warn(
           `Invalid tier value: ${data || "none"}, defaulting to 'free'`
@@ -100,12 +158,13 @@ export function useUserTier(
     } finally {
       setLoading(false);
       hasFetched.current = true;
+      requestInProgress.current = false;
     }
-  }, [client, userId]);
+  }, [client, userId, skipFetch]);
 
-  // Fetch on mount or user change
+  // Fetch on mount or user change, but only if not already fetched
   useEffect(() => {
-    if (userId && !hasFetched.current) {
+    if (userId && !hasFetched.current && !requestInProgress.current) {
       fetchUserTier();
     }
   }, [fetchUserTier, userId]);

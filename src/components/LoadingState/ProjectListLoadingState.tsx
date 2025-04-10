@@ -7,7 +7,7 @@ interface LoadingStateProps {
   showTierInfo?: boolean;
 }
 
-export function LoadingState({
+export function ProjectListLoadingState({
   itemsCount = 6,
   showTierInfo = true,
 }: LoadingStateProps) {
