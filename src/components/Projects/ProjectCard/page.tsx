@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { Project } from "@/types";
+import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Heart } from "lucide-react";

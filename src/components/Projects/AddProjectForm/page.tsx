@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { getAuthenticatedClient } from "@/services/supabase";
-import { Project } from "@/types";
+import { Project } from "@/types/models/project";
 
 /**
  * A separate component for adding new projects.

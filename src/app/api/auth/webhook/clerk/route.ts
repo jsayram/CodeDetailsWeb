@@ -9,6 +9,7 @@ import { WebhookEvent } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { ClerkUserData } from "@/types/models/clerkUserData";
 import { fetchClerkUser } from "@/services/clerkServerFetchUserService";
+import { ClerkSessionData } from "@/types/models/clerkSessionData";
 
 // Create a Supabase client (not public) for server-side operations
 const supabaseServer = createClient(
@@ -213,7 +214,8 @@ const recentlyVerifiedUsers = new Map<string, number>();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Handle session.created
-async function handleSessionCreated(data: any) {
+async function handleSessionCreated(data: ClerkSessionData) {
+
   // Extract the user ID from the session data
   const userId = data.user_id;
 
@@ -315,28 +317,34 @@ function cleanupCache() {
 export async function POST(req: Request) {
   try {
     const event: WebhookEvent = await req.json();
-    const { type: eventType, data } = event as {
-      type: string;
-      data: ClerkUserData;
-    };
-
+    const { type: eventType } = event;
+    
+    // Handle different data types based on event type
     switch (eventType) {
-      case "user.created":
-        console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
+      case "user.created": {
+        const { data } = event as { type: string; data: ClerkUserData };
+        console.log("Raw Clerk user.created event:", JSON.stringify(data, null, 2));
         return await handleUserCreated(data);
-
-      case "user.updated":
-        console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
+      }
+      
+      case "user.updated": {
+        const { data } = event as { type: string; data: ClerkUserData };
+        console.log("Raw Clerk user.updated event:", JSON.stringify(data, null, 2));
         return await handleUserUpdated(data);
-
-      case "user.deleted":
-        console.log("Raw Clerk event data:", JSON.stringify(data, null, 2));
+      }
+      
+      case "user.deleted": {
+        const { data } = event as { type: string; data: ClerkUserData };
+        console.log("Raw Clerk user.deleted event:", JSON.stringify(data, null, 2));
         return await handleUserDeleted(data);
-
-      case "session.created":
-        console.log("Session created event detected");
+      }
+      
+      case "session.created": {
+        const { data } = event as { type: string; data: ClerkSessionData };
+        console.log("Raw Clerk session.created event:", JSON.stringify(data, null, 2));
         return await handleSessionCreated(data);
-
+      }
+      
       default:
         console.warn(`Unhandled event type: ${eventType}`);
         return NextResponse.json({ error: "Unhandled event" }, { status: 400 });
