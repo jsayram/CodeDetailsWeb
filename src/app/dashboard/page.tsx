@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 
 // Theme Management
 import { PaginatedControls } from "@/components/PaginatedControls/page";
-import { ProjectListLoadingState } from "@/components/LoadingState/ProjestListLoadingState";
+import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";

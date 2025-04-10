@@ -12,7 +12,7 @@ import { getAnonymousClient } from "@/services/supabase";
 import Link from "next/link";
 import { LockIcon, ArrowUpCircle, HomeIcon } from "lucide-react";
 import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
-import { ProjectListLoadingState } from "@/components/LoadingState/ProjestListLoadingState";
+import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 
 /**
  * A component that protects content based on authentication status, user roles, or subscription tiers.
