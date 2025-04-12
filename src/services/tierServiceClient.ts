@@ -2,40 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-
-// Define valid tier types
-export type ValidTier = "free" | "pro" | "diamond";
-
-// Define tier levels
-const TIER_LEVELS: Record<ValidTier, number> = {
-  free: 0,
-  pro: 1,
-  diamond: 2,
-};
-
-// Helper functions
-export function isValidTier(tier: string): boolean {
-  return tier in TIER_LEVELS;
-}
-
-export function canAccessTier(userTier: string, contentTier: string): boolean {
-  const userLevel =
-    TIER_LEVELS[isValidTier(userTier) ? (userTier as ValidTier) : "free"];
-  const contentLevel =
-    TIER_LEVELS[isValidTier(contentTier) ? (contentTier as ValidTier) : "free"];
-  return userLevel >= contentLevel;
-}
-
-export function getAccessibleTiers(userTier: string): string[] {
-  const userLevel =
-    TIER_LEVELS[isValidTier(userTier) ? (userTier as ValidTier) : "free"];
-  return Object.entries(TIER_LEVELS)
-    .filter(([, level]) => level <= userLevel)
-    .map(([tier]) => tier);
-}
-
-// Export the tier hierarchy
-export const TIER_HIERARCHY = TIER_LEVELS;
+import { ValidTier, isValidTier } from "@/services/tierServiceServer";
 
 // Return type for hook
 type UserTierResult = {
@@ -46,7 +13,8 @@ type UserTierResult = {
 };
 
 // In-memory cache for user tiers to prevent redundant fetches across the app
-const userTierCache: Record<string, {tier: ValidTier, timestamp: number}> = {};
+const userTierCache: Record<string, { tier: ValidTier; timestamp: number }> =
+  {};
 const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes in milliseconds
 
 /**
@@ -67,15 +35,17 @@ export function useUserTier(
   useEffect(() => {
     hasFetched.current = false;
     requestInProgress.current = false;
-    
+
     // Check if we have a cached tier for this user
     if (userId && userTierCache[userId]) {
       const cachedData = userTierCache[userId];
       const now = Date.now();
-      
+
       // Use cached tier if it's still valid
       if (now - cachedData.timestamp < CACHE_DURATION) {
-        console.log(`🎫 Using cached tier for user ${userId}: ${cachedData.tier}`);
+        console.log(
+          `🎫 Using cached tier for user ${userId}: ${cachedData.tier}`
+        );
         setUserTier(cachedData.tier);
         hasFetched.current = true;
         return;
@@ -85,7 +55,7 @@ export function useUserTier(
         delete userTierCache[userId];
       }
     }
-    
+
     setUserTier("free");
   }, [userId]);
 
@@ -96,20 +66,22 @@ export function useUserTier(
       setLoading(false);
       return;
     }
-    
+
     // Skip if we don't have necessary data or a request is already in progress
     if (!client || !userId || requestInProgress.current) {
       setLoading(false);
       return;
     }
-    
+
     // Skip if we already have a cached tier for this user
     if (userId && userTierCache[userId]) {
       const cachedData = userTierCache[userId];
       const now = Date.now();
-      
+
       if (now - cachedData.timestamp < CACHE_DURATION) {
-        console.log(`🎫 Using cached tier instead of fetching: ${cachedData.tier}`);
+        console.log(
+          `🎫 Using cached tier instead of fetching: ${cachedData.tier}`
+        );
         setUserTier(cachedData.tier);
         setLoading(false);
         hasFetched.current = true;
@@ -121,7 +93,7 @@ export function useUserTier(
     requestInProgress.current = true;
     setLoading(true);
     setError(null);
-    
+
     console.log(`🎫 Fetching tier for user ${userId}...`);
 
     try {
@@ -138,11 +110,11 @@ export function useUserTier(
       if (isValidTier(data)) {
         console.log(`🎫 User tier from database: ${data}`);
         setUserTier(data as ValidTier);
-        
+
         // Cache the result
         userTierCache[userId] = {
           tier: data as ValidTier,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         };
       } else {
         console.warn(

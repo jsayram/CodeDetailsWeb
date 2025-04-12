@@ -14,8 +14,9 @@ import {
   getAnonymousClient,
   getAuthenticatedClient,
 } from "@/services/supabase";
-import { canAccessTier } from "@/services/tierService";
+import { canAccessTier } from "@/services/tierServiceServer";
 import { useIsBrowser, getClientSideValue } from "@/utils/ClientSideUtils";
+import { getAllFreeProjects, getUserProjects } from "@/app/actions/projects";
 
 // Cache constants
 const FREE_PROJECTS_CACHE_KEY = "cached_free_projects";
@@ -187,16 +188,13 @@ export function ProjectsProvider({
 
       console.log("🔍 Checking for updated free projects in background...");
 
-      // Get the count of free projects from the database
-      const { count, error } = await anonymousClient
-        .from("projects")
-        .select("id", { count: "exact", head: true })
-        .eq("tier", "free");
-
-      if (error) throw error;
+      // Get the count of free projects from the database using server action
+      const projectCount = await getAllFreeProjects().then(
+        (projects) => projects.length
+      );
 
       // Compare the count with our cached data
-      if (count !== cachedProjects.length) {
+      if (projectCount !== cachedProjects.length) {
         console.log("🔄 Free projects count changed, refreshing data");
         setHasFetchedFreeProjects(false); // This will trigger a re-fetch
       } else {
@@ -211,7 +209,7 @@ export function ProjectsProvider({
     } catch (error) {
       console.error("Error checking for data updates:", error);
     }
-  }, [anonymousClient, loadCachedFreeProjects, isBrowser]);
+  }, [loadCachedFreeProjects, isBrowser, anonymousClient]);
 
   // Initialize free projects from cache on mount
   useEffect(() => {
@@ -377,12 +375,8 @@ export function ProjectsProvider({
       try {
         setFreeLoading(true);
 
-        const { data, error } = await anonymousClient
-          .from("projects")
-          .select("*")
-          .eq("tier", "free");
-
-        if (error) throw error;
+        // Using server action instead of direct DB access
+        const data = await getAllFreeProjects();
 
         console.log("📦 Fetched", data?.length || 0, "free projects");
 
@@ -452,20 +446,27 @@ export function ProjectsProvider({
         setLoading(true);
 
         console.log("🔄 Fetching authenticated projects with tier:", userTier);
-        const { data, error } = await authenticatedClient!.rpc(
-          "get_accessible_projects",
-          {
-            user_tier_param: userTier,
+
+        // Using server action with tier access level checking
+        try {
+          // Make sure userId is not null before calling getUserProjects
+          if (!userId) {
+            throw new Error("User ID is null, cannot fetch projects");
           }
-        );
+          const data = await getUserProjects(userTier, userId);
 
-        if (error) {
-          throw error;
-        }
+          console.log("📦 Fetched projects data:", data);
+          console.log("📦 Fetched", data?.length || 0, "accessible projects");
 
-        console.log("📦 Fetched", data?.length || 0, "accessible projects");
-        if (isMounted.current) {
-          setProjects(data || []);
+          if (isMounted.current) {
+            setProjects(data || []);
+          }
+        } catch (serverActionError) {
+          console.error("❌ Server action failed:", serverActionError);
+          // Handle the server action failure specifically
+          if (isMounted.current) {
+            setProjects([]);
+          }
         }
       } catch (error) {
         console.error("❌ Failed to load projects:", error);
@@ -487,6 +488,7 @@ export function ProjectsProvider({
     userTier,
     isLoading,
     hasFetchedProjects,
+    userId,
   ]);
 
   // Force refresh function

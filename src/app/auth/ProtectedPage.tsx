@@ -3,11 +3,8 @@
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import {
-  isValidTier,
-  useUserTier,
-  getAccessibleTiers,
-} from "@/services/tierService";
+import { isValidTier, getAccessibleTiers } from "@/services/tierServiceServer";
+import { useUserTier } from "@/services/tierServiceClient";
 import { getAnonymousClient } from "@/services/supabase";
 import Link from "next/link";
 import { LockIcon, ArrowUpCircle, HomeIcon } from "lucide-react";
