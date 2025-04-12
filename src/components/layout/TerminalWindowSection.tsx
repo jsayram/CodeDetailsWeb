@@ -5,7 +5,7 @@ import { TextTypingEffectAnimation } from "@/animations/TextTypingEffectAnimatio
 import {
   ClientOnly,
   getClientSideValue,
-} from "@/utils/ClientSideUtils";
+} from "@/lib/ClientSideUtils";
 
 // Screen size type for visibility control
 type ScreenSize = "all" | "mobile" | "sm" | "md" | "lg" | "xl" | "2xl";

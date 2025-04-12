@@ -9,10 +9,10 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { DarkModeButton } from "@/components/DarkModeButton/page";
-import { Logo } from "../Logo/page";
+import { DarkModeButton } from "@/components/DarkModeButtonComponent";
+import { Logo } from "@/components/CodeDetailsLogoComponent";
 import { Menu } from "lucide-react";
-import { UserProfileButton } from "../UserProfileButton/page";
+import { UserProfileButton } from "@/components/UserProfileButton";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 import { DynamicBreadcrumbs } from "../navigation/BreadCrumbsComponent";

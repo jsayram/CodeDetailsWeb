@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useIsBrowser } from "@/utils/ClientSideUtils";
+import { useIsBrowser } from "@/lib/ClientSideUtils";
 
 const MOBILE_BREAKPOINT = 960;
 

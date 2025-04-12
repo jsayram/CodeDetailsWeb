@@ -10,7 +10,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useProjects } from "@/providers/projects-provider";
-import { PROJECTS_PER_PAGE } from "@/constants/pagination";
+import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { useEffect, useState } from "react";
 
 interface PaginatedControlsProps {

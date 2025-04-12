@@ -9,8 +9,8 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { DarkModeButton } from "@/components/DarkModeButton/page";
-import { Logo } from "../Logo/page";
+import { DarkModeButton } from "@/components/DarkModeButtonComponent";
+import { Logo } from "@/components/CodeDetailsLogoComponent";
 import { Menu } from "lucide-react";
 
 // Define the breadcrumb item interface

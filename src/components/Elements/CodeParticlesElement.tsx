@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
-import { useIsBrowser, ClientOnly } from "@/utils/ClientSideUtils";
+import { useIsBrowser, ClientOnly } from "@/lib/ClientSideUtils";
 
 // Enhanced interface with more customization options
 interface CodeParticlesProps {

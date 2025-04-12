@@ -7,7 +7,7 @@ import {
   SignedOut,
   SignInButton,
 } from "@clerk/nextjs";
-import { Button } from "../ui/button";
+import { Button } from "./ui/button";
 import { LogIn } from "lucide-react";
 
 export function UserProfileButton() {

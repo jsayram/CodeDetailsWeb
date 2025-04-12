@@ -1,3 +1,3 @@
-export { ProjectForm } from "./ProjectForm/page";
-export { ProjectCard } from "./ProjectCard/page";
-export { ProjectList } from "./ProjectList/page";
+export { ProjectForm } from "./ProjectComponents/ProjectFormComponent";
+export { ProjectCard } from "./ProjectComponents/ProjectCardComponent";
+export { ProjectList } from "./ProjectComponents/ProjectListComponent";
