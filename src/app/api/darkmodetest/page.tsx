@@ -15,7 +15,7 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react";
-import { DarkModeButton } from "@/components/DarkModeButton/page";
+import { DarkModeButton } from "@/components/DarkModeButtonComponent";
 
 export default function DarkModeTestPage() {
   // Mock data for fake charts

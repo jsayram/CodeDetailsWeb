@@ -3,10 +3,10 @@ import React, { useState } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
 import { GridIcon, Heart, TableIcon } from "lucide-react";
-import { ProjectCard } from "../ProjectCard/page";
+import { ProjectCard } from "./ProjectCardComponent";
 import { Badge } from "@/components/ui/badge";
-import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
-import { FormattedDate } from "@/utils/FormattedDate";
+import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import { FormattedDate } from "@/lib/FormattedDate";
 
 interface ProjectListProps {
   projectType?: "free" | "authenticated";

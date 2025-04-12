@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
-import { isSystemDarkMode } from "@/utils/DarkModeThemeUtils";
+import { isSystemDarkMode } from "@/lib/DarkModeThemeUtils";
 
 export const DarkModeButton = ({ isMobile = false }) => {
   const { theme, setTheme, resolvedTheme } = useTheme();

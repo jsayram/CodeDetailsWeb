@@ -24,9 +24,9 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 
 // Theme Management
-import { PaginatedControls } from "@/components/PaginatedControls/page";
+import { PaginatedControls } from "@/components/navigation/Pagination/PaginationControlComponent";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
-import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/constants/pagination";
+import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "../auth/ProtectedPage";

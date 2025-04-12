@@ -36,7 +36,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Logo } from "../Logo/page";
+import { Logo } from "../CodeDetailsLogoComponent";
 
 const data = {
   navMain: [

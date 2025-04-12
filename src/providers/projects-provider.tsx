@@ -15,7 +15,7 @@ import {
   getAuthenticatedClient,
 } from "@/services/supabase";
 import { canAccessTier } from "@/services/tierServiceServer";
-import { useIsBrowser, getClientSideValue } from "@/utils/ClientSideUtils";
+import { useIsBrowser, getClientSideValue } from "@/lib/ClientSideUtils";
 import { getAllFreeProjects, getUserProjects } from "@/app/actions/projects";
 
 // Cache constants
