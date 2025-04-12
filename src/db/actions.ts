@@ -3,7 +3,51 @@
 import { executeQuery } from "./server";
 import { projects } from "./schema";
 import { InsertProject, SelectProject } from "./schema/projects";
-import { eq, sql, or } from "drizzle-orm";
+import { eq, sql, or, not, and } from "drizzle-orm";
+
+/**
+ * Helper function to check if a project with the given slug already exists
+ */
+export async function checkSlugExists(
+  slug: string,
+  excludeId?: string
+): Promise<boolean> {
+  return await executeQuery(async (db) => {
+    const query = db
+      .select({ count: sql<number>`count(*)` })
+      .from(projects)
+      .where(
+        excludeId
+          ? and(eq(projects.slug, slug), not(eq(projects.id, excludeId)))
+          : eq(projects.slug, slug)
+      );
+
+    const result = await query;
+    return result[0].count > 0;
+  });
+}
+
+/**
+ * Helper function to check if a project with the given title already exists
+ */
+export async function checkTitleExists(
+  title: string,
+  excludeId?: string
+): Promise<boolean> {
+  return await executeQuery(async (db) => {
+    const query = db
+      .select({ count: sql<number>`count(*)` })
+      .from(projects)
+      .where(
+        excludeId
+          ? and(eq(projects.title, title), not(eq(projects.id, excludeId)))
+          : eq(projects.title, title)
+      );
+
+    const result = await query;
+    return result[0].count > 0;
+  });
+}
 
 /**
  * Server-side function to add a new project to the database
@@ -11,6 +55,18 @@ import { eq, sql, or } from "drizzle-orm";
 export async function createProjectServer(
   project: InsertProject
 ): Promise<SelectProject> {
+  // Check for duplicate slug
+  const slugExists = await checkSlugExists(project.slug);
+  if (slugExists) {
+    throw new Error(`A project with slug "${project.slug}" already exists`);
+  }
+
+  // Check for duplicate title
+  const titleExists = await checkTitleExists(project.title);
+  if (titleExists) {
+    throw new Error(`A project with title "${project.title}" already exists`);
+  }
+
   return await executeQuery(async (db) => {
     const result = await db.insert(projects).values(project).returning();
 
@@ -51,6 +107,44 @@ export async function deleteProjectServer(id: string): Promise<SelectProject> {
 
     if (!result || result.length === 0) {
       throw new Error("Project not found or could not be deleted");
+    }
+
+    return result[0];
+  });
+}
+
+/**
+ * Server-side function to update a project
+ */
+export async function updateProjectServer(
+  id: string,
+  project: Partial<InsertProject>
+): Promise<SelectProject> {
+  // Check for duplicate slug if slug is being updated
+  if (project.slug) {
+    const slugExists = await checkSlugExists(project.slug, id);
+    if (slugExists) {
+      throw new Error(`A project with slug "${project.slug}" already exists`);
+    }
+  }
+
+  // Check for duplicate title if title is being updated
+  if (project.title) {
+    const titleExists = await checkTitleExists(project.title, id);
+    if (titleExists) {
+      throw new Error(`A project with title "${project.title}" already exists`);
+    }
+  }
+
+  return await executeQuery(async (db) => {
+    const result = await db
+      .update(projects)
+      .set(project)
+      .where(eq(projects.id, id))
+      .returning();
+
+    if (!result || result.length === 0) {
+      throw new Error("Project not found or could not be updated");
     }
 
     return result[0];

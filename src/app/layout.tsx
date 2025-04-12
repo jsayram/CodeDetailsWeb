@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import "@/styles/globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { ToasterProvider } from "@/components/ui/toaster";
 
 export const metadata = {
   title: "Code Details",
@@ -25,6 +26,7 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {/* Main content with centered container and responsive padding */}
             <div className="max-w-[100vw] overflow-x-hidden">{children}</div>
+            <ToasterProvider />
           </ThemeProvider>
         </ClerkProvider>
       </body>

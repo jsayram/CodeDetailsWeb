@@ -2,11 +2,19 @@
 import React, { useState } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
-import { GridIcon, Heart, TableIcon } from "lucide-react";
+import { GridIcon, Heart, TableIcon, Trash2, Edit } from "lucide-react";
 import { ProjectCard } from "./ProjectCardComponent";
 import { Badge } from "@/components/ui/badge";
-import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import {
+  PROJECTS_PER_PAGE,
+  CURRENT_PAGE,
+} from "@/components/navigation/Pagination/paginationConstants";
 import { FormattedDate } from "@/lib/FormattedDate";
+import { removeProject } from "@/app/actions/projects";
+import { toast } from "sonner";
+import { Project } from "@/types/models/project";
+import { UpdateProjectModal } from "./UpdateProjectModal";
+import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 interface ProjectListProps {
   projectType?: "free" | "authenticated";
@@ -19,8 +27,22 @@ export function ProjectList({
   currentPage = CURRENT_PAGE,
   itemsPerPage = PROJECTS_PER_PAGE,
 }: ProjectListProps) {
-  const { projects, freeProjects, loading, freeLoading } = useProjects();
+  const {
+    projects,
+    freeProjects,
+    loading,
+    freeLoading,
+    handleProjectDeleted,
+    handleProjectUpdated,
+  } = useProjects();
   const [viewMode, setViewMode] = useState("card"); // 'card' or 'table'
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(
+    null
+  ); // Track the project being deleted
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   // Determine which projects and loading state to use based on projectType
   const allProjects = projectType === "free" ? freeProjects : projects;
@@ -64,6 +86,71 @@ export function ProjectList({
   const handleToggleFavorite = (id: string, isFavorite: boolean) => {
     console.log(`Toggle favorite for project ${id}: ${isFavorite}`);
     // Implement your favorite toggling logic here
+  };
+
+  // Handle the actual deletion after confirmation
+  const handleDeleteConfirm = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      // Set deleting state
+      setDeletingProjectId(projectToDelete.id);
+
+      // Close the dialog immediately to prevent double-rendering issues
+      setShowDeleteDialog(false);
+
+      // Call the server action to delete the project
+      const result = await removeProject(projectToDelete.id);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // Update the UI through the projects context if available
+      if (handleProjectDeleted) {
+        handleProjectDeleted(projectToDelete.id);
+      }
+
+      toast.success("Project deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      toast.error(
+        `Failed to delete project: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setDeletingProjectId(null);
+      setProjectToDelete(null);
+    }
+  };
+
+  // Handle delete button click from ProjectCard or table view
+  const handleDeleteProject = (project: Project) => {
+    // Set the project to delete
+    setProjectToDelete(project);
+    // Open the dialog
+    setShowDeleteDialog(true);
+  };
+
+  // Handle updating a project
+  const handleUpdateProject = async (project: Project) => {
+    try {
+      setEditingProject(project);
+      setIsUpdateModalOpen(true);
+    } catch (error) {
+      console.error("Failed to update project:", error);
+      toast.error(
+        `Failed to update project: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleModalClose = () => {
+    setEditingProject(null);
+    setIsUpdateModalOpen(false);
   };
 
   return (
@@ -111,6 +198,8 @@ export function ProjectList({
               project={project}
               onViewDetails={handleViewDetails}
               onToggleFavorite={handleToggleFavorite}
+              onDeleteProject={() => handleDeleteProject(project)}
+              onUpdateProject={handleUpdateProject}
               isFavorite={false} // This would come from your favorites state
             />
           ))}
@@ -227,6 +316,24 @@ export function ProjectList({
                           // }
                         />
                       </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteProject(project)}
+                        disabled={deletingProjectId === project.id}
+                        className="card-button"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleUpdateProject(project)}
+                        disabled={editingProject?.id === project.id}
+                        className="card-button"
+                      >
+                        <Edit size={14} />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -235,6 +342,27 @@ export function ProjectList({
           </table>
         </div>
       )}
+
+      {/* Update Project Modal */}
+      <UpdateProjectModal
+        project={editingProject}
+        isOpen={isUpdateModalOpen}
+        onClose={handleModalClose}
+        onProjectUpdated={(updatedProject) => {
+          if (handleProjectUpdated) {
+            handleProjectUpdated(updatedProject);
+          }
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteDialog}
+        onClose={() => setShowDeleteDialog(false)}
+        onConfirm={handleDeleteConfirm}
+        projectTitle={projectToDelete?.title || ""}
+        isDeleting={deletingProjectId !== null}
+      />
     </div>
   );
 }

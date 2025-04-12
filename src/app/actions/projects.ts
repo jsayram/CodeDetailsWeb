@@ -6,6 +6,7 @@ import {
   getAccessibleProjectsServer,
   getFreeProjectsServer,
   deleteProjectServer,
+  updateProjectServer,
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
 import { revalidatePath } from "next/cache";
@@ -15,7 +16,22 @@ import { type ValidTier } from "@/services/tierServiceServer";
 // Server action to create a new project
 export async function createProject(project: InsertProject) {
   try {
-    const newProject = await createProjectServer(project);
+    // Trim title and slug to ensure no leading/trailing spaces
+    const trimmedProject = {
+      ...project,
+      title: project.title.trim(),
+      slug: project.slug.trim(),
+    };
+
+    // Basic validation
+    if (!trimmedProject.title || !trimmedProject.slug) {
+      return {
+        success: false,
+        error: "Project title and slug are required",
+      };
+    }
+
+    const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
     revalidatePath("/dashboard");
     return {
@@ -24,9 +40,12 @@ export async function createProject(project: InsertProject) {
     };
   } catch (error) {
     console.error("Failed to create project:", error);
+    // Return specific error messages for duplicate titles/slugs
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
+      error: errorMessage,
     };
   }
 }
@@ -65,6 +84,58 @@ export async function removeProject(id: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+// Server action to update a project
+export async function updateProject(
+  id: string,
+  project: Partial<InsertProject>
+) {
+  try {
+    // Create a new project object with trimmed values
+    const trimmedProject = { ...project };
+
+    // Only trim if the fields are defined
+    if (trimmedProject.title !== undefined) {
+      trimmedProject.title = trimmedProject.title.trim();
+    }
+
+    if (trimmedProject.slug !== undefined) {
+      trimmedProject.slug = trimmedProject.slug.trim();
+    }
+
+    // Basic validation - if slug or title is provided, ensure they're not empty
+    if (trimmedProject.title !== undefined && !trimmedProject.title) {
+      return {
+        success: false,
+        error: "Project title is required",
+      };
+    }
+
+    if (trimmedProject.slug !== undefined && !trimmedProject.slug) {
+      return {
+        success: false,
+        error: "Project slug is required",
+      };
+    }
+
+    const updatedProject = await updateProjectServer(id, trimmedProject);
+    // Revalidate the projects list page
+    revalidatePath("/dashboard");
+    return {
+      success: true,
+      data: mapDrizzleProjectToProject(updatedProject),
+    };
+  } catch (error) {
+    console.error("Failed to update project:", error);
+    // Return specific error messages for duplicate titles/slugs
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    return {
+      success: false,
+      error: errorMessage,
     };
   }
 }
