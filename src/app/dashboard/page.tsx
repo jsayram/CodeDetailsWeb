@@ -11,7 +11,8 @@ import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 // Custom Services
 import { getAuthenticatedClient } from "@/services/supabase";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import { useUserTier, getAccessibleTiers } from "@/services/tierService";
+import { useUserTier } from "@/services/tierServiceClient";
+import { getAccessibleTiers } from "@/services/tierServiceServer";
 
 // Application Components and Pages (Custom)
 import { ProjectsProvider } from "@/providers/projects-provider";
@@ -53,27 +54,26 @@ export default function DashBoard() {
   // Determine overall loading state
   const isLoading = !userLoaded || tokenLoading || profileLoading || !userTier;
 
-  return (  
+  return (
     <>
-    {isLoading ? (
-            <div className="container mx-auto px-4 py-16">
-              <ProjectListLoadingState />
-            </div>
-          ) : (
-        
-    <ProjectsProvider
-      token={token}
-      userTier={userTier}
-      userId={user?.id ?? null}
-      isLoading={isLoading}
-    >
-      <SidebarProvider>
-        <SignedIn>
-          <AppSidebar />
-        </SignedIn>
-        <SidebarInset>
-          <HeaderSection />
-        
+      {isLoading ? (
+        <div className="container mx-auto px-4 py-16">
+          <ProjectListLoadingState />
+        </div>
+      ) : (
+        <ProjectsProvider
+          token={token}
+          userTier={userTier}
+          userId={user?.id ?? null}
+          isLoading={isLoading}
+        >
+          <SidebarProvider>
+            <SignedIn>
+              <AppSidebar />
+            </SignedIn>
+            <SidebarInset>
+              <HeaderSection />
+
               <ProtectedPage allowedTiers={["diamond"]}>
                 {/* Centered content container */}
                 <div className="flex justify-center w-full mb-20">
@@ -181,9 +181,9 @@ export default function DashBoard() {
               </ProtectedPage>
               <FooterSection />
             </SidebarInset>
-        </SidebarProvider>
-    </ProjectsProvider>
-     )} 
-     </>
+          </SidebarProvider>
+        </ProjectsProvider>
+      )}
+    </>
   );
 }
