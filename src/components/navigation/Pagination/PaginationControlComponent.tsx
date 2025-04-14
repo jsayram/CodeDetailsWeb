@@ -36,9 +36,15 @@ export function PaginatedControls({
     };
 
     checkScreenSize();
-    window.addEventListener("resize", checkScreenSize);
+    let resizeTimeout: NodeJS.Timeout;
+    const debouncedCheckScreenSize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(checkScreenSize, 100); // Adjust debounce delay as needed
+    };
 
-    return () => window.removeEventListener("resize", checkScreenSize);
+    window.addEventListener("resize", debouncedCheckScreenSize);
+
+    return () => window.removeEventListener("resize", debouncedCheckScreenSize);
   }, []);
 
   const displayProjects = projectType === "free" ? freeProjects : projects;
