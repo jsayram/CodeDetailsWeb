@@ -44,7 +44,10 @@ export function PaginatedControls({
 
     window.addEventListener("resize", debouncedCheckScreenSize);
 
-    return () => window.removeEventListener("resize", debouncedCheckScreenSize);
+    return () => {
+      clearTimeout(resizeTimeout);
+      window.removeEventListener("resize", debouncedCheckScreenSize);
+    };
   }, []);
 
   const displayProjects = projectType === "free" ? freeProjects : projects;
