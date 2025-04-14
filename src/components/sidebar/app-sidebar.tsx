@@ -210,12 +210,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="sm" asChild>
-              <div className="flex items-center justify-center w-full h-12 mb-4 rounded-lg">
+              <div className="flex items-center justify-center w-full h-15 mt-1 rounded-lg">
                 <Logo
                   size="md"
                   showTagline={false}
                   taglineSize="xs"
-                  className="flex items-center justify-center mt-4"
+                  className="flex items-center justify-center mt-4 mb-4"
                 />
               </div>
             </SidebarMenuButton>
