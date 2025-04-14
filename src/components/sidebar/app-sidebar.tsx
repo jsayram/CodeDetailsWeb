@@ -50,7 +50,7 @@ const data = {
           url: "/api/projects/test",
         },
         {
-          title: "Dar Mode Test Page",
+          title: "Dark Mode Test Page",
           url: "/api/darkmodetest",
         },
         {
