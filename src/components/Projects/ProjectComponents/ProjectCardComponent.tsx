@@ -76,7 +76,7 @@ export function ProjectCard({
         {/* Update button (absolutely positioned) */}
         {onUpdateProject && (
           <button
-            className="absolute top-2 right-22 p-2 rounded-full bg-background/80 backdrop-blur-sm
+            className="absolute top-2 right-20 p-2 rounded-full bg-background/80 backdrop-blur-sm
                     hover:bg-background text-muted-foreground hover:text-blue-500 transition-colors 
                     opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
             onClick={(e) => {
