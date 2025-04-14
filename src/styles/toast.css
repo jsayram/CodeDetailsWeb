@@ -20,7 +20,7 @@
 
 /* Success toast - dark mode */
 .dark .toast-success {
-  background-color: rgba(20, 83, 45, 0.3) !important; /* dark:bg-green-900/30 */
+  background-color: rgba(20, 83, 45, 0.9) !important; /* dark:bg-green-900/30 */
   color: rgb(134, 239, 172) !important; /* dark:text-green-300 */
   border: 1px solid rgb(22, 101, 52) !important; /* dark:border-green-800 */
 }
@@ -34,7 +34,7 @@
 
 /* Error toast - dark mode */
 .dark .toast-error {
-  background-color: rgba(127, 29, 29, 0.3) !important; /* dark:bg-red-900/30 */
+  background-color: rgba(127, 29, 29, 0.9) !important; /* dark:bg-red-900/30 */
   color: rgb(252, 165, 165) !important; /* dark:text-red-300 */
   border: 1px solid rgb(153, 27, 27) !important; /* dark:border-red-800 */
 }
@@ -55,7 +55,7 @@
 
 /* Info toast - dark mode */
 .dark .toast-info {
-  background-color: rgba(30, 58, 138, 0.3) !important; /* dark:bg-blue-900/30 */
+  background-color: rgba(30, 58, 138, 0.9) !important; /* dark:bg-blue-900/30 */
   color: rgb(147, 197, 253) !important; /* dark:text-blue-300 */
   border: 1px solid rgb(30, 64, 175) !important; /* dark:border-blue-800 */
 }
@@ -69,7 +69,12 @@
 
 /* Warning toast - dark mode */
 .dark .toast-warning {
-  background-color: rgba(113, 63, 18, 0.3) !important; /* dark:bg-yellow-900/30 */
+  background-color: rgba(
+    113,
+    63,
+    18,
+    0.9
+  ) !important; /* dark:bg-yellow-900/30 */
   color: rgb(253, 224, 71) !important; /* dark:text-yellow-300 */
   border: 1px solid rgb(133, 77, 14) !important; /* dark:border-yellow-800 */
 }

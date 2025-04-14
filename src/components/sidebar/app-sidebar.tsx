@@ -7,20 +7,19 @@ import {
   SignOutButton,
 } from "@clerk/nextjs";
 import {
-  BookOpen,
-  Bot,
   Code,
   Database,
   FileCode,
-  Frame,
   LifeBuoy,
   LogIn,
   Map,
   PieChart,
-  Send,
-  Settings2,
   Smartphone,
+  BrainCircuit,
   SquareTerminal,
+  BookOpen,
+  Bot,
+  Send,
 } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
@@ -45,31 +44,22 @@ const data = {
       url: "/dashboard",
       icon: PieChart,
       isActive: true,
-      items: [],
-    },
-    {
-      title: "Projects",
-      url: "/projects",
-      icon: Frame,
       items: [
         {
-          title: "All Projects",
-          url: "/projects",
+          title: "Project API Test Page",
+          url: "/api/projects/test",
         },
         {
-          title: "Recent",
-          url: "/projects/recent",
+          title: "Dar Mode Test Page",
+          url: "/api/darkmodetest",
         },
         {
-          title: "Favorites",
-          url: "/projects/favorites",
-        },
-        {
-          title: "Templates",
-          url: "/projects/templates",
+          title: "Toast Test Page",
+          url: "/api/toasttest",
         },
       ],
     },
+
     {
       title: "Code Analysis",
       url: "/analysis",
@@ -161,9 +151,9 @@ const data = {
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "/settings",
-      icon: Settings2,
+      title: "About Developer",
+      url: "/about",
+      icon: BrainCircuit,
     },
     {
       title: "Help & Support",
