@@ -47,8 +47,8 @@ export function HeaderSection({
       <SignedIn>
         <div className="flex shrink-0 items-center gap-2 mb-4">
           <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="h-4 mx-2" />
-          <div className="flex items-center gap-2 px-4">
+          <Separator orientation="vertical" className="h-6 mx-2" />
+          <div className="flex items-center gap-2">
             <DynamicBreadcrumbs />
           </div>
           <div className="ml-auto mr-4 flex items-center gap-4">

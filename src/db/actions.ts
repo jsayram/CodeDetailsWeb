@@ -227,3 +227,32 @@ export async function getFreeProjectsServer(): Promise<SelectProject[]> {
     return db.select().from(projects).where(eq(projects.tier, "free"));
   });
 }
+
+/**
+ * Server-side function to get all pro tier projects
+ */
+export async function getProProjectsServer(): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    return db.select().from(projects).where(eq(projects.tier, "pro"));
+  });
+}
+
+/**
+ * Server-side function to get all diamond tier projects
+ */
+export async function getDiamondProjectsServer(): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    return db.select().from(projects).where(eq(projects.tier, "diamond"));
+  });
+}
+
+/**
+ * Server-side function to get projects by specific tier
+ */
+export async function getProjectsByTierServer(
+  tier: string
+): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    return db.select().from(projects).where(eq(projects.tier, tier));
+  });
+}

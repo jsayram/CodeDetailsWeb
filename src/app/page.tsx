@@ -5,13 +5,13 @@ import { HeroSection } from "@/components/layout/HeroSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { SignedIn, useUser } from "@clerk/nextjs"; // Added useUser
+import { SignedIn, useUser } from "@clerk/nextjs";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 import { HeroLoadingState } from "@/components/LoadingState/HeroLoadingState";
 import { SidebarLoadingState } from "@/components/LoadingState/SidebarLoadingState";
 
 export default function Home() {
-  const { isLoaded } = useUser(); // Get loading state from Clerk
+  const { isLoaded } = useUser();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground theme-gradient-bg">

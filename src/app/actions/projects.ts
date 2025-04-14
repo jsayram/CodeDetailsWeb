@@ -7,11 +7,16 @@ import {
   getFreeProjectsServer,
   deleteProjectServer,
   updateProjectServer,
+  getProProjectsServer,
+  getDiamondProjectsServer,
+  getProjectsByTierServer,
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
 import { revalidatePath } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { type ValidTier } from "@/services/tierServiceServer";
+
+const pathToRevalidate = "/projects"; //TODO: Make this dynamic
 
 // Server action to create a new project
 export async function createProject(project: InsertProject) {
@@ -33,7 +38,7 @@ export async function createProject(project: InsertProject) {
 
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
-    revalidatePath("/dashboard");
+    revalidatePath(pathToRevalidate);
     return {
       success: true,
       data: mapDrizzleProjectToProject(newProject),
@@ -74,7 +79,7 @@ export async function getProject(slug: string) {
 export async function removeProject(id: string) {
   try {
     const deletedProject = await deleteProjectServer(id);
-    revalidatePath("/dashboard");
+    revalidatePath(pathToRevalidate);
     return {
       success: true,
       data: mapDrizzleProjectToProject(deletedProject),
@@ -123,7 +128,7 @@ export async function updateProject(
 
     const updatedProject = await updateProjectServer(id, trimmedProject);
     // Revalidate the projects list page
-    revalidatePath("/dashboard");
+    revalidatePath(pathToRevalidate);
     return {
       success: true,
       data: mapDrizzleProjectToProject(updatedProject),
@@ -180,6 +185,42 @@ export async function getAllFreeProjects() {
     return projects.map(mapDrizzleProjectToProject);
   } catch (error) {
     console.error("Failed to get free projects:", error);
+    return [];
+  }
+}
+
+// Server action to get all pro tier projects
+export async function getAllProProjects() {
+  try {
+    const projects = await getProProjectsServer();
+
+    return projects.map(mapDrizzleProjectToProject);
+  } catch (error) {
+    console.error("Failed to get pro tier projects:", error);
+    return [];
+  }
+}
+
+// Server action to get all diamond tier projects
+export async function getAllDiamondProjects() {
+  try {
+    const projects = await getDiamondProjectsServer();
+
+    return projects.map(mapDrizzleProjectToProject);
+  } catch (error) {
+    console.error("Failed to get diamond tier projects:", error);
+    return [];
+  }
+}
+
+// Server action to get projects by specific tier
+export async function getProjectsByTier(tier: string) {
+  try {
+    const projects = await getProjectsByTierServer(tier);
+
+    return projects.map(mapDrizzleProjectToProject);
+  } catch (error) {
+    console.error(`Failed to get ${tier} tier projects:`, error);
     return [];
   }
 }

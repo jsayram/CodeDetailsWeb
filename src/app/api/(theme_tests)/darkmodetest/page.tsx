@@ -15,7 +15,7 @@ import {
   Info,
   AlertTriangle,
 } from "lucide-react";
-import { DarkModeButton } from "@/components/DarkModeButtonComponent";
+import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
 
 export default function DarkModeTestPage() {
   // Mock data for fake charts
@@ -25,19 +25,17 @@ export default function DarkModeTestPage() {
 
   return (
     <div className="flex flex-col">
+      <HeaderSectionNoSideBar
+        showDarkModeButton={true}
+        showLogo={true}
+        showMobileMenu={false}
+        showSignInButton={true}
+      />
       {/* Page container */}
       <div
         className="min-h-screen transition-colors duration-300 ease-in-out
                       bg-background text-foreground"
       >
-        {/* Toggle Bar */}
-        <header className="p-4 border-b border-border flex justify-between items-center">
-          <h1 className="text-xl font-bold">Dark/Light Mode Playground</h1>
-          <div className="flex items-center gap-4">
-            <DarkModeButton />
-          </div>
-        </header>
-
         <main className="p-4 space-y-8 max-w-4xl mx-auto">
           {/* Icons Section */}
           <section className="bg-card rounded-lg p-6 border border-border">

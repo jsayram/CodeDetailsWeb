@@ -26,10 +26,13 @@ import { Badge } from "@/components/ui/badge";
 // Theme Management
 import { PaginatedControls } from "@/components/navigation/Pagination/PaginationControlComponent";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
-import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import {
+  PROJECTS_PER_PAGE,
+  CURRENT_PAGE,
+} from "@/components/navigation/Pagination/paginationConstants";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
-import ProtectedPage from "../auth/ProtectedPage";
+import ProtectedPage from "../../auth/ProtectedPage";
 
 export default function DashBoard() {
   const { user, isLoaded: userLoaded } = useUser(); // auth from clerk
