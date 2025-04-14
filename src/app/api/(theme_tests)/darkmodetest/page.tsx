@@ -33,7 +33,9 @@ export default function DarkModeTestPage() {
         {/* Toggle Bar */}
         <header className="p-4 border-b border-border flex justify-between items-center">
           <h1 className="text-xl font-bold">Dark/Light Mode Playground</h1>
-          <DarkModeButton />
+          <div className="flex items-center gap-4">
+            <DarkModeButton />
+          </div>
         </header>
 
         <main className="p-4 space-y-8 max-w-4xl mx-auto">

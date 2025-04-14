@@ -33,6 +33,8 @@ interface ProjectsContextType {
   loading: boolean;
   freeLoading: boolean;
   handleProjectAdded: (newProject: Project) => void;
+  handleProjectDeleted: (projectId: string) => void;
+  handleProjectUpdated: (updatedProject: Project) => void;
   refreshProjects: () => void;
   isAuthenticated: boolean;
 }
@@ -531,6 +533,30 @@ export function ProjectsProvider({
     [userTier, cacheFreeProjects]
   );
 
+  // Handler to delete a project
+  const handleProjectDeleted = useCallback((projectId: string) => {
+    console.log("- Deleting project with ID:", projectId);
+    setProjects((prev) => prev.filter((project) => project.id !== projectId));
+    setFreeProjects((prev) =>
+      prev.filter((project) => project.id !== projectId)
+    );
+  }, []);
+
+  // Handler to update a project
+  const handleProjectUpdated = useCallback((updatedProject: Project) => {
+    console.log("✏️ Updating project:", updatedProject.title);
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+    setFreeProjects((prev) =>
+      prev.map((project) =>
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    );
+  }, []);
+
   // Memoize the context value to prevent unnecessary renders
   const value = useMemo(
     () => ({
@@ -539,6 +565,8 @@ export function ProjectsProvider({
       loading,
       freeLoading,
       handleProjectAdded,
+      handleProjectDeleted,
+      handleProjectUpdated,
       refreshProjects,
       isAuthenticated,
     }),
@@ -548,6 +576,8 @@ export function ProjectsProvider({
       loading,
       freeLoading,
       handleProjectAdded,
+      handleProjectDeleted,
+      handleProjectUpdated,
       refreshProjects,
       isAuthenticated,
     ]
