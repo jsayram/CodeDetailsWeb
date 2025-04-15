@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { isValidTier, getAccessibleTiers } from "@/services/tierServiceServer";
-import { useUserTier } from "@/services/tierServiceClient";
+import { useUserTier } from "@/hooks/use-tierServiceClient";
 import { getAnonymousClient } from "@/services/supabase";
 import Link from "next/link";
 import { LockIcon, ArrowUpCircle, HomeIcon } from "lucide-react";

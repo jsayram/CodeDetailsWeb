@@ -1,5 +1,6 @@
 import { Project } from "@/types/models/project";
 import { getClientSideValue } from "@/lib/ClientSideUtils";
+import { ValidTier } from "@/services/tierServiceServer";
 
 // Cache constants
 export const FREE_PROJECTS_CACHE_KEY = "cached_free_projects";
@@ -16,12 +17,22 @@ export const BACKGROUND_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in mill
 export const BACKGROUND_CHECK_DEBOUNCE = 60 * 1000; // 1 minute debounce for background checks
 export const CLICK_DEBOUNCE_TIME = 5000; // 5 seconds debounce for UI-triggered checks
 
+// User tier cache constants
+export const USER_TIER_CACHE_KEY = "cached_user_tier";
+export const USER_TIER_EXPIRY_KEY = "user_tier_cache_expiry";
+export const USER_TIER_VERSION_KEY = "user_tier_cache_version";
+export const USER_TIER_CACHE_DURATION = 1000 * 60 * 5; // 5 minutes in milliseconds
+export const USER_TIER_FETCH_DEBOUNCE = 500; // 500ms debounce for fetch calls
+
 // We'll use this to prevent multiple background checks from running at the same time
 let lastAuthCheckTime = 0;
 let lastFreeCheckTime = 0;
 let isCheckingAuth = false;
 let isCheckingFree = false;
 let lastUIInteractionTime = 0;
+
+// User tier cache tracking
+let userTierRequestInProgress = false;
 
 /**
  * Loads cached free projects from localStorage if available and valid
@@ -31,7 +42,7 @@ export const loadCachedFreeProjects = async (
   isBrowser: boolean
 ): Promise<Project[] | null> => {
   if (!isBrowser) return null;
-  
+
   try {
     // Check cache version first
     const cacheVersion = localStorage.getItem(CACHE_VERSION_KEY);
@@ -41,17 +52,17 @@ export const loadCachedFreeProjects = async (
     }
 
     const cachedExpiry = localStorage.getItem(CACHE_EXPIRY_KEY);
-    
+
     // Check if cache is expired
     const now = getClientSideValue(() => Date.now(), 0);
     if (!cachedExpiry || parseInt(cachedExpiry) < now) {
       console.log("Free projects cache expired");
       return null;
     }
-    
+
     const cachedProjects = localStorage.getItem(FREE_PROJECTS_CACHE_KEY);
     if (!cachedProjects) return null;
-    
+
     const projects = JSON.parse(cachedProjects);
     console.log(`Loaded ${projects.length} free projects from localStorage`);
     return projects as Project[];
@@ -70,12 +81,12 @@ export const loadCachedAuthenticatedProjects = async (
   userId: string | null
 ): Promise<Project[] | null> => {
   if (!isBrowser || !userId) return null;
-  
+
   try {
     const cacheVersionKey = `${AUTH_CACHE_VERSION_KEY}_${userId}`;
     const cacheKey = `${AUTH_PROJECTS_CACHE_KEY}_${userId}`;
     const expiryKey = `${AUTH_CACHE_EXPIRY_KEY}_${userId}`;
-    
+
     // Check cache version first
     const cacheVersion = localStorage.getItem(cacheVersionKey);
     if (cacheVersion !== CACHE_VERSION) {
@@ -84,19 +95,21 @@ export const loadCachedAuthenticatedProjects = async (
     }
 
     const cachedExpiry = localStorage.getItem(expiryKey);
-    
+
     // Check if cache is expired
     const now = getClientSideValue(() => Date.now(), 0);
     if (!cachedExpiry || parseInt(cachedExpiry) < now) {
       console.log("Authenticated projects cache expired");
       return null;
     }
-    
+
     const cachedProjects = localStorage.getItem(cacheKey);
     if (!cachedProjects) return null;
-    
+
     const projects = JSON.parse(cachedProjects);
-    console.log(`Loaded ${projects.length} authenticated projects from localStorage for user ${userId}`);
+    console.log(
+      `Loaded ${projects.length} authenticated projects from localStorage for user ${userId}`
+    );
     return projects as Project[];
   } catch (error) {
     console.error("Error loading cached authenticated projects:", error);
@@ -114,11 +127,11 @@ export const cacheFreeProjects = async (
   isBrowser: boolean
 ): Promise<void> => {
   if (!isBrowser) return;
-  
+
   try {
     // Update the UI interaction timestamp to avoid immediate background checks
     lastUIInteractionTime = getClientSideValue(() => Date.now(), 0);
-    
+
     // Only use Date.now() on client to prevent SSR issues and hydration errors
     const now = getClientSideValue(() => Date.now(), 0);
     const expiryTime = now + CACHE_DURATION;
@@ -130,7 +143,7 @@ export const cacheFreeProjects = async (
     localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
     localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
     localStorage.setItem(CACHE_LAST_UPDATED_KEY, now.toString());
-    
+
     console.log(
       "💾 Free projects cached until",
       // hydration error fix always wrap date in getClientSideValue
@@ -157,13 +170,13 @@ export const cacheAuthenticatedProjects = async (
   userId: string | null
 ): Promise<void> => {
   if (!isBrowser || !userId) return;
-  
+
   try {
     const cacheKey = `${AUTH_PROJECTS_CACHE_KEY}_${userId}`;
     const cacheVersionKey = `${AUTH_CACHE_VERSION_KEY}_${userId}`;
     const expiryKey = `${AUTH_CACHE_EXPIRY_KEY}_${userId}`;
     const lastUpdatedKey = `${AUTH_CACHE_LAST_UPDATED_KEY}_${userId}`;
-    
+
     // Only use Date.now() on client to prevent SSR issues and hydration errors
     const now = getClientSideValue(() => Date.now(), 0);
     const expiryTime = now + CACHE_DURATION;
@@ -172,7 +185,7 @@ export const cacheAuthenticatedProjects = async (
     localStorage.setItem(expiryKey, expiryTime.toString());
     localStorage.setItem(cacheVersionKey, CACHE_VERSION);
     localStorage.setItem(lastUpdatedKey, now.toString());
-    
+
     console.log(
       "💾 Authenticated projects cached until",
       // hydration error fix always wrap date in getClientSideValue
@@ -199,50 +212,52 @@ export const checkForDataUpdates = async (
   getAllFreeProjects: () => Promise<Project[]>
 ): Promise<void> => {
   if (!isBrowser) return;
-  
+
   try {
     // Prevent checks if user just interacted with the UI
     const now = getClientSideValue(() => Date.now(), 0);
     if (now - lastUIInteractionTime < CLICK_DEBOUNCE_TIME) {
-      console.log("🛑 Skipping free projects check - UI was just interacted with");
+      console.log(
+        "🛑 Skipping free projects check - UI was just interacted with"
+      );
       return;
     }
-    
+
     // Prevent multiple concurrent checks
     if (isCheckingFree) {
       console.log("🛑 Free projects check already in progress, skipping");
       return;
     }
-    
+
     // Add debounce to prevent frequent checks
     if (now - lastFreeCheckTime < BACKGROUND_CHECK_DEBOUNCE) {
       console.log("🛑 Free projects check ran too recently, skipping");
       return;
     }
-    
+
     // Only check if we have cached data
     const cachedProjects = await loadCachedFreeProjects(isBrowser);
     if (!cachedProjects || cachedProjects.length === 0) return;
-    
+
     const lastUpdated = localStorage.getItem(CACHE_LAST_UPDATED_KEY);
     if (!lastUpdated) return;
-    
+
     const cacheAge = now - parseInt(lastUpdated);
-    
+
     // Only check for updates if cache is older than the background refresh interval
     if (cacheAge < BACKGROUND_REFRESH_INTERVAL) return;
-    
+
     // Set flags to indicate we're starting a check
     isCheckingFree = true;
     lastFreeCheckTime = now;
-    
+
     console.log("🔍 Checking for updated free projects in background...");
-    
+
     try {
       // Get the count of free projects from the database using server action
       const projects = await getAllFreeProjects();
       const projectCount = projects.length;
-      
+
       // Compare the count with our cached data
       if (projectCount !== cachedProjects.length) {
         console.log("🔄 Free projects count changed, refreshing data");
@@ -273,76 +288,86 @@ export const checkForAuthDataUpdates = async (
   userTier: string
 ): Promise<void> => {
   if (!isBrowser || !userId) return;
-  
+
   try {
     // Prevent checks if user just interacted with the UI
     const now = getClientSideValue(() => Date.now(), 0);
     if (now - lastUIInteractionTime < CLICK_DEBOUNCE_TIME) {
-      console.log("🛑 Skipping auth projects check - UI was just interacted with");
+      console.log(
+        "🛑 Skipping auth projects check - UI was just interacted with"
+      );
       return;
     }
-    
+
     // Add debounce to prevent multiple checks from running at the same time
     if (isCheckingAuth) {
       console.log("🛑 Auth check already in progress, skipping");
       return;
     }
-    
+
     // Prevent running checks too frequently (debounce)
     if (now - lastAuthCheckTime < BACKGROUND_CHECK_DEBOUNCE) {
       console.log("🛑 Auth check ran too recently, skipping");
       return;
     }
-    
+
     // Set the flag to indicate we're starting a check
     isCheckingAuth = true;
     lastAuthCheckTime = now;
-    
+
     const lastUpdatedKey = `${AUTH_CACHE_LAST_UPDATED_KEY}_${userId}`;
-    
+
     // Only check if we have cached data
-    const cachedProjects = await loadCachedAuthenticatedProjects(isBrowser, userId);
+    const cachedProjects = await loadCachedAuthenticatedProjects(
+      isBrowser,
+      userId
+    );
     if (!cachedProjects || cachedProjects.length === 0) {
       isCheckingAuth = false;
       return;
     }
-    
+
     const lastUpdated = localStorage.getItem(lastUpdatedKey);
     if (!lastUpdated) {
       isCheckingAuth = false;
       return;
     }
-    
+
     const cacheAge = now - parseInt(lastUpdated);
-    
+
     // Only check for updates if cache is older than the background refresh interval
     if (cacheAge < BACKGROUND_REFRESH_INTERVAL) {
       console.log("🔄 Cache too fresh, skipping auth check");
       isCheckingAuth = false;
       return;
     }
-    
-    console.log("🔍 Checking for updated authenticated projects in background...");
-    
+
+    console.log(
+      "🔍 Checking for updated authenticated projects in background..."
+    );
+
     try {
       // Get the projects from the database
       const projects = await getUserProjects(userTier, userId);
       const projectCount = projects.length;
-      
-      console.log(`Comparing: Cache has ${cachedProjects.length}, DB has ${projectCount}`);
-      
+
+      console.log(
+        `Comparing: Cache has ${cachedProjects.length}, DB has ${projectCount}`
+      );
+
       // Compare the count with our cached data
       if (projectCount !== cachedProjects.length) {
         console.log("🔄 Authenticated projects count changed, refreshing data");
-        
+
         // Always update the cache directly instead of triggering a refetch
         // This prevents the infinite loop
         await cacheAuthenticatedProjects(projects, isBrowser, userId);
-        
+
         // Only trigger a re-fetch if the difference is significant
         // This prevents constantly triggering re-fetches for minor changes
         const difference = Math.abs(projectCount - cachedProjects.length);
-        if (difference > 2) { // Only refetch if more than 2 projects different
+        if (difference > 2) {
+          // Only refetch if more than 2 projects different
           setHasFetchedProjects(false); // Trigger a UI refresh
         }
       } else {
@@ -369,27 +394,28 @@ export const checkForAuthDataUpdates = async (
  */
 export const clearProjectsCache = async (isBrowser: boolean): Promise<void> => {
   if (!isBrowser) return;
-  
+
   try {
     // Clear free projects cache
     localStorage.removeItem(FREE_PROJECTS_CACHE_KEY);
     localStorage.removeItem(CACHE_EXPIRY_KEY);
     localStorage.removeItem(CACHE_VERSION_KEY);
     localStorage.removeItem(CACHE_LAST_UPDATED_KEY);
-    
+
     // Look for any auth project caches as well
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (
-          key.startsWith(AUTH_PROJECTS_CACHE_KEY) ||
+      if (
+        key &&
+        (key.startsWith(AUTH_PROJECTS_CACHE_KEY) ||
           key.startsWith(AUTH_CACHE_EXPIRY_KEY) ||
           key.startsWith(AUTH_CACHE_VERSION_KEY) ||
-          key.startsWith(AUTH_CACHE_LAST_UPDATED_KEY)
-        )) {
+          key.startsWith(AUTH_CACHE_LAST_UPDATED_KEY))
+      ) {
         localStorage.removeItem(key);
       }
     }
-    
+
     console.log("🧹 Cleared all project caches from localStorage");
   } catch (error) {
     console.error("Error clearing project caches:", error);
@@ -405,25 +431,32 @@ export const updateProjectInCache = async (
   userId: string | null
 ): Promise<void> => {
   if (!isBrowser) return;
-  
+
   try {
     // Update in free projects cache if it exists
     const cachedFreeProjects = await loadCachedFreeProjects(isBrowser);
     if (cachedFreeProjects) {
-      const updatedFreeProjects = cachedFreeProjects.map(project => 
+      const updatedFreeProjects = cachedFreeProjects.map((project) =>
         project.id === updatedProject.id ? updatedProject : project
       );
       await cacheFreeProjects(updatedFreeProjects, isBrowser);
     }
-    
+
     // Update in authenticated projects cache if it exists
     if (userId) {
-      const cachedAuthProjects = await loadCachedAuthenticatedProjects(isBrowser, userId);
+      const cachedAuthProjects = await loadCachedAuthenticatedProjects(
+        isBrowser,
+        userId
+      );
       if (cachedAuthProjects) {
-        const updatedAuthProjects = cachedAuthProjects.map(project => 
+        const updatedAuthProjects = cachedAuthProjects.map((project) =>
           project.id === updatedProject.id ? updatedProject : project
         );
-        await cacheAuthenticatedProjects(updatedAuthProjects, isBrowser, userId);
+        await cacheAuthenticatedProjects(
+          updatedAuthProjects,
+          isBrowser,
+          userId
+        );
       }
     }
   } catch (error) {
@@ -436,4 +469,143 @@ export const updateProjectInCache = async (
  */
 export const updateLastInteractionTime = (): void => {
   lastUIInteractionTime = Date.now();
+};
+
+/**
+ * Loads cached user tier from localStorage if available and valid
+ * @returns User tier or null if cache is invalid/expired
+ */
+export const loadCachedUserTier = (
+  isBrowser: boolean,
+  userId: string | null
+): ValidTier | null => {
+  if (!isBrowser || !userId) return null;
+
+  try {
+    // Use user-specific keys
+    const cacheKey = `${USER_TIER_CACHE_KEY}_${userId}`;
+    const expiryKey = `${USER_TIER_EXPIRY_KEY}_${userId}`;
+    const versionKey = `${USER_TIER_VERSION_KEY}_${userId}`;
+
+    // Check cache version first
+    const cacheVersion = localStorage.getItem(versionKey);
+    if (cacheVersion !== CACHE_VERSION) {
+      console.log("🎫 User tier cache version changed, forcing refresh");
+      return null;
+    }
+
+    const cachedExpiry = localStorage.getItem(expiryKey);
+
+    // Check if cache is expired
+    const now = getClientSideValue(() => Date.now(), 0);
+    if (!cachedExpiry || parseInt(cachedExpiry) < now) {
+      console.log("🎫 User tier cache expired");
+      return null;
+    }
+
+    const cachedTier = localStorage.getItem(cacheKey);
+    if (!cachedTier) return null;
+
+    console.log(`🎫 Using cached tier for user ${userId}: ${cachedTier}`);
+    return cachedTier as ValidTier;
+  } catch (error) {
+    console.error("🎫 Error loading cached user tier:", error);
+    return null;
+  }
+};
+
+/**
+ * Saves user tier to localStorage
+ */
+export const cacheUserTier = (
+  userTier: ValidTier,
+  isBrowser: boolean,
+  userId: string | null
+): void => {
+  if (!isBrowser || !userId) return;
+
+  try {
+    // Use user-specific keys
+    const cacheKey = `${USER_TIER_CACHE_KEY}_${userId}`;
+    const expiryKey = `${USER_TIER_EXPIRY_KEY}_${userId}`;
+    const versionKey = `${USER_TIER_VERSION_KEY}_${userId}`;
+
+    // Update the UI interaction timestamp to avoid immediate background checks
+    lastUIInteractionTime = getClientSideValue(() => Date.now(), 0);
+
+    // Only use Date.now() on client to prevent SSR issues
+    const now = getClientSideValue(() => Date.now(), 0);
+    const expiryTime = now + USER_TIER_CACHE_DURATION;
+
+    localStorage.setItem(cacheKey, userTier);
+    localStorage.setItem(expiryKey, expiryTime.toString());
+    localStorage.setItem(versionKey, CACHE_VERSION);
+
+    console.log(
+      "🎫 User tier cached until",
+      getClientSideValue(
+        () => new Date(expiryTime).toLocaleTimeString(),
+        "[Time will display client-side]"
+      ),
+      `(${userTier}) for user ${userId}`
+    );
+  } catch (error) {
+    console.error("🎫 Error caching user tier:", error);
+  }
+};
+
+/**
+ * Clears user tier cache for specific user or all users
+ */
+export const clearUserTierCache = (
+  isBrowser: boolean,
+  userId: string | null = null
+): void => {
+  if (!isBrowser) return;
+
+  try {
+    if (userId) {
+      // Clear specific user's tier cache
+      const cacheKey = `${USER_TIER_CACHE_KEY}_${userId}`;
+      const expiryKey = `${USER_TIER_EXPIRY_KEY}_${userId}`;
+      const versionKey = `${USER_TIER_VERSION_KEY}_${userId}`;
+
+      localStorage.removeItem(cacheKey);
+      localStorage.removeItem(expiryKey);
+      localStorage.removeItem(versionKey);
+
+      console.log(`🧹 Cleared user tier cache for user ${userId}`);
+    } else {
+      // Clear all user tier caches
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (
+          key &&
+          (key.startsWith(USER_TIER_CACHE_KEY) ||
+            key.startsWith(USER_TIER_EXPIRY_KEY) ||
+            key.startsWith(USER_TIER_VERSION_KEY))
+        ) {
+          localStorage.removeItem(key);
+        }
+      }
+
+      console.log("🧹 Cleared all user tier caches from localStorage");
+    }
+  } catch (error) {
+    console.error("🎫 Error clearing user tier cache:", error);
+  }
+};
+
+/**
+ * Set the user tier request in progress status
+ */
+export const setUserTierRequestInProgress = (inProgress: boolean): void => {
+  userTierRequestInProgress = inProgress;
+};
+
+/**
+ * Get the user tier request in progress status
+ */
+export const isUserTierRequestInProgress = (): boolean => {
+  return userTierRequestInProgress;
 };
