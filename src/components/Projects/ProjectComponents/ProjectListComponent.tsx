@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
 import { GridIcon, Heart, TableIcon, Trash2, Edit } from "lucide-react";
@@ -55,6 +55,73 @@ export function ProjectList({
     startIndex + itemsPerPage
   );
 
+  // Optimize handlers with useCallback to prevent unnecessary re-renders
+  const handleViewDetails = useCallback((id: string) => {
+    console.log(`View details for project ${id}`);
+    // Add your navigation logic here, e.g.:
+    // router.push(`/projects/${id}`);
+  }, []);
+
+  // Handle toggling favorites
+  const handleToggleFavorite = useCallback(
+    (id: string, isFavorite: boolean) => {
+      console.log(`Toggle favorite for project ${id}: ${isFavorite}`);
+      // Implement your favorite toggling logic here
+    },
+    []
+  );
+
+  // Handle the actual deletion after confirmation
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!projectToDelete) return;
+
+    try {
+      // Set deleting state
+      setDeletingProjectId(projectToDelete.id);
+
+      // Close the dialog immediately to prevent double-rendering issues
+      setShowDeleteDialog(false);
+
+      // Call the server action to delete the project
+      const result = await removeProject(projectToDelete.id);
+
+      if (!result.success) {
+        toast.error(result.error || "Failed to delete project");
+        setDeletingProjectId(null);
+        return;
+      }
+
+      // Handle the deletion in the projects context
+      if (handleProjectDeleted) {
+        handleProjectDeleted(projectToDelete.id);
+      }
+
+      toast.success("Project deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      toast.error("An error occurred while deleting the project");
+    } finally {
+      setDeletingProjectId(null);
+      setProjectToDelete(null);
+    }
+  }, [projectToDelete, handleProjectDeleted]);
+
+  // Handle delete button click
+  const handleDeleteProject = useCallback((project: Project) => {
+    setProjectToDelete(project);
+    setShowDeleteDialog(true);
+  }, []);
+
+  const handleUpdateProject = useCallback((project: Project) => {
+    setEditingProject(project);
+    setIsUpdateModalOpen(true);
+  }, []);
+
+  const handleModalClose = useCallback(() => {
+    setIsUpdateModalOpen(false);
+    setTimeout(() => setEditingProject(null), 300); // Clear after animation completes
+  }, []);
+
   // Loading state with fixed height
   if (isLoading) {
     return (
@@ -74,84 +141,6 @@ export function ProjectList({
       </div>
     );
   }
-
-  // Handle viewing project details
-  const handleViewDetails = (id: string) => {
-    console.log(`View details for project ${id}`);
-    // Add your navigation logic here, e.g.:
-    // router.push(`/projects/${id}`);
-  };
-
-  // Handle toggling favorites
-  const handleToggleFavorite = (id: string, isFavorite: boolean) => {
-    console.log(`Toggle favorite for project ${id}: ${isFavorite}`);
-    // Implement your favorite toggling logic here
-  };
-
-  // Handle the actual deletion after confirmation
-  const handleDeleteConfirm = async () => {
-    if (!projectToDelete) return;
-
-    try {
-      // Set deleting state
-      setDeletingProjectId(projectToDelete.id);
-
-      // Close the dialog immediately to prevent double-rendering issues
-      setShowDeleteDialog(false);
-
-      // Call the server action to delete the project
-      const result = await removeProject(projectToDelete.id);
-
-      if (!result.success) {
-        throw new Error(result.error);
-      }
-
-      // Update the UI through the projects context if available
-      if (handleProjectDeleted) {
-        handleProjectDeleted(projectToDelete.id);
-      }
-
-      toast.success("Project deleted successfully");
-    } catch (error) {
-      console.error("Failed to delete project:", error);
-      toast.error(
-        `Failed to delete project: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    } finally {
-      setDeletingProjectId(null);
-      setProjectToDelete(null);
-    }
-  };
-
-  // Handle delete button click from ProjectCard or table view
-  const handleDeleteProject = (project: Project) => {
-    // Set the project to delete
-    setProjectToDelete(project);
-    // Open the dialog
-    setShowDeleteDialog(true);
-  };
-
-  // Handle updating a project
-  const handleUpdateProject = async (project: Project) => {
-    try {
-      setEditingProject(project);
-      setIsUpdateModalOpen(true);
-    } catch (error) {
-      console.error("Failed to update project:", error);
-      toast.error(
-        `Failed to update project: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
-    }
-  };
-
-  const handleModalClose = () => {
-    setEditingProject(null);
-    setIsUpdateModalOpen(false);
-  };
 
   return (
     <div>

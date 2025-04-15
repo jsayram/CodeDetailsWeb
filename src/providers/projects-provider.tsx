@@ -15,17 +15,20 @@ import {
   getAuthenticatedClient,
 } from "@/services/supabase";
 import { canAccessTier } from "@/services/tierServiceServer";
-import { useIsBrowser, getClientSideValue } from "@/lib/ClientSideUtils";
+import { useIsBrowser } from "@/lib/ClientSideUtils";
 import { getAllFreeProjects, getUserProjects } from "@/app/actions/projects";
-
-// Cache constants
-const FREE_PROJECTS_CACHE_KEY = "cached_free_projects";
-const CACHE_EXPIRY_KEY = "free_projects_cache_expiry";
-const CACHE_DURATION = 1000 * 60 * 60; // 1 hour in milliseconds
-const CACHE_VERSION_KEY = "free_projects_cache_version";
-const CACHE_VERSION = "1.0"; // Increment this when your data schema changes
-const CACHE_LAST_UPDATED_KEY = "free_projects_last_updated";
-const BACKGROUND_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+// Import the extracted cache utilities
+import {
+  loadCachedFreeProjects,
+  cacheFreeProjects,
+  checkForDataUpdates,
+  clearProjectsCache,
+  BACKGROUND_REFRESH_INTERVAL,
+  loadCachedAuthenticatedProjects,
+  cacheAuthenticatedProjects,
+  checkForAuthDataUpdates,
+  updateProjectInCache,
+} from "@/lib/ProjectsCacheUtils";
 
 interface ProjectsContextType {
   projects: Project[];
@@ -89,6 +92,9 @@ export function ProjectsProvider({
   // Track if component is mounted
   const isMounted = useRef(true);
 
+  // Track if we're experiencing caching issues
+  const [cachingDebug, setCachingDebug] = useState(false);
+
   // Get clients
   const anonymousClient = useMemo(() => getAnonymousClient(), []);
   const authenticatedClient = useMemo(
@@ -99,145 +105,75 @@ export function ProjectsProvider({
   //checks if the code is running in the browser
   const isBrowser = useIsBrowser();
 
-  // Helper function to load cached free projects
-  const loadCachedFreeProjects = useCallback(() => {
-    if (!isBrowser) return null;
-
-    // Check if localStorage is available
-    try {
-      // Check cache version first
-      const cacheVersion = localStorage.getItem(CACHE_VERSION_KEY);
-      if (cacheVersion !== CACHE_VERSION) {
-        console.log("🔄 Cache version changed, forcing refresh");
-        return null;
-      }
-
-      const cachedExpiry = localStorage.getItem(CACHE_EXPIRY_KEY);
-
-      //only use date.now() if we are in the browser to prevent SSR issues (hydration errors)
-      const now = getClientSideValue(() => Date.now(), 0);
-
-      // Check if cache is expired
-      if (!cachedExpiry || parseInt(cachedExpiry) < now) {
-        return null;
-      }
-
-      const cachedProjects = localStorage.getItem(FREE_PROJECTS_CACHE_KEY);
-      if (!cachedProjects) return null;
-
-      return JSON.parse(cachedProjects) as Project[];
-    } catch (error) {
-      console.error("Error loading cached projects:", error);
-      return null;
-    }
-  }, [isBrowser]);
-
-  // Helper function to save free projects to cache
-  const cacheFreeProjects = useCallback(
-    (projectsToCache: Project[]) => {
-      if (!isBrowser) return;
-
-      try {
-        // Only use Date.now() on client to prevent SSR issues and hydration errors
-        const expiryTime =
-          getClientSideValue(() => Date.now(), 0) + CACHE_DURATION;
-
-        localStorage.setItem(
-          FREE_PROJECTS_CACHE_KEY,
-          JSON.stringify(projectsToCache)
-        );
-        localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
-        localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
-        // Only use Date.now() on client to prevent SSR issues and hydration errors
-        localStorage.setItem(
-          CACHE_LAST_UPDATED_KEY,
-          getClientSideValue(() => Date.now(), 0).toString()
-        );
-        console.log(
-          "💾 Free projects cached until",
-          // hydration error fix always wrap date in getClientSideValue
-          getClientSideValue(
-            () => new Date(expiryTime).toLocaleTimeString(),
-            "[Time will display client-side]"
-          )
-        );
-      } catch (error) {
-        console.error("Error caching free projects:", error);
-      }
-    },
-    [isBrowser]
-  );
-
-  // Function to check for data updates in the background
-  const checkForDataUpdates = useCallback(async () => {
-    if (!isBrowser || !anonymousClient) return;
-
-    try {
-      // Only check if we have cached data
-      const cachedProjects = loadCachedFreeProjects();
-      if (!cachedProjects || cachedProjects.length === 0) return;
-
-      // Get the last updated timestamp
-      const lastUpdated = localStorage.getItem(CACHE_LAST_UPDATED_KEY);
-      if (!lastUpdated) return;
-
-      //Only use Date.now() on client to prevent SSR issues and hydration errors
-      const cacheAge =
-        getClientSideValue(() => Date.now(), 0) - parseInt(lastUpdated);
-
-      // Only check for updates if cache is older than the background refresh interval
-      if (cacheAge < BACKGROUND_REFRESH_INTERVAL) return;
-
-      console.log("🔍 Checking for updated free projects in background...");
-
-      // Get the count of free projects from the database using server action
-      const projectCount = await getAllFreeProjects().then(
-        (projects) => projects.length
-      );
-
-      // Compare the count with our cached data
-      if (projectCount !== cachedProjects.length) {
-        console.log("🔄 Free projects count changed, refreshing data");
-        setHasFetchedFreeProjects(false); // This will trigger a re-fetch
-      } else {
-        // Update the last checked time even if no changes
-        // Only use Date.now() on client to prevent SSR issues and hydration errors
-        localStorage.setItem(
-          CACHE_LAST_UPDATED_KEY,
-          getClientSideValue(() => Date.now(), 0).toString()
-        );
-        console.log("✅ Free projects are up to date");
-      }
-    } catch (error) {
-      console.error("Error checking for data updates:", error);
-    }
-  }, [loadCachedFreeProjects, isBrowser, anonymousClient]);
-
   // Initialize free projects from cache on mount
   useEffect(() => {
     isMounted.current = true;
 
     // Try to load cached projects on initial mount
-    if (!userId && !isLoading) {
-      const cachedProjects = loadCachedFreeProjects();
-      if (cachedProjects && cachedProjects.length > 0) {
-        console.log(
-          "🔄 Loading",
-          cachedProjects.length,
-          "free projects from cache"
-        );
-        setFreeProjects(cachedProjects);
-        setFreeLoading(false);
-        setHasFetchedFreeProjects(true);
+    const loadInitialCache = async () => {
+      if (!userId && !isLoading && !hasFetchedFreeProjects) {
+        try {
+          const cachedProjects = await loadCachedFreeProjects(isBrowser);
+          console.log(
+            "🔍 Initial Cache Check - Free Projects:",
+            cachedProjects
+              ? `${cachedProjects.length} projects in cache`
+              : "No cache available"
+          );
+          
+          if (cachedProjects && cachedProjects.length > 0 && isMounted.current) {
+            console.log(
+              "🔄 Loading",
+              cachedProjects.length,
+              "free projects from cache on mount"
+            );
+            setFreeProjects(cachedProjects);
+            setFreeLoading(false);
+            setHasFetchedFreeProjects(true);
+          }
+        } catch (error) {
+          console.error("Error loading cached free projects:", error);
+        }
       }
-    }
+
+      // Try to load cached authenticated projects if user is logged in
+      if (userId && !isLoading && !hasFetchedProjects) {
+        try {
+          const cachedAuthProjects = await loadCachedAuthenticatedProjects(
+            isBrowser,
+            userId
+          );
+          console.log(
+            "🔍 Initial Cache Check - Auth Projects:",
+            cachedAuthProjects
+              ? `${cachedAuthProjects.length} projects in cache`
+              : "No cache available"
+          );
+          
+          if (cachedAuthProjects && cachedAuthProjects.length > 0 && isMounted.current) {
+            console.log(
+              "🔄 Loading",
+              cachedAuthProjects.length,
+              "authenticated projects from cache on mount"
+            );
+            setProjects(cachedAuthProjects);
+            setLoading(false);
+            setHasFetchedProjects(true);
+          }
+        } catch (error) {
+          console.error("Error loading cached auth projects:", error);
+        }
+      }
+    };
+
+    loadInitialCache();
 
     return () => {
       isMounted.current = false;
     };
-  }, [userId, isLoading, loadCachedFreeProjects]);
+  }, [userId, isLoading, isBrowser, hasFetchedFreeProjects, hasFetchedProjects]);
 
-  // Set up background checks for data updates
+  // Set up background checks for data updates (free projects)
   useEffect(() => {
     // Skip if user is authenticated or in process of authenticating
     if (userId || isAuthenticating || isLoading) return;
@@ -246,11 +182,19 @@ export function ProjectsProvider({
     if (!hasFetchedFreeProjects) return;
 
     // Do an initial check for updates
-    checkForDataUpdates();
+    const runCheck = async () => {
+      await checkForDataUpdates(
+        isBrowser,
+        setHasFetchedFreeProjects,
+        getAllFreeProjects
+      );
+    };
+
+    runCheck();
 
     // Set up interval for background checks
     const intervalId = setInterval(() => {
-      checkForDataUpdates();
+      runCheck();
     }, BACKGROUND_REFRESH_INTERVAL);
 
     return () => clearInterval(intervalId);
@@ -259,7 +203,43 @@ export function ProjectsProvider({
     isAuthenticating,
     isLoading,
     hasFetchedFreeProjects,
-    checkForDataUpdates,
+    isBrowser,
+  ]);
+
+  // Set up background checks for authenticated projects
+  useEffect(() => {
+    // Skip if not authenticated
+    if (!userId || !isAuthenticated || isLoading) return;
+
+    // Skip if we haven't fetched authenticated projects yet
+    if (!hasFetchedProjects) return;
+
+    // Do an initial check for updates
+    const runAuthCheck = async () => {
+      await checkForAuthDataUpdates(
+        isBrowser,
+        userId,
+        setHasFetchedProjects,
+        getUserProjects,
+        userTier
+      );
+    };
+
+    runAuthCheck();
+
+    // Set up interval for background checks
+    const intervalId = setInterval(() => {
+      runAuthCheck();
+    }, BACKGROUND_REFRESH_INTERVAL);
+
+    return () => clearInterval(intervalId);
+  }, [
+    userId,
+    isAuthenticated,
+    isLoading,
+    hasFetchedProjects,
+    isBrowser,
+    userTier,
   ]);
 
   // Monitor auth state changes
@@ -335,9 +315,9 @@ export function ProjectsProvider({
 
   // Fetch free projects - with caching
   useEffect(() => {
-    // Skip if already fetched
-    if (hasFetchedFreeProjects) {
-      console.log("📋 Free projects already fetched, skipping");
+    // Skip if already fetched or if we have projects from cache
+    if (hasFetchedFreeProjects || freeProjects.length > 0) {
+      console.log("📋 Free projects already available, skipping fetch");
       return;
     }
 
@@ -355,23 +335,39 @@ export function ProjectsProvider({
       return;
     }
 
-    // First try to load from cache if we don't have free projects yet
-    if (freeProjects.length === 0) {
-      const cachedProjects = loadCachedFreeProjects();
-      if (cachedProjects && cachedProjects.length > 0) {
+    const fetchFreeProjectsWithCache = async () => {
+      // Check cache first - if we have valid cached projects, use them
+      try {
+        const cachedProjects = await loadCachedFreeProjects(isBrowser);
         console.log(
-          "🔄 Loading",
-          cachedProjects.length,
-          "free projects from cache"
+          "🔍 Cache Check Before Fetch - Free Projects:",
+          cachedProjects
+            ? `${cachedProjects.length} projects in cache`
+            : "No cache available"
         );
-        setFreeProjects(cachedProjects);
-        setFreeLoading(false);
-        setHasFetchedFreeProjects(true);
-        return;
-      }
-    }
 
-    // If no cache or expired, fetch from the database
+        if (cachedProjects && cachedProjects.length > 0) {
+          console.log(
+            "🔄 Loading",
+            cachedProjects.length,
+            "free projects from cache"
+          );
+          setFreeProjects(cachedProjects);
+          setFreeLoading(false);
+          setHasFetchedFreeProjects(true);
+          return;
+        }
+        
+        // Only fetch from database if cache is empty or invalid
+        await fetchFreeProjects();
+      } catch (error) {
+        console.error("Error in fetchFreeProjectsWithCache:", error);
+        // Fallback to direct fetch if cache access fails
+        await fetchFreeProjects();
+      }
+    };
+
+    // Only fetch from database if cache is empty or invalid
     const fetchFreeProjects = async () => {
       console.log("🔄 Fetching free projects from database...");
       try {
@@ -388,7 +384,21 @@ export function ProjectsProvider({
 
           // Cache the fetched projects
           if (data && data.length > 0) {
-            cacheFreeProjects(data);
+            console.log(`💾 Caching ${data.length} free projects in Cache Storage`);
+            await cacheFreeProjects(data, isBrowser);
+
+            // Verify cache was properly set
+            try {
+              const verifyCache = await loadCachedFreeProjects(isBrowser);
+              console.log(
+                "🔍 Cache Verification - Free Projects:",
+                verifyCache
+                  ? `${verifyCache.length} projects in cache after storing`
+                  : "Failed to store in cache"
+              );
+            } catch (verifyError) {
+              console.error("Cache verification error:", verifyError);
+            }
           }
         }
       } catch (error) {
@@ -404,15 +414,13 @@ export function ProjectsProvider({
       }
     };
 
-    fetchFreeProjects();
+    fetchFreeProjectsWithCache();
   }, [
-    anonymousClient,
     isLoading,
     hasFetchedFreeProjects,
     userId,
     isAuthenticating,
-    loadCachedFreeProjects,
-    cacheFreeProjects,
+    isBrowser,
     freeProjects.length,
   ]);
 
@@ -439,6 +447,45 @@ export function ProjectsProvider({
       return;
     }
 
+    const fetchAuthProjectsWithCache = async () => {
+      // Check cache first - if we have valid cached auth projects, use them
+      try {
+        const cachedAuthProjects = await loadCachedAuthenticatedProjects(
+          isBrowser,
+          userId
+        );
+        console.log(
+          "🔍 Cache Check Before Fetch - Auth Projects:",
+          cachedAuthProjects
+            ? `${cachedAuthProjects.length} projects in cache`
+            : "No cache available"
+        );
+
+        if (cachedAuthProjects && cachedAuthProjects.length > 0) {
+          console.log(
+            "🔄 Loading",
+            cachedAuthProjects.length,
+            "authenticated projects from cache"
+          );
+          console.log(
+            "🔍 Cache Contents - Auth Projects IDs:",
+            cachedAuthProjects.map((p) => p.id).join(", ")
+          );
+          setProjects(cachedAuthProjects);
+          setLoading(false);
+          setHasFetchedProjects(true);
+          return;
+        }
+
+        // If no valid cache, fetch from server
+        await fetchAccessibleProjects();
+      } catch (error) {
+        console.error("Error in fetchAuthProjectsWithCache:", error);
+        // Fallback to direct fetch if cache access fails
+        await fetchAccessibleProjects();
+      }
+    };
+
     const fetchAccessibleProjects = async () => {
       console.log("✅ All conditions met, fetching authenticated projects...");
       console.log("🔐 Auth state:", isAuthenticated);
@@ -459,9 +506,68 @@ export function ProjectsProvider({
 
           console.log("📦 Fetched projects data:", data);
           console.log("📦 Fetched", data?.length || 0, "accessible projects");
+          console.log(
+            "🔍 Fetched Project IDs:",
+            data?.map((p) => p.id).join(", ")
+          );
+
+          // Enable debug mode if we're seeing caching discrepancies
+          if (data && data.length > 0) {
+            setCachingDebug(true);
+            console.log("🔍 DEBUG: All fetched projects:", data.length);
+            console.log(
+              "🔍 DEBUG: Project IDs:",
+              data.map((p) => p.id).join(", ")
+            );
+          }
 
           if (isMounted.current) {
             setProjects(data || []);
+
+            // Cache ALL the fetched authenticated projects
+            if (data && data.length > 0) {
+              console.log(
+                `💾 Caching ${data.length} authenticated projects in Cache Storage`
+              );
+              // Make sure we're caching the complete data array
+              await cacheAuthenticatedProjects(data, isBrowser, userId);
+
+              // Verify cache was properly set
+              try {
+                const verifyCache = await loadCachedAuthenticatedProjects(
+                  isBrowser,
+                  userId
+                );
+                console.log(
+                  "🔍 Cache Verification - Auth Projects:",
+                  verifyCache
+                    ? `${verifyCache.length} projects in cache after storing`
+                    : "Failed to store in cache"
+                );
+
+                if (verifyCache) {
+                  // Check if any projects are missing
+                  const fetchedIds = new Set(data.map((p) => p.id));
+                  const cachedIds = new Set(verifyCache.map((p) => p.id));
+                  const missingIds = [...fetchedIds].filter(
+                    (id) => !cachedIds.has(id)
+                  );
+
+                  if (missingIds.length > 0) {
+                    console.log(
+                      "⚠️ Missing project IDs in cache:",
+                      missingIds.join(", ")
+                    );
+                  } else {
+                    console.log(
+                      "✅ Cache validation successful - all projects stored correctly"
+                    );
+                  }
+                }
+              } catch (verifyError) {
+                console.error("Cache verification error:", verifyError);
+              }
+            }
           }
         } catch (serverActionError) {
           console.error("❌ Server action failed:", serverActionError);
@@ -483,7 +589,7 @@ export function ProjectsProvider({
       }
     };
 
-    fetchAccessibleProjects();
+    fetchAuthProjectsWithCache();
   }, [
     isAuthenticated,
     authenticatedClient,
@@ -491,25 +597,69 @@ export function ProjectsProvider({
     isLoading,
     hasFetchedProjects,
     userId,
+    isBrowser,
   ]);
 
   // Force refresh function
   const refreshProjects = useCallback(() => {
     console.log("🔄 Manually refreshing all projects...");
-    setHasFetchedProjects(false);
-    setHasFetchedFreeProjects(false);
-    setLoading(true);
-    setFreeLoading(true);
-
-    // Clear cache when manually refreshing
-    if (isBrowser) {
-      localStorage.removeItem(FREE_PROJECTS_CACHE_KEY);
-      localStorage.removeItem(CACHE_EXPIRY_KEY);
-      localStorage.removeItem(CACHE_VERSION_KEY);
-      localStorage.removeItem(CACHE_LAST_UPDATED_KEY);
-      console.log("🧹 Cleared project cache");
-    }
-  }, [isBrowser]);
+    
+    // Check what's in cache before refreshing
+    const checkCacheAndRefresh = async () => {
+      try {
+        const cachedFree = await loadCachedFreeProjects(isBrowser);
+        const cachedAuth = await loadCachedAuthenticatedProjects(isBrowser, userId);
+        console.log(
+          "🔍 Cache before refresh - Free Projects:",
+          cachedFree ? `${cachedFree.length} projects` : "No cache"
+        );
+        console.log(
+          "🔍 Cache before refresh - Auth Projects:",
+          cachedAuth ? `${cachedAuth.length} projects` : "No cache"
+        );
+        
+        setHasFetchedProjects(false);
+        setHasFetchedFreeProjects(false);
+        setLoading(true);
+        setFreeLoading(true);
+        
+        // Clear cache when manually refreshing
+        await clearProjectsCache(isBrowser);
+        
+        // Verify cache was cleared
+        try {
+          const verifyFreeCache = await loadCachedFreeProjects(isBrowser);
+          const verifyAuthCache = await loadCachedAuthenticatedProjects(
+            isBrowser,
+            userId
+          );
+          console.log(
+            "🔍 Cache after clearing - Free Projects:",
+            verifyFreeCache
+              ? `${verifyFreeCache.length} projects remain`
+              : "Successfully cleared"
+          );
+          console.log(
+            "🔍 Cache after clearing - Auth Projects:",
+            verifyAuthCache
+              ? `${verifyAuthCache.length} projects remain`
+              : "Successfully cleared"
+          );
+        } catch (verifyError) {
+          console.error("Cache verification error:", verifyError);
+        }
+      } catch (error) {
+        console.error("Error during refresh:", error);
+        // Even if the cache check fails, still reset the fetched flags
+        setHasFetchedProjects(false);
+        setHasFetchedFreeProjects(false);
+        setLoading(true);
+        setFreeLoading(true);
+      }
+    };
+    
+    checkCacheAndRefresh();
+  }, [isBrowser, userId]);
 
   // Handler to add a new project
   const handleProjectAdded = useCallback(
@@ -517,7 +667,18 @@ export function ProjectsProvider({
       console.log("+ Adding new project:", newProject.title);
       // Only add to visible projects if user can access this tier
       if (canAccessTier(userTier, newProject.tier)) {
-        setProjects((prev) => [...prev, newProject]);
+        setProjects((prev) => {
+          const updatedProjects = [...prev, newProject];
+          // Update cache for authenticated projects
+          if (userId && isAuthenticated) {
+            console.log(
+              `💾 Caching ${updatedProjects.length} projects after adding new project`
+            );
+            cacheAuthenticatedProjects(updatedProjects, isBrowser, userId)
+              .catch(err => console.error("Error caching projects after add:", err));
+          }
+          return updatedProjects;
+        });
       }
 
       // Also add to free projects if it's a free tier project
@@ -525,37 +686,147 @@ export function ProjectsProvider({
         setFreeProjects((prev) => {
           const updatedFreeProjects = [...prev, newProject];
           // Update cache with new project
-          cacheFreeProjects(updatedFreeProjects);
+          cacheFreeProjects(updatedFreeProjects, isBrowser)
+            .catch(err => console.error("Error caching free projects after add:", err));
           return updatedFreeProjects;
         });
       }
     },
-    [userTier, cacheFreeProjects]
+    [userTier, isBrowser, userId, isAuthenticated]
   );
 
   // Handler to delete a project
-  const handleProjectDeleted = useCallback((projectId: string) => {
-    console.log("- Deleting project with ID:", projectId);
-    setProjects((prev) => prev.filter((project) => project.id !== projectId));
-    setFreeProjects((prev) =>
-      prev.filter((project) => project.id !== projectId)
-    );
-  }, []);
+  const handleProjectDeleted = useCallback(
+    (projectId: string) => {
+      console.log("- Deleting project with ID:", projectId);
+      setProjects((prev) => {
+        const updatedProjects = prev.filter(
+          (project) => project.id !== projectId
+        );
+        // Update cache for authenticated projects
+        if (userId && isAuthenticated) {
+          console.log(
+            `💾 Caching ${updatedProjects.length} projects after deletion`
+          );
+          cacheAuthenticatedProjects(updatedProjects, isBrowser, userId)
+            .catch(err => console.error("Error caching projects after delete:", err));
+        }
+        return updatedProjects;
+      });
+
+      setFreeProjects((prev) => {
+        const updatedFreeProjects = prev.filter(
+          (project) => project.id !== projectId
+        );
+        // Update cache for free projects
+        if (updatedFreeProjects.length !== prev.length) {
+          cacheFreeProjects(updatedFreeProjects, isBrowser)
+            .catch(err => console.error("Error caching free projects after delete:", err));
+        }
+        return updatedFreeProjects;
+      });
+    },
+    [isBrowser, userId, isAuthenticated]
+  );
 
   // Handler to update a project
-  const handleProjectUpdated = useCallback((updatedProject: Project) => {
-    console.log("✏️ Updating project:", updatedProject.title);
-    setProjects((prev) =>
-      prev.map((project) =>
-        project.id === updatedProject.id ? updatedProject : project
-      )
-    );
-    setFreeProjects((prev) =>
-      prev.map((project) =>
-        project.id === updatedProject.id ? updatedProject : project
-      )
-    );
-  }, []);
+  const handleProjectUpdated = useCallback(
+    (updatedProject: Project) => {
+      console.log("✏️ Updating project:", updatedProject.title);
+
+      // Use the optimized cache update function
+      updateProjectInCache(
+        updatedProject,
+        isBrowser,
+        isAuthenticated ? userId : null
+      ).catch(err => console.error("Error updating project in cache:", err));
+
+      setProjects((prev) => {
+        const updatedProjects = prev.map((project) =>
+          project.id === updatedProject.id ? updatedProject : project
+        );
+
+        // Also ensure the full cache is updated
+        if (userId && isAuthenticated) {
+          console.log(
+            `💾 Updating cache with ${updatedProjects.length} projects after project update`
+          );
+          cacheAuthenticatedProjects(updatedProjects, isBrowser, userId)
+            .catch(err => console.error("Error caching projects after update:", err));
+        }
+
+        return updatedProjects;
+      });
+
+      setFreeProjects((prev) =>
+        prev.map((project) =>
+          project.id === updatedProject.id ? updatedProject : project
+        )
+      );
+    },
+    [isBrowser, userId, isAuthenticated]
+  );
+
+  // Log cache stats when in debug mode
+  useEffect(() => {
+    if (cachingDebug && userId && isAuthenticated) {
+      const checkCacheState = async () => {
+        try {
+          const cachedAuthProjects = await loadCachedAuthenticatedProjects(
+            isBrowser,
+            userId
+          );
+          console.log("🔍 DEBUG: Total projects in state:", projects.length);
+          console.log(
+            "🔍 DEBUG: Total projects in cache:",
+            cachedAuthProjects?.length || 0
+          );
+
+          if (cachedAuthProjects && projects.length > cachedAuthProjects.length) {
+            console.log("⚠️ WARNING: Some projects are missing from cache!");
+
+            // Compare projects in state vs cache
+            const stateIds = new Set(projects.map((p) => p.id));
+            const cacheIds = new Set(cachedAuthProjects.map((p) => p.id));
+
+            // Find missing IDs
+            const missingIds = [...stateIds].filter((id) => !cacheIds.has(id));
+            if (missingIds.length > 0) {
+              console.log("⚠️ Missing project IDs:", missingIds.join(", "));
+
+              // Force update the cache with all projects
+              console.log("🔄 Forcing cache update with all projects");
+              await cacheAuthenticatedProjects(projects, isBrowser, userId);
+
+              // Verify cache was fixed
+              try {
+                const verifyCache = await loadCachedAuthenticatedProjects(
+                  isBrowser,
+                  userId
+                );
+                console.log(
+                  "🔍 Cache after fixing:",
+                  verifyCache
+                    ? `${verifyCache.length} projects`
+                    : "Failed to fix cache"
+                );
+
+                if (verifyCache && verifyCache.length === projects.length) {
+                  console.log("✅ Cache successfully fixed");
+                }
+              } catch (verifyError) {
+                console.error("Cache verification error:", verifyError);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error checking cache state:", error);
+        }
+      };
+
+      checkCacheState();
+    }
+  }, [cachingDebug, projects.length, isBrowser, userId, isAuthenticated]);
 
   // Memoize the context value to prevent unnecessary renders
   const value = useMemo(
