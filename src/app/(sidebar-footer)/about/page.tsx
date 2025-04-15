@@ -139,9 +139,9 @@ export default function AboutPage() {
 
                     <p>
                       By day, I work as a Software Test Engineer, focusing on
-                      building robust, compliant, and well-tested systems for
-                      medical device software. I{"'"}ve developed a strong
-                      foundation in testing frameworks, full-stack development,
+                      building robust, compliant, and well tested systems for
+                      medical device software. I&apos;ve developed a strong
+                      foundation in testing frameworks, full stack development,
                       and automation, with experience in tools like Selenium,
                       Angular, Firebase, SQL, and most recently, Next.js and
                       Supabase.
@@ -149,13 +149,13 @@ export default function AboutPage() {
 
                     <p>
                       <span className="font-semibold">Code Details</span> is
-                      more than a portfolio — it{"'"}s a knowledge hub designed
+                      more than a portfolio it&apos;s a knowledge hub designed
                       to grow with me. It features real projects, tutorials, and
                       dev notes across various stacks, searchable by tags and
                       accessible by tier-based roles (Free, Pro, Diamond).
-                      Whether you{"'"}re a beginner looking for real examples or
-                      an experienced dev hunting for advanced patterns, you{"'"}
-                      ll find something here.
+                      Whether you&apos;re a beginner looking for real examples
+                      or an experienced dev hunting for advanced patterns,
+                      you&apos; ll find something here.
                     </p>
                   </div>
 
@@ -168,19 +168,19 @@ export default function AboutPage() {
                   <div className="prose prose-sm md:prose-base dark:prose-invert max-w-none space-y-4">
                     <p>
                       This site is part of a broader vision: financial freedom
-                      through creativity and code. I{"'"}m building toward a
-                      life where my projects speak for themselves — and support
-                      themselves. Along the way, I{"'"}m documenting everything,
-                      from tech stacks to personal insights, hoping to inspire
-                      others to take ownership of their growth too.
+                      through creativity and code. I&apos;m building toward a
+                      life where my projects speak for themselves and support
+                      themselves. Along the way, I&apos;m documenting
+                      everything, from tech stacks to personal insights, hoping
+                      to inspire others to take ownership of their growth too.
                     </p>
 
                     <p>
-                      When I{"'"}m not deep in code, you{"'"}ll probably find me
-                      optimizing my lifestyle, experimenting with nutrition and
-                      fitness, or reflecting on how self-improvement intersects
-                      with engineering — because to me, building software and
-                      building character go hand in hand.
+                      When I&apos;m not deep in code, you&apos;ll probably find
+                      me optimizing my lifestyle, experimenting with nutrition
+                      and fitness, or reflecting on how self-improvement
+                      intersects with engineering because to me, building
+                      software and building character go hand in hand.
                     </p>
                   </div>
                 </CardContent>
@@ -294,12 +294,12 @@ export default function AboutPage() {
             <Card className="bg-gradient-to-r from-primary/10 to-violet-500/10 border-0">
               <CardContent className="py-12">
                 <h2 className="text-3xl font-semibold mb-4">
-                  Let{"'"}s Connect
+                  Let&apos;s Connect
                 </h2>
                 <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-6">
-                  Whether you{"'"}re interested in collaboration, have questions
-                  about my projects, or just want to chat about code and
-                  technology, I{"'"}d love to hear from you.
+                  Whether you&apos;re interested in collaboration, have
+                  questions about my projects, or just want to chat about code
+                  and technology, I&apos;d love to hear from you.
                 </p>
                 <div className="flex justify-center space-x-4">
                   <a

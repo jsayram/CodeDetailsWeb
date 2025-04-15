@@ -11,7 +11,6 @@ import {
   setUserTierRequestInProgress,
   USER_TIER_FETCH_DEBOUNCE,
 } from "@/lib/ProjectsCacheUtils";
-import { getClientSideValue } from "@/lib/ClientSideUtils";
 
 // Return type for hook
 type UserTierResult = {

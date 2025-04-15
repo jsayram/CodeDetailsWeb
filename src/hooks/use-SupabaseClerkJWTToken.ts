@@ -8,6 +8,14 @@ const TOKEN_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes (increased from 5min)
 const STORAGE_KEY = "clerk_token_cache";
 
 /**
+ * Interface for token cache storage
+ */
+interface TokenCacheData {
+  token: string;
+  expiry: number;
+}
+
+/**
  * Hook to get and manage the Supabase JWT token from Clerk
  * @returns Object containing token, loading state, and error
  */
@@ -22,6 +30,7 @@ export function useSupabaseToken() {
   const tokenExpiry = useRef<number>(0);
   const isRefreshing = useRef<boolean>(false);
   const hasHydrated = useRef<boolean>(false);
+  const currentToken = useRef<string | null>(null);
 
   // Safe sessionStorage operations to avoid hydration issues
   const getStorageItem = useCallback(() => {
@@ -35,7 +44,7 @@ export function useSupabaseToken() {
     }
   }, []);
 
-  const setStorageItem = useCallback((value: any) => {
+  const setStorageItem = useCallback((value: TokenCacheData) => {
     if (typeof window === "undefined") return;
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value));
@@ -58,6 +67,7 @@ export function useSupabaseToken() {
       const { token: cachedToken, expiry } = cachedData;
       if (Date.now() < expiry) {
         setToken(cachedToken);
+        currentToken.current = cachedToken;
         tokenExpiry.current = expiry;
       }
     }
@@ -67,13 +77,14 @@ export function useSupabaseToken() {
     async (forceRefresh = false) => {
       if (!session) {
         setToken(null); // Explicitly set token to null when no session
+        currentToken.current = null;
         return null;
       }
 
       // Skip if already refreshing
       if (isRefreshing.current) {
         console.log("Token refresh already in progress, skipping");
-        return token;
+        return currentToken.current;
       }
 
       const now = Date.now();
@@ -84,13 +95,13 @@ export function useSupabaseToken() {
         now - lastRefreshTime.current < TOKEN_REFRESH_DEBOUNCE
       ) {
         console.log("Token refreshed too recently, using existing token");
-        return token;
+        return currentToken.current;
       }
 
       // If token is still valid, use it
-      if (!forceRefresh && token && now < tokenExpiry.current) {
+      if (!forceRefresh && currentToken.current && now < tokenExpiry.current) {
         console.log("Using cached token (still valid)");
-        return token;
+        return currentToken.current;
       }
 
       setLoading(true);
@@ -100,14 +111,17 @@ export function useSupabaseToken() {
       try {
         console.log("Fetching new Supabase token from Clerk");
         const newToken = await session.getToken({ template: "supabase" });
+
+        // Update state and ref
         setToken(newToken);
+        currentToken.current = newToken;
 
         // Update our tracking refs
         lastRefreshTime.current = now;
         tokenExpiry.current = now + TOKEN_CACHE_DURATION;
 
         // Cache token in sessionStorage (only in browser)
-        if (typeof window !== "undefined") {
+        if (typeof window !== "undefined" && newToken) {
           setStorageItem({
             token: newToken,
             expiry: tokenExpiry.current,
@@ -128,25 +142,26 @@ export function useSupabaseToken() {
         isRefreshing.current = false;
       }
     },
-    [session, token, setStorageItem]
+    [session, setStorageItem] // Remove token from dependencies
   );
 
   // Fetch token on session change, but only if needed
   useEffect(() => {
     // Only attempt to fetch the token if:
     // 1. Clerk session is loaded
-    // 2. We don't already have a token
+    // 2. We have a session but don't have a token
     // 3. Not currently refreshing
     // 4. We're on the client-side (to prevent SSR fetch attempts)
     if (
       isLoaded &&
-      !token &&
+      session &&
+      !currentToken.current &&
       !isRefreshing.current &&
       typeof window !== "undefined"
     ) {
       fetchToken();
     }
-  }, [fetchToken, isLoaded, token]);
+  }, [fetchToken, isLoaded, session]); // Changed dependency from token to session
 
   return {
     token,
