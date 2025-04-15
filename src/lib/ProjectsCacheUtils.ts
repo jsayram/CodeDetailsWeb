@@ -2,78 +2,29 @@ import { Project } from "@/types/models/project";
 import { getClientSideValue } from "@/lib/ClientSideUtils";
 
 // Cache constants
-export const FREE_PROJECTS_CACHE_KEY = "free-projects";
-export const AUTH_PROJECTS_CACHE_KEY = "auth-projects";
-export const CACHE_NAME = "codedeetails-projects";
-export const CACHE_VERSION = "v2"; // Increment this when your data schema changes
+export const FREE_PROJECTS_CACHE_KEY = "cached_free_projects";
+export const AUTH_PROJECTS_CACHE_KEY = "cached_auth_projects";
+export const CACHE_EXPIRY_KEY = "free_projects_cache_expiry";
+export const AUTH_CACHE_EXPIRY_KEY = "auth_projects_cache_expiry";
 export const CACHE_DURATION = 1000 * 60 * 60; // 1 hour in milliseconds
+export const CACHE_VERSION_KEY = "free_projects_cache_version";
+export const AUTH_CACHE_VERSION_KEY = "auth_projects_cache_version";
+export const CACHE_VERSION = "1.1"; // Increment this when your data schema changes
+export const CACHE_LAST_UPDATED_KEY = "free_projects_last_updated";
+export const AUTH_CACHE_LAST_UPDATED_KEY = "auth_projects_last_updated";
 export const BACKGROUND_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes in milliseconds
+export const BACKGROUND_CHECK_DEBOUNCE = 60 * 1000; // 1 minute debounce for background checks
+export const CLICK_DEBOUNCE_TIME = 5000; // 5 seconds debounce for UI-triggered checks
 
-// Cache metadata store
-export const METADATA_CACHE_NAME = "codedeetails-metadata";
-export const METADATA_KEY = "cache-metadata";
-
-// Interface for our cache metadata
-interface CacheMetadata {
-  lastUpdated: {
-    [key: string]: number;
-  };
-  expiry: {
-    [key: string]: number;
-  };
-  version: string;
-}
+// We'll use this to prevent multiple background checks from running at the same time
+let lastAuthCheckTime = 0;
+let lastFreeCheckTime = 0;
+let isCheckingAuth = false;
+let isCheckingFree = false;
+let lastUIInteractionTime = 0;
 
 /**
- * Gets or creates metadata for our cache
- */
-const getOrCreateMetadata = async (): Promise<CacheMetadata> => {
-  try {
-    const cache = await caches.open(METADATA_CACHE_NAME);
-    const response = await cache.match(METADATA_KEY);
-    
-    if (response) {
-      return await response.json();
-    }
-    
-    // If no metadata exists, create a new one
-    const metadata: CacheMetadata = {
-      lastUpdated: {},
-      expiry: {},
-      version: CACHE_VERSION
-    };
-    
-    // Store the new metadata
-    await updateMetadata(metadata);
-    
-    return metadata;
-  } catch (error) {
-    console.error("Error accessing cache metadata:", error);
-    
-    // Return default metadata
-    return {
-      lastUpdated: {},
-      expiry: {},
-      version: CACHE_VERSION
-    };
-  }
-};
-
-/**
- * Updates the metadata for our cache
- */
-const updateMetadata = async (metadata: CacheMetadata): Promise<void> => {
-  try {
-    const cache = await caches.open(METADATA_CACHE_NAME);
-    const response = new Response(JSON.stringify(metadata));
-    await cache.put(METADATA_KEY, response);
-  } catch (error) {
-    console.error("Error updating cache metadata:", error);
-  }
-};
-
-/**
- * Loads cached free projects from Cache Storage if available and valid
+ * Loads cached free projects from localStorage if available and valid
  * @returns Array of projects or null if cache is invalid/expired
  */
 export const loadCachedFreeProjects = async (
@@ -82,37 +33,27 @@ export const loadCachedFreeProjects = async (
   if (!isBrowser) return null;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
-      return null;
-    }
-    
-    // Get metadata to check version and expiry
-    const metadata = await getOrCreateMetadata();
-    
-    if (metadata.version !== CACHE_VERSION) {
+    // Check cache version first
+    const cacheVersion = localStorage.getItem(CACHE_VERSION_KEY);
+    if (cacheVersion !== CACHE_VERSION) {
       console.log("🔄 Cache version changed, forcing refresh");
       return null;
     }
+
+    const cachedExpiry = localStorage.getItem(CACHE_EXPIRY_KEY);
     
     // Check if cache is expired
-    const now = Date.now();
-    if (!metadata.expiry[FREE_PROJECTS_CACHE_KEY] || metadata.expiry[FREE_PROJECTS_CACHE_KEY] < now) {
+    const now = getClientSideValue(() => Date.now(), 0);
+    if (!cachedExpiry || parseInt(cachedExpiry) < now) {
       console.log("Free projects cache expired");
       return null;
     }
     
-    // Get the cache
-    const cache = await caches.open(CACHE_NAME);
-    const response = await cache.match(FREE_PROJECTS_CACHE_KEY);
+    const cachedProjects = localStorage.getItem(FREE_PROJECTS_CACHE_KEY);
+    if (!cachedProjects) return null;
     
-    if (!response) {
-      return null;
-    }
-    
-    const projects = await response.json();
-    console.log(`Loaded ${projects.length} free projects from cache`);
+    const projects = JSON.parse(cachedProjects);
+    console.log(`Loaded ${projects.length} free projects from localStorage`);
     return projects as Project[];
   } catch (error) {
     console.error("Error loading cached free projects:", error);
@@ -121,7 +62,7 @@ export const loadCachedFreeProjects = async (
 };
 
 /**
- * Loads cached authenticated projects from Cache Storage if available and valid
+ * Loads cached authenticated projects from localStorage if available and valid
  * @returns Array of projects or null if cache is invalid/expired
  */
 export const loadCachedAuthenticatedProjects = async (
@@ -131,39 +72,31 @@ export const loadCachedAuthenticatedProjects = async (
   if (!isBrowser || !userId) return null;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
-      return null;
-    }
-    
-    // Get metadata to check version and expiry
-    const metadata = await getOrCreateMetadata();
-    
-    if (metadata.version !== CACHE_VERSION) {
-      console.log("🔄 Cache version changed, forcing refresh");
-      return null;
-    }
-    
+    const cacheVersionKey = `${AUTH_CACHE_VERSION_KEY}_${userId}`;
     const cacheKey = `${AUTH_PROJECTS_CACHE_KEY}_${userId}`;
+    const expiryKey = `${AUTH_CACHE_EXPIRY_KEY}_${userId}`;
+    
+    // Check cache version first
+    const cacheVersion = localStorage.getItem(cacheVersionKey);
+    if (cacheVersion !== CACHE_VERSION) {
+      console.log("🔄 Auth cache version changed, forcing refresh");
+      return null;
+    }
+
+    const cachedExpiry = localStorage.getItem(expiryKey);
     
     // Check if cache is expired
-    const now = Date.now();
-    if (!metadata.expiry[cacheKey] || metadata.expiry[cacheKey] < now) {
+    const now = getClientSideValue(() => Date.now(), 0);
+    if (!cachedExpiry || parseInt(cachedExpiry) < now) {
       console.log("Authenticated projects cache expired");
       return null;
     }
     
-    // Get the cache
-    const cache = await caches.open(CACHE_NAME);
-    const response = await cache.match(cacheKey);
+    const cachedProjects = localStorage.getItem(cacheKey);
+    if (!cachedProjects) return null;
     
-    if (!response) {
-      return null;
-    }
-    
-    const projects = await response.json();
-    console.log(`Loaded ${projects.length} authenticated projects from cache for user ${userId}`);
+    const projects = JSON.parse(cachedProjects);
+    console.log(`Loaded ${projects.length} authenticated projects from localStorage for user ${userId}`);
     return projects as Project[];
   } catch (error) {
     console.error("Error loading cached authenticated projects:", error);
@@ -172,7 +105,7 @@ export const loadCachedAuthenticatedProjects = async (
 };
 
 /**
- * Saves free projects to Cache Storage
+ * Saves free projects to localStorage
  * @param projectsToCache Projects to cache
  * @param isBrowser Flag indicating if code is running in browser
  */
@@ -183,29 +116,28 @@ export const cacheFreeProjects = async (
   if (!isBrowser) return;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
-      return;
-    }
+    // Update the UI interaction timestamp to avoid immediate background checks
+    lastUIInteractionTime = getClientSideValue(() => Date.now(), 0);
     
-    const now = Date.now();
+    // Only use Date.now() on client to prevent SSR issues and hydration errors
+    const now = getClientSideValue(() => Date.now(), 0);
     const expiryTime = now + CACHE_DURATION;
-    
-    // Update metadata
-    const metadata = await getOrCreateMetadata();
-    metadata.lastUpdated[FREE_PROJECTS_CACHE_KEY] = now;
-    metadata.expiry[FREE_PROJECTS_CACHE_KEY] = expiryTime;
-    await updateMetadata(metadata);
-    
-    // Cache the projects
-    const cache = await caches.open(CACHE_NAME);
-    const response = new Response(JSON.stringify(projectsToCache));
-    await cache.put(FREE_PROJECTS_CACHE_KEY, response);
+
+    localStorage.setItem(
+      FREE_PROJECTS_CACHE_KEY,
+      JSON.stringify(projectsToCache)
+    );
+    localStorage.setItem(CACHE_EXPIRY_KEY, expiryTime.toString());
+    localStorage.setItem(CACHE_VERSION_KEY, CACHE_VERSION);
+    localStorage.setItem(CACHE_LAST_UPDATED_KEY, now.toString());
     
     console.log(
       "💾 Free projects cached until",
-      new Date(expiryTime).toLocaleTimeString(),
+      // hydration error fix always wrap date in getClientSideValue
+      getClientSideValue(
+        () => new Date(expiryTime).toLocaleTimeString(),
+        "[Time will display client-side]"
+      ),
       `(${projectsToCache.length} projects)`
     );
   } catch (error) {
@@ -214,7 +146,7 @@ export const cacheFreeProjects = async (
 };
 
 /**
- * Saves authenticated projects to Cache Storage
+ * Saves authenticated projects to localStorage
  * @param projectsToCache Projects to cache
  * @param isBrowser Flag indicating if code is running in browser
  * @param userId User ID to associate with the cache
@@ -227,30 +159,27 @@ export const cacheAuthenticatedProjects = async (
   if (!isBrowser || !userId) return;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
-      return;
-    }
-    
     const cacheKey = `${AUTH_PROJECTS_CACHE_KEY}_${userId}`;
-    const now = Date.now();
+    const cacheVersionKey = `${AUTH_CACHE_VERSION_KEY}_${userId}`;
+    const expiryKey = `${AUTH_CACHE_EXPIRY_KEY}_${userId}`;
+    const lastUpdatedKey = `${AUTH_CACHE_LAST_UPDATED_KEY}_${userId}`;
+    
+    // Only use Date.now() on client to prevent SSR issues and hydration errors
+    const now = getClientSideValue(() => Date.now(), 0);
     const expiryTime = now + CACHE_DURATION;
-    
-    // Update metadata
-    const metadata = await getOrCreateMetadata();
-    metadata.lastUpdated[cacheKey] = now;
-    metadata.expiry[cacheKey] = expiryTime;
-    await updateMetadata(metadata);
-    
-    // Cache the projects
-    const cache = await caches.open(CACHE_NAME);
-    const response = new Response(JSON.stringify(projectsToCache));
-    await cache.put(cacheKey, response);
+
+    localStorage.setItem(cacheKey, JSON.stringify(projectsToCache));
+    localStorage.setItem(expiryKey, expiryTime.toString());
+    localStorage.setItem(cacheVersionKey, CACHE_VERSION);
+    localStorage.setItem(lastUpdatedKey, now.toString());
     
     console.log(
       "💾 Authenticated projects cached until",
-      new Date(expiryTime).toLocaleTimeString(),
+      // hydration error fix always wrap date in getClientSideValue
+      getClientSideValue(
+        () => new Date(expiryTime).toLocaleTimeString(),
+        "[Time will display client-side]"
+      ),
       `(${projectsToCache.length} projects) for user ${userId}`
     );
   } catch (error) {
@@ -272,9 +201,22 @@ export const checkForDataUpdates = async (
   if (!isBrowser) return;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
+    // Prevent checks if user just interacted with the UI
+    const now = getClientSideValue(() => Date.now(), 0);
+    if (now - lastUIInteractionTime < CLICK_DEBOUNCE_TIME) {
+      console.log("🛑 Skipping free projects check - UI was just interacted with");
+      return;
+    }
+    
+    // Prevent multiple concurrent checks
+    if (isCheckingFree) {
+      console.log("🛑 Free projects check already in progress, skipping");
+      return;
+    }
+    
+    // Add debounce to prevent frequent checks
+    if (now - lastFreeCheckTime < BACKGROUND_CHECK_DEBOUNCE) {
+      console.log("🛑 Free projects check ran too recently, skipping");
       return;
     }
     
@@ -282,36 +224,41 @@ export const checkForDataUpdates = async (
     const cachedProjects = await loadCachedFreeProjects(isBrowser);
     if (!cachedProjects || cachedProjects.length === 0) return;
     
-    // Get the metadata
-    const metadata = await getOrCreateMetadata();
-    const lastUpdated = metadata.lastUpdated[FREE_PROJECTS_CACHE_KEY];
-    
+    const lastUpdated = localStorage.getItem(CACHE_LAST_UPDATED_KEY);
     if (!lastUpdated) return;
     
-    const cacheAge = Date.now() - lastUpdated;
+    const cacheAge = now - parseInt(lastUpdated);
     
     // Only check for updates if cache is older than the background refresh interval
     if (cacheAge < BACKGROUND_REFRESH_INTERVAL) return;
     
+    // Set flags to indicate we're starting a check
+    isCheckingFree = true;
+    lastFreeCheckTime = now;
+    
     console.log("🔍 Checking for updated free projects in background...");
     
-    // Get the count of free projects from the database using server action
-    const projects = await getAllFreeProjects();
-    const projectCount = projects.length;
-    
-    // Compare the count with our cached data
-    if (projectCount !== cachedProjects.length) {
-      console.log("🔄 Free projects count changed, refreshing data");
-      setHasFetchedFreeProjects(false); // This will trigger a re-fetch
-    } else {
-      // Update the last checked time even if no changes
-      const metadata = await getOrCreateMetadata();
-      metadata.lastUpdated[FREE_PROJECTS_CACHE_KEY] = Date.now();
-      await updateMetadata(metadata);
-      console.log("✅ Free projects are up to date");
+    try {
+      // Get the count of free projects from the database using server action
+      const projects = await getAllFreeProjects();
+      const projectCount = projects.length;
+      
+      // Compare the count with our cached data
+      if (projectCount !== cachedProjects.length) {
+        console.log("🔄 Free projects count changed, refreshing data");
+        setHasFetchedFreeProjects(false); // This will trigger a re-fetch
+      } else {
+        // Update the last checked time even if no changes
+        localStorage.setItem(CACHE_LAST_UPDATED_KEY, now.toString());
+        console.log("✅ Free projects are up to date");
+      }
+    } finally {
+      // Always reset flag when done
+      isCheckingFree = false;
     }
   } catch (error) {
     console.error("Error checking for data updates:", error);
+    isCheckingFree = false;
   }
 };
 
@@ -328,48 +275,91 @@ export const checkForAuthDataUpdates = async (
   if (!isBrowser || !userId) return;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
+    // Prevent checks if user just interacted with the UI
+    const now = getClientSideValue(() => Date.now(), 0);
+    if (now - lastUIInteractionTime < CLICK_DEBOUNCE_TIME) {
+      console.log("🛑 Skipping auth projects check - UI was just interacted with");
       return;
     }
     
-    const cacheKey = `${AUTH_PROJECTS_CACHE_KEY}_${userId}`;
+    // Add debounce to prevent multiple checks from running at the same time
+    if (isCheckingAuth) {
+      console.log("🛑 Auth check already in progress, skipping");
+      return;
+    }
+    
+    // Prevent running checks too frequently (debounce)
+    if (now - lastAuthCheckTime < BACKGROUND_CHECK_DEBOUNCE) {
+      console.log("🛑 Auth check ran too recently, skipping");
+      return;
+    }
+    
+    // Set the flag to indicate we're starting a check
+    isCheckingAuth = true;
+    lastAuthCheckTime = now;
+    
+    const lastUpdatedKey = `${AUTH_CACHE_LAST_UPDATED_KEY}_${userId}`;
     
     // Only check if we have cached data
     const cachedProjects = await loadCachedAuthenticatedProjects(isBrowser, userId);
-    if (!cachedProjects || cachedProjects.length === 0) return;
+    if (!cachedProjects || cachedProjects.length === 0) {
+      isCheckingAuth = false;
+      return;
+    }
     
-    // Get the metadata
-    const metadata = await getOrCreateMetadata();
-    const lastUpdated = metadata.lastUpdated[cacheKey];
+    const lastUpdated = localStorage.getItem(lastUpdatedKey);
+    if (!lastUpdated) {
+      isCheckingAuth = false;
+      return;
+    }
     
-    if (!lastUpdated) return;
-    
-    const cacheAge = Date.now() - lastUpdated;
+    const cacheAge = now - parseInt(lastUpdated);
     
     // Only check for updates if cache is older than the background refresh interval
-    if (cacheAge < BACKGROUND_REFRESH_INTERVAL) return;
+    if (cacheAge < BACKGROUND_REFRESH_INTERVAL) {
+      console.log("🔄 Cache too fresh, skipping auth check");
+      isCheckingAuth = false;
+      return;
+    }
     
     console.log("🔍 Checking for updated authenticated projects in background...");
     
-    // Get the projects from the database
-    const projects = await getUserProjects(userTier, userId);
-    const projectCount = projects.length;
-    
-    // Compare the count with our cached data
-    if (projectCount !== cachedProjects.length) {
-      console.log("🔄 Authenticated projects count changed, refreshing data");
-      setHasFetchedProjects(false); // This will trigger a re-fetch
-    } else {
-      // Update the last checked time even if no changes
-      const metadata = await getOrCreateMetadata();
-      metadata.lastUpdated[cacheKey] = Date.now();
-      await updateMetadata(metadata);
-      console.log("✅ Authenticated projects are up to date");
+    try {
+      // Get the projects from the database
+      const projects = await getUserProjects(userTier, userId);
+      const projectCount = projects.length;
+      
+      console.log(`Comparing: Cache has ${cachedProjects.length}, DB has ${projectCount}`);
+      
+      // Compare the count with our cached data
+      if (projectCount !== cachedProjects.length) {
+        console.log("🔄 Authenticated projects count changed, refreshing data");
+        
+        // Always update the cache directly instead of triggering a refetch
+        // This prevents the infinite loop
+        await cacheAuthenticatedProjects(projects, isBrowser, userId);
+        
+        // Only trigger a re-fetch if the difference is significant
+        // This prevents constantly triggering re-fetches for minor changes
+        const difference = Math.abs(projectCount - cachedProjects.length);
+        if (difference > 2) { // Only refetch if more than 2 projects different
+          setHasFetchedProjects(false); // Trigger a UI refresh
+        }
+      } else {
+        // Update the last checked time even if no changes
+        localStorage.setItem(lastUpdatedKey, now.toString());
+        console.log("✅ Authenticated projects are up to date");
+      }
+    } catch (error) {
+      console.error("Error during projects comparison:", error);
+    } finally {
+      // Reset the flag when done
+      isCheckingAuth = false;
     }
   } catch (error) {
     console.error("Error checking for authenticated data updates:", error);
+    // Always reset the flag even if there's an error
+    isCheckingAuth = false;
   }
 };
 
@@ -381,22 +371,26 @@ export const clearProjectsCache = async (isBrowser: boolean): Promise<void> => {
   if (!isBrowser) return;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
-      return;
+    // Clear free projects cache
+    localStorage.removeItem(FREE_PROJECTS_CACHE_KEY);
+    localStorage.removeItem(CACHE_EXPIRY_KEY);
+    localStorage.removeItem(CACHE_VERSION_KEY);
+    localStorage.removeItem(CACHE_LAST_UPDATED_KEY);
+    
+    // Look for any auth project caches as well
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (
+          key.startsWith(AUTH_PROJECTS_CACHE_KEY) ||
+          key.startsWith(AUTH_CACHE_EXPIRY_KEY) ||
+          key.startsWith(AUTH_CACHE_VERSION_KEY) ||
+          key.startsWith(AUTH_CACHE_LAST_UPDATED_KEY)
+        )) {
+        localStorage.removeItem(key);
+      }
     }
     
-    // Delete the entire project cache
-    await caches.delete(CACHE_NAME);
-    
-    // Reset the metadata but keep the version
-    const metadata = await getOrCreateMetadata();
-    metadata.lastUpdated = {};
-    metadata.expiry = {};
-    await updateMetadata(metadata);
-    
-    console.log("🧹 Cleared all project caches");
+    console.log("🧹 Cleared all project caches from localStorage");
   } catch (error) {
     console.error("Error clearing project caches:", error);
   }
@@ -413,12 +407,6 @@ export const updateProjectInCache = async (
   if (!isBrowser) return;
   
   try {
-    // Check if Cache API is available
-    if (!('caches' in window)) {
-      console.log("Cache API not available");
-      return;
-    }
-    
     // Update in free projects cache if it exists
     const cachedFreeProjects = await loadCachedFreeProjects(isBrowser);
     if (cachedFreeProjects) {
@@ -441,4 +429,11 @@ export const updateProjectInCache = async (
   } catch (error) {
     console.error("Error updating project in cache:", error);
   }
+};
+
+/**
+ * Update the last interaction time to prevent immediate background checks after UI activity
+ */
+export const updateLastInteractionTime = (): void => {
+  lastUIInteractionTime = Date.now();
 };
