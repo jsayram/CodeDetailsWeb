@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useMemo,
+  useEffect,
+} from "react";
 import { Project } from "@/types/models/project";
 import {
   getAnonymousClient,
@@ -17,6 +23,7 @@ import { useTierTracker } from "@/hooks/use-tier-tracker";
 import { useBackgroundUpdates } from "@/hooks/use-background-updates";
 import { useProjectFetching } from "@/hooks/use-project-fetching";
 import { useCacheDebug } from "@/hooks/use-cache-debug";
+import { useUserTier } from "@/hooks/use-tierServiceClient"; // Fix the incorrect import reference
 
 interface ProjectsContextType {
   projects: Project[];
@@ -53,7 +60,7 @@ interface ProjectsProviderProps {
 export function ProjectsProvider({
   children,
   token,
-  userTier,
+  userTier: propUserTier, // Rename to clearly indicate it's from props
   userId,
   isLoading = false,
 }: ProjectsProviderProps) {
@@ -80,17 +87,37 @@ export function ProjectsProvider({
   //checks if the code is running in the browser
   const isBrowser = useIsBrowser();
 
-  // Use the auth state hook
-  const { isAuthenticated, isAuthenticating } = useAuthState(
-    userId,
-    token,
-    authenticatedClient
-  );
+  // Use the auth state hook with the new isReady flag
+  const { isAuthenticated, isAuthenticating, isReady: authReady } =
+    useAuthState(userId, token, authenticatedClient || undefined);
+
+  // Extract the new tier readiness flag
+  const {
+    userTier: fetchedTier,
+    loading: tierLoading,
+    error: tierError,
+    isReady: tierReady,
+    refreshUserTier,
+  } = useUserTier(authenticatedClient, userId);
+
+  // Use the fetched tier if available, otherwise fall back to the prop
+  const effectiveUserTier = (userId && fetchedTier) ? fetchedTier : propUserTier;
+
+  // Calculate overall readiness state
+  const systemReady = authReady && (userId ? tierReady : true);
+
+  // Force a tier refresh if authentication state changes to ready
+  useEffect(() => {
+    if (authReady && userId && !tierLoading && !tierReady) {
+      console.log("🔄 Auth is ready, forcing tier refresh...");
+      refreshUserTier();
+    }
+  }, [authReady, userId, tierLoading, tierReady, refreshUserTier]);
 
   // Use the initial cache hook
   const { isMounted } = useInitialCache(
     userId,
-    isLoading,
+    isLoading || !systemReady, // Only consider system ready when auth and tier are ready
     isBrowser,
     hasFetchedFreeProjects,
     hasFetchedProjects,
@@ -99,8 +126,22 @@ export function ProjectsProvider({
     setFreeLoading,
     setLoading,
     setHasFetchedFreeProjects,
-    setHasFetchedProjects
+    setHasFetchedProjects,
   );
+
+  // Log readiness states for better debugging
+  useEffect(() => {
+    console.log(
+      `🔄 System readiness state: Auth ready: ${authReady}, Tier ready: ${tierReady}, System ready: ${systemReady}`
+    );
+    if (systemReady) {
+      console.log(
+        `🎫 Ready to load projects for ${
+          userId ? `user ${userId} with tier ${effectiveUserTier}` : "anonymous user"
+        }`
+      );
+    }
+  }, [authReady, tierReady, systemReady, userId, effectiveUserTier]);
 
   // Use the background updates hook
   useBackgroundUpdates(
@@ -111,13 +152,13 @@ export function ProjectsProvider({
     hasFetchedFreeProjects,
     hasFetchedProjects,
     isBrowser,
-    userTier,
+    effectiveUserTier,
     setHasFetchedFreeProjects,
     setHasFetchedProjects
   );
 
   // Use the tier tracker hook
-  useTierTracker(isAuthenticated, isLoading, userTier, setHasFetchedProjects);
+  useTierTracker(isAuthenticated, isLoading, effectiveUserTier, setHasFetchedProjects);
 
   // Use the project operations hook
   const { handleProjectAdded, handleProjectDeleted, handleProjectUpdated } =
@@ -125,7 +166,7 @@ export function ProjectsProvider({
       isBrowser,
       userId,
       isAuthenticated,
-      userTier,
+      effectiveUserTier,
       setProjects,
       setFreeProjects
     );
@@ -148,7 +189,7 @@ export function ProjectsProvider({
     userId,
     isAuthenticating,
     isAuthenticated,
-    userTier,
+    effectiveUserTier,
     isBrowser,
     freeProjects,
     isMounted,
@@ -158,7 +199,8 @@ export function ProjectsProvider({
     setProjects,
     setLoading,
     setHasFetchedProjects,
-    setCachingDebug
+    setCachingDebug,
+    systemReady // Pass the systemReady flag to ensure proper sequencing
   );
 
   // Use the cache debug hook

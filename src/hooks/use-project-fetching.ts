@@ -28,13 +28,18 @@ export function useProjectFetching(
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>,
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   setHasFetchedProjects: React.Dispatch<React.SetStateAction<boolean>>,
-  setCachingDebug: React.Dispatch<React.SetStateAction<boolean>>
+  setCachingDebug: React.Dispatch<React.SetStateAction<boolean>>,
+  systemReady: boolean = true // Add system readiness parameter with default value
 ) {
   // Fetch free projects - with caching
   useEffect(() => {
-    // Skip if already fetched or if we have projects from cache
-    if (hasFetchedFreeProjects || freeProjects.length > 0) {
-      console.log("📋 Free projects already available, skipping fetch");
+    // Skip if system is not ready or already fetched or if we have projects from cache
+    if (!systemReady || hasFetchedFreeProjects || freeProjects.length > 0) {
+      if (!systemReady) {
+        console.log("⏳ System not ready yet, waiting to fetch free projects...");
+      } else {
+        console.log("📋 Free projects already available, skipping fetch");
+      }
       return;
     }
 
@@ -135,6 +140,7 @@ export function useProjectFetching(
 
     fetchFreeProjectsWithCache();
   }, [
+    systemReady, // Add systemReady to dependency array
     isLoading,
     hasFetchedFreeProjects,
     userId,
@@ -149,6 +155,12 @@ export function useProjectFetching(
 
   // Fetch authenticated projects - wait for full authentication and tier
   useEffect(() => {
+    // Skip if system is not ready
+    if (!systemReady) {
+      console.log("⏳ System not ready yet, waiting to fetch authenticated projects...");
+      return;
+    }
+    
     // Skip if any of these conditions are true
     if (!isAuthenticated) {
       console.log("⏳ Not authenticated yet, waiting...");
@@ -169,6 +181,8 @@ export function useProjectFetching(
       console.log("⏳ Tier still loading, waiting...");
       return;
     }
+
+    console.log(`🚀 All prerequisites met for user ${userId} with tier ${userTier}, proceeding with project fetch`);
 
     const fetchAuthProjectsWithCache = async () => {
       // Check cache first - if we have valid cached auth projects, use them
@@ -314,6 +328,7 @@ export function useProjectFetching(
 
     fetchAuthProjectsWithCache();
   }, [
+    systemReady, // Add systemReady to dependency array
     isAuthenticated,
     userTier,
     isLoading,

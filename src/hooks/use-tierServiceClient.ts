@@ -18,6 +18,7 @@ type UserTierResult = {
   loading: boolean;
   error: string | null;
   refreshUserTier: () => Promise<void>;
+  isReady: boolean; // Add a ready state that indicates tier is properly loaded
 };
 
 /**
@@ -31,6 +32,7 @@ export function useUserTier(
   const [userTier, setUserTier] = useState<ValidTier>("free");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isReady, setIsReady] = useState(false); // Track when tier info is ready
   const hasFetched = useRef(false);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isBrowser = typeof window !== "undefined";
@@ -50,14 +52,17 @@ export function useUserTier(
 
       if (!userId) {
         setUserTier("free");
+        setIsReady(true); // Mark as ready with default tier
         return false;
       }
 
       // Check if we have a cached tier for this user
       const cachedTier = loadCachedUserTier(isBrowser, userId);
       if (cachedTier) {
+        console.log(`🎫 Found cached tier for user ${userId}: ${cachedTier}`);
         setUserTier(cachedTier);
         hasFetched.current = true;
+        setIsReady(true); // Mark as ready since we have valid tier info
         return true; // Cache hit
       }
 
@@ -107,17 +112,20 @@ export function useUserTier(
 
         // Cache the result
         cacheUserTier(data as ValidTier, isBrowser, userId);
+        setIsReady(true); // Mark as ready once we have the tier
       } else {
         console.warn(
           `Invalid tier value: ${data || "none"}, defaulting to 'free'`
         );
         setUserTier("free");
+        setIsReady(true); // Still mark as ready with default tier
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       console.error("Failed to fetch user tier:", errorMessage);
       setError(`Failed to fetch tier: ${errorMessage}`);
       setUserTier("free");
+      setIsReady(true); // Mark as ready even on error, with default tier
     } finally {
       setLoading(false);
       hasFetched.current = true;
@@ -149,5 +157,5 @@ export function useUserTier(
     };
   }, [fetchUserTier, userId]);
 
-  return { userTier, loading, error, refreshUserTier: fetchUserTier };
+  return { userTier, loading, error, refreshUserTier: fetchUserTier, isReady };
 }

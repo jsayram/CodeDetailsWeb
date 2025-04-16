@@ -1,13 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-/**
- * Interface for authenticated client
- */
-interface AuthenticatedClient {
-  isAuthenticated?: boolean;
-  userId?: string;
-  [key: string]: unknown;
+interface AuthStateResult {
+  isAuthenticated: boolean;
+  isAuthenticating: boolean;
+  isReady: boolean; // New property to indicate auth process is complete
 }
 
 /**
@@ -16,53 +13,50 @@ interface AuthenticatedClient {
 export function useAuthState(
   userId: string | null,
   token: string | null,
-  authenticatedClient: AuthenticatedClient | SupabaseClient | null
-) {
-  // Auth state tracking
+  client?: SupabaseClient
+): AuthStateResult {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isReady, setIsReady] = useState(false); // New state for tracking when auth is fully ready
 
-  // Track previous userId for detecting auth changes
-  const previousUserIdRef = useRef<string | null>(null);
-
-  // Monitor auth state changes
+  // Track authentication state
   useEffect(() => {
-    const authenticated = Boolean(userId && token && authenticatedClient);
-
-    // Check if user is in the process of signing in (userId exists but not fully authenticated yet)
-    const isSigningIn = Boolean(userId && (!token || !authenticatedClient));
-    setIsAuthenticating(isSigningIn);
-
-    console.log(
-      "🔐 Auth state change:",
-      authenticated
-        ? "Authenticated"
-        : isSigningIn
-        ? "Authenticating"
-        : "Not authenticated"
-    );
-    console.log("🧑‍💻 User ID:", userId || "None");
-    console.log("🔑 Token exists:", Boolean(token));
-
-    // Check if userId just appeared (user started auth process)
-    if (userId && !previousUserIdRef.current) {
-      console.log("👤 User started authentication process");
+    // Start with "authenticating" state when there's a userId but no firm authentication yet
+    if (userId && !isAuthenticated) {
+      console.log("🔐 Auth state change: Authenticating");
+      console.log("🧑‍💻 User ID:", userId);
+      console.log("🔑 Token exists:", !!token);
+      setIsAuthenticating(true);
     }
 
-    // Update the previous userId ref
-    previousUserIdRef.current = userId;
+    // If we have both userId and token, we're authenticated
+    if (userId && token) {
+      console.log("🔐 Auth state change: Authenticated");
+      console.log("🧑‍💻 User ID:", userId);
+      console.log("🔑 Token exists:", !!token);
 
-    // Only update if the state actually changed
-    if (authenticated !== isAuthenticated) {
-      console.log(
-        "Auth state changing from",
-        isAuthenticated,
-        "to",
-        authenticated
-      );
-      setIsAuthenticated(authenticated);
+      // Only log the change if the state is actually changing
+      if (!isAuthenticated) {
+        console.log("Auth state changing from false to true");
+        setIsAuthenticating(false);
+        setIsAuthenticated(true);
+      }
+      
+      // Set ready state after successful authentication
+      setIsReady(true);
+    } else {
+      // No authentication present, reset state
+      setIsAuthenticating(false);
+      if (isAuthenticated) {
+        console.log("Auth state changing from true to false");
+        setIsAuthenticated(false);
+      }
+      // Still mark as ready if we're definitely not authenticating
+      if (!userId) {
+        setIsReady(true);
+      }
     }
-  }, [userId, token, authenticatedClient, isAuthenticated]);
+  }, [userId, token, isAuthenticated, client]);
 
-  return { isAuthenticated, isAuthenticating };
+  return { isAuthenticated, isAuthenticating, isReady };
 }
