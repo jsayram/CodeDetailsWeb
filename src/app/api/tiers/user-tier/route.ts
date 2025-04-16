@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { executeQuery } from "@/db/server";
-import { sql } from "drizzle-orm";
+import { getUserTier } from "@/app/actions/user-tier";
 
 /**
  * API route for getting the current user's subscription tier
  * This is primarily used by the test page to simulate tier-based access
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Get the current user's ID
     let userId: string | null = null;
@@ -20,23 +19,11 @@ export async function GET(request: NextRequest) {
       if (userId) {
         console.log(`✅ Successfully authenticated user with ID: ${userId}`);
 
-        // Get user tier from the profiles table
-        const userProfile = await executeQuery(async (db) => {
-          const profile = await db.execute<{ tier: string }>(
-            sql`SELECT tier FROM profiles WHERE user_id = ${userId}`
-          );
-          return profile;
-        });
-
-        // If profile exists and has a tier, use it
-        if (userProfile && userProfile.length > 0 && userProfile[0].tier) {
-          userTier = userProfile[0].tier;
-          console.log(`User ${userId} has tier: ${userTier} (from database)`);
-        } else {
-          console.log(
-            `No tier found for user ${userId}, using default: ${userTier}`
-          );
-        }
+        // Get user tier using the dedicated server action
+        userTier = await getUserTier(userId);
+        console.log(
+          `User ${userId} has tier: ${userTier} (from server action)`
+        );
       } else {
         console.log("No authenticated user found, using default free tier");
       }

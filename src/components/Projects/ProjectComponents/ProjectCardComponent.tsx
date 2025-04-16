@@ -16,164 +16,182 @@ interface ProjectCardProps {
   isFavorite?: boolean;
 }
 
-export function ProjectCard({
-  project,
-  onViewDetails,
-  onToggleFavorite,
-  onDeleteProject,
-  onUpdateProject,
-  isFavorite = false,
-}: ProjectCardProps) {
-  // Prevent event bubbling for interactive elements inside the card
-  const handleChildClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
+export const ProjectCard = React.memo(
+  function ProjectCard({
+    project,
+    onViewDetails,
+    onToggleFavorite,
+    onDeleteProject,
+    onUpdateProject,
+    isFavorite = false,
+  }: ProjectCardProps) {
+    // Prevent event bubbling for interactive elements inside the card
+    const handleChildClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+    };
 
-  // Handle delete button click - simply call the parent's handler
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onDeleteProject) {
-      onDeleteProject(project.id);
-    }
-  };
+    // Handle delete button click - simply call the parent's handler
+    const handleDeleteClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onDeleteProject) {
+        onDeleteProject(project.id);
+      }
+    };
 
-  return (
-    <>
-      <Card
-        className="project-card card-container overflow-hidden w-full transition-all duration-200 hover:shadow-md relative cursor-pointer group"
-        onClick={() => onViewDetails?.(project.id)}
-      >
-        {/* Favorite button (absolutely positioned) */}
-        <button
-          className="absolute top-2 right-2 p-2 rounded-full bg-background/80 backdrop-blur-sm
-                  hover:bg-background text-muted-foreground hover:text-accent transition-colors 
-                  opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFavorite?.(project.id, !isFavorite);
-          }}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+    return (
+      <>
+        <Card
+          className="project-card card-container overflow-hidden w-full transition-all duration-200 hover:shadow-md relative cursor-pointer group"
+          onClick={() => onViewDetails?.(project.id)}
         >
-          <Heart
-            size={16}
-            className={isFavorite ? "fill-red-500 text-red-500" : ""}
-          />
-        </button>
-
-        {/* Delete button (absolutely positioned) */}
-        {onDeleteProject && (
+          {/* Favorite button (absolutely positioned) */}
           <button
-            className="absolute top-2 right-12 p-2 rounded-full bg-background/80 backdrop-blur-sm
-                    hover:bg-background text-muted-foreground hover:text-red-500 transition-colors 
-                    opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
-            onClick={handleDeleteClick}
-            aria-label="Delete project"
-          >
-            <Trash2 size={16} />
-          </button>
-        )}
-
-        {/* Update button (absolutely positioned) */}
-        {onUpdateProject && (
-          <button
-            className="absolute top-2 right-20 p-2 rounded-full bg-background/80 backdrop-blur-sm
-                    hover:bg-background text-muted-foreground hover:text-blue-500 transition-colors 
+            className="absolute top-2 right-2 p-2 rounded-full bg-background/80 backdrop-blur-sm
+                    hover:bg-background text-muted-foreground hover:text-accent transition-colors 
                     opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateProject?.(project);
+              onToggleFavorite?.(project.id, !isFavorite);
             }}
-            aria-label="Update project"
+            aria-label={
+              isFavorite ? "Remove from favorites" : "Add to favorites"
+            }
           >
-            <Edit size={16} />
+            <Heart
+              size={16}
+              className={isFavorite ? "fill-red-500 text-red-500" : ""}
+            />
           </button>
-        )}
 
-        {/* Content area */}
-        <div className="card-content p-3 sm:p-5 flex flex-col flex-grow">
-          <h3 className="card-title text-base sm:text-lg font-semibold mb-2 line-clamp-2">
-            {project.title}
-          </h3>
-          <p className="card-description line-clamp-3 text-xs sm:text-sm text-muted-foreground flex-grow mb-3">
-            {project.description}
-          </p>
-
-          {/* Tags (show if available) */}
-          {project.tags && project.tags.length > 0 && (
-            <div className="mt-auto mb-2">
-              <div className="flex flex-wrap gap-1">
-                {project.tags.slice(0, 2).map((tag, index) => (
-                  <Badge
-                    key={index}
-                    variant="outline"
-                    onClick={handleChildClick}
-                    className="badge text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]"
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {project.tags.length > 2 && (
-                  <Badge
-                    variant="outline"
-                    onClick={handleChildClick}
-                    className="badge text-xs"
-                  >
-                    +{project.tags.length - 2}
-                  </Badge>
-                )}
-              </div>
-            </div>
+          {/* Delete button (absolutely positioned) */}
+          {onDeleteProject && (
+            <button
+              className="absolute top-2 right-12 p-2 rounded-full bg-background/80 backdrop-blur-sm
+                      hover:bg-background text-muted-foreground hover:text-red-500 transition-colors 
+                      opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
+              onClick={handleDeleteClick}
+              aria-label="Delete project"
+            >
+              <Trash2 size={16} />
+            </button>
           )}
 
-          {/* Project metadata */}
-          <div className="mt-auto flex items-center justify-between">
-            <Badge
-              variant="secondary"
-              className={`badge capitalize ${
-                project.tier === "free"
-                  ? "bg-green-100 text-green-800"
-                  : project.tier === "pro"
-                  ? "bg-blue-100 text-blue-800"
-                  : project.tier === "diamond"
-                  ? "bg-purple-100 text-purple-800"
-                  : ""
-              }`}
-              onClick={handleChildClick}
+          {/* Update button (absolutely positioned) */}
+          {onUpdateProject && (
+            <button
+              className="absolute top-2 right-20 p-2 rounded-full bg-background/80 backdrop-blur-sm
+                      hover:bg-background text-muted-foreground hover:text-blue-500 transition-colors 
+                      opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdateProject?.(project);
+              }}
+              aria-label="Update project"
             >
-              {project.tier}
-            </Badge>
+              <Edit size={16} />
+            </button>
+          )}
 
-            {project.slug && (
-              <a
-                href={project.slug}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center text-xs sm:text-sm text-muted-foreground hover:text-foreground"
+          {/* Content area */}
+          <div className="card-content p-3 sm:p-5 flex flex-col flex-grow">
+            {/* Project title and description */}
+            <h3 className="card-title text-base sm:text-lg font-semibold mb-2 line-clamp-2">
+              {project.title}
+            </h3>
+            <p className="card-description line-clamp-3 text-xs sm:text-sm text-muted-foreground flex-grow mb-3">
+              {project.description}
+            </p>
+
+            {/* Tags (show if available) */}
+            {project.tags && project.tags.length > 0 && (
+              <div className="mt-auto mb-2">
+                <div className="flex flex-wrap gap-1">
+                  {project.tags.slice(0, 2).map((tag, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      onClick={handleChildClick}
+                      className="badge text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px]"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {project.tags.length > 2 && (
+                    <Badge
+                      variant="outline"
+                      onClick={handleChildClick}
+                      className="badge text-xs"
+                    >
+                      +{project.tags.length - 2}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Project metadata */}
+            <div className="mt-auto flex items-center justify-between">
+              <Badge
+                variant="secondary"
+                className={`badge capitalize ${
+                  project.tier === "free"
+                    ? "bg-green-100 text-green-800"
+                    : project.tier === "pro"
+                    ? "bg-blue-100 text-blue-800"
+                    : project.tier === "diamond"
+                    ? "bg-purple-100 text-purple-800"
+                    : ""
+                }`}
                 onClick={handleChildClick}
               >
-                <ExternalLink size={14} className="mr-1" />
-                Source
-              </a>
-            )}
+                {project.tier}
+              </Badge>
+
+              {project.slug && (
+                <a
+                  href={project.slug}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-xs sm:text-sm text-muted-foreground hover:text-foreground"
+                  onClick={handleChildClick}
+                >
+                  <ExternalLink size={14} className="mr-1" />
+                  Source
+                </a>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Fixed height footer */}
-        <div className="card-footer h-auto sm:h-[50px] bg-secondary/10 p-2 sm:p-3 flex justify-between items-center">
-          <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-            {project.difficulty}
-          </span>
+          {/* Fixed height footer */}
+          <div className="card-footer h-auto sm:h-[50px] bg-secondary/10 p-2 sm:p-3 flex justify-between items-center">
+            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+              {project.difficulty}
+            </span>
 
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleChildClick}
-            className="card-button text-xs sm:text-sm px-2 sm:px-3 h-8"
-          >
-            View Details
-          </Button>
-        </div>
-      </Card>
-    </>
-  );
-}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleChildClick}
+              className="card-button text-xs sm:text-sm px-2 sm:px-3 h-8"
+            >
+              View Details
+            </Button>
+          </div>
+        </Card>
+      </>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function that only re-renders when necessary props change
+    return (
+      prevProps.project.id === nextProps.project.id &&
+      prevProps.project.title === nextProps.project.title &&
+      prevProps.project.description === nextProps.project.description &&
+      prevProps.isFavorite === nextProps.isFavorite &&
+      JSON.stringify(prevProps.project.tags) ===
+        JSON.stringify(nextProps.project.tags) &&
+      prevProps.project.tier === nextProps.project.tier &&
+      prevProps.project.difficulty === nextProps.project.difficulty
+    );
+  }
+);

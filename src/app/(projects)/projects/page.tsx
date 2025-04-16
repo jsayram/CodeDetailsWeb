@@ -11,7 +11,7 @@ import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 // Custom Services
 import { getAuthenticatedClient } from "@/services/supabase";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import { useUserTier } from "@/services/tierServiceClient";
+import { useUserTier } from "@/hooks/use-tierServiceClient";
 import { getAccessibleTiers } from "@/services/tierServiceServer";
 
 // Application Components and Pages (Custom)
@@ -33,6 +33,7 @@ import {
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "../../auth/ProtectedPage";
+import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
 
 export default function DashBoard() {
   const { user, isLoaded: userLoaded } = useUser(); // auth from clerk
@@ -77,7 +78,7 @@ export default function DashBoard() {
             <SidebarInset>
               <HeaderSection />
 
-              <ProtectedPage allowedTiers={["diamond"]}>
+              <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
                 {/* Centered content container */}
                 <div className="flex justify-center w-full mb-20">
                   <div className="w-full max-w-7xl px-4">
