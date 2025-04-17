@@ -13,6 +13,7 @@
     "db:push": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && drizzle-kit push",
     "db:studio": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && drizzle-kit studio",
     "db:migrate": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && node -r ts-node/register ./src/db/migrate.ts",
+    "db:align": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && node -r ts-node/register ./scripts/align-database.ts",
     "db:introspect": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && drizzle-kit generate"
   },
   "dependencies": {

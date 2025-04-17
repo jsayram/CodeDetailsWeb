@@ -1,18 +1,25 @@
 import { pgTable, text, varchar, timestamp, uuid } from "drizzle-orm/pg-core";
 
+// Define the projects table schema without tier field
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
+  user_id: text("user_id"), // User who created the project
   title: text("title").notNull(),
   slug: varchar("slug", { length: 255 }).notNull().unique(),
   description: text("description"),
-  tags: text("tags").array(),
-  tier: varchar("tier", { length: 50 }).notNull().default("free"),
   difficulty: varchar("difficulty", { length: 50 })
     .notNull()
     .default("beginner"),
   created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
+  deleted_at: timestamp("deleted_at"), // For soft delete functionality
 });
 
-// Export types for better type safety when working with projects
-export type InsertProject = typeof projects.$inferInsert;
-export type SelectProject = typeof projects.$inferSelect;
+// Type definitions that include tags for backwards compatibility
+export type InsertProject = typeof projects.$inferInsert & { 
+  tags?: string[] 
+};
+
+export type SelectProject = typeof projects.$inferSelect & { 
+  tags?: string[] 
+};

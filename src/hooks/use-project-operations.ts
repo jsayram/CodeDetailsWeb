@@ -1,9 +1,8 @@
 import { useCallback } from "react";
 import { Project } from "@/types/models/project";
-import { canAccessTier } from "@/services/tierServiceServer";
 import {
   cacheAuthenticatedProjects,
-  cacheFreeProjects,
+  cacheProjects,
   updateProjectInCache,
 } from "@/lib/ProjectsCacheUtils";
 
@@ -14,7 +13,6 @@ export function useProjectOperations(
   isBrowser: boolean,
   userId: string | null,
   isAuthenticated: boolean,
-  userTier: string,
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>,
   setFreeProjects: React.Dispatch<React.SetStateAction<Project[]>>
 ) {
@@ -22,12 +20,13 @@ export function useProjectOperations(
   const handleProjectAdded = useCallback(
     (newProject: Project) => {
       console.log("+ Adding new project:", newProject.title);
-      // Only add to visible projects if user can access this tier
-      if (canAccessTier(userTier, newProject.tier)) {
+      
+      // Add to user's visible projects if authenticated
+      if (isAuthenticated) {
         setProjects((prev) => {
           const updatedProjects = [...prev, newProject];
           // Update cache for authenticated projects
-          if (userId && isAuthenticated) {
+          if (userId) {
             console.log(
               `💾 Caching ${updatedProjects.length} projects after adding new project`
             );
@@ -41,55 +40,60 @@ export function useProjectOperations(
           }
           return updatedProjects;
         });
-      }
-
-      // Also add to free projects if it's a free tier project
-      if (newProject.tier === "free") {
+      } 
+      
+      // Add to non-authenticated projects view
+      if (!isAuthenticated) {
         setFreeProjects((prev) => {
-          const updatedFreeProjects = [...prev, newProject];
+          const updatedProjects = [...prev, newProject];
           // Update cache with new project
-          cacheFreeProjects(updatedFreeProjects, isBrowser).catch((err) =>
-            console.error("Error caching free projects after add:", err)
+          cacheProjects(updatedProjects, isBrowser).catch((err) =>
+            console.error("Error caching projects after add:", err)
           );
-          return updatedFreeProjects;
+          return updatedProjects;
         });
       }
     },
-    [userTier, isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
+    [isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
   );
 
   // Handler to delete a project
   const handleProjectDeleted = useCallback(
     (projectId: string) => {
       console.log("- Deleting project with ID:", projectId);
-      setProjects((prev) => {
-        const updatedProjects = prev.filter(
-          (project) => project.id !== projectId
-        );
-        // Update cache for authenticated projects
-        if (userId && isAuthenticated) {
-          console.log(
-            `💾 Caching ${updatedProjects.length} projects after deletion`
+      
+      // Remove from authenticated user's view
+      if (isAuthenticated) {
+        setProjects((prev) => {
+          const updatedProjects = prev.filter(
+            (project) => project.id !== projectId
           );
-          cacheAuthenticatedProjects(updatedProjects, isBrowser, userId).catch(
-            (err) => console.error("Error caching projects after delete:", err)
-          );
-        }
-        return updatedProjects;
-      });
+          // Update cache for authenticated projects
+          if (userId) {
+            console.log(
+              `💾 Caching ${updatedProjects.length} projects after deletion`
+            );
+            cacheAuthenticatedProjects(updatedProjects, isBrowser, userId).catch(
+              (err) => console.error("Error caching projects after delete:", err)
+            );
+          }
+          return updatedProjects;
+        });
+      }
 
-      setFreeProjects((prev) => {
-        const updatedFreeProjects = prev.filter(
-          (project) => project.id !== projectId
-        );
-        // Update cache for free projects
-        if (updatedFreeProjects.length !== prev.length) {
-          cacheFreeProjects(updatedFreeProjects, isBrowser).catch((err) =>
-            console.error("Error caching free projects after delete:", err)
+      // Remove from non-authenticated view
+      if (!isAuthenticated) {
+        setFreeProjects((prev) => {
+          const updatedProjects = prev.filter(
+            (project) => project.id !== projectId
           );
-        }
-        return updatedFreeProjects;
-      });
+          // Update cache for projects
+          cacheProjects(updatedProjects, isBrowser).catch((err) =>
+            console.error("Error caching projects after delete:", err)
+          );
+          return updatedProjects;
+        });
+      }
     },
     [isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
   );
@@ -106,29 +110,39 @@ export function useProjectOperations(
         isAuthenticated ? userId : null
       ).catch((err) => console.error("Error updating project in cache:", err));
 
-      setProjects((prev) => {
-        const updatedProjects = prev.map((project) =>
-          project.id === updatedProject.id ? updatedProject : project
-        );
-
-        // Also ensure the full cache is updated
-        if (userId && isAuthenticated) {
-          console.log(
-            `💾 Updating cache with ${updatedProjects.length} projects after project update`
+      if (isAuthenticated) {
+        setProjects((prev) => {
+          const updatedProjects = prev.map((project) =>
+            project.id === updatedProject.id ? updatedProject : project
           );
-          cacheAuthenticatedProjects(updatedProjects, isBrowser, userId).catch(
+
+          // Also ensure the full cache is updated
+          if (userId) {
+            console.log(
+              `💾 Updating cache with ${updatedProjects.length} projects after project update`
+            );
+            cacheAuthenticatedProjects(updatedProjects, isBrowser, userId).catch(
+              (err) => console.error("Error caching projects after update:", err)
+            );
+          }
+
+          return updatedProjects;
+        });
+      }
+
+      if (!isAuthenticated) {
+        setFreeProjects((prev) => {
+          const updatedProjects = prev.map((project) =>
+            project.id === updatedProject.id ? updatedProject : project
+          );
+          
+          cacheProjects(updatedProjects, isBrowser).catch(
             (err) => console.error("Error caching projects after update:", err)
           );
-        }
-
-        return updatedProjects;
-      });
-
-      setFreeProjects((prev) =>
-        prev.map((project) =>
-          project.id === updatedProject.id ? updatedProject : project
-        )
-      );
+          
+          return updatedProjects;
+        });
+      }
     },
     [isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
   );

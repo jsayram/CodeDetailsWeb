@@ -18,7 +18,6 @@ export type ProjectFormData = {
   slug: string;
   tags: string;
   description: string;
-  tier: string;
   difficulty: string;
 };
 

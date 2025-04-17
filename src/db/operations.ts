@@ -3,7 +3,7 @@
 import { executeQuery } from "./server";
 import { projects } from "./schema";
 import { InsertProject, SelectProject } from "./schema/projects";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 
 /**
  * Server-side only database operations
@@ -68,52 +68,85 @@ export async function deleteProject(id: string): Promise<SelectProject> {
   });
 }
 
+
 /**
- * Get all projects accessible to a user based on their tier level
- * @param userTierLevel The user's tier level (0=free, 1=pro, 2=diamond)
- * @returns Array of projects accessible to the user
+ * Get all projects
+ * @returns An array of all projects
  */
-export async function getAccessibleProjects(
-  userTierLevel: number
+export async function getAllProjects(): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    const result = await db.select().from(projects);
+    return result;
+  });
+}
+
+
+/**
+ * Get all projects with a specific difficulty level
+ * @param difficulty The difficulty level to filter projects by
+ * @returns An array of projects with the specified difficulty level
+ */
+export async function getProjectsByDifficulty(
+  difficulty: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
-    // This query gets all projects where the project's tier level is <= the user's tier level
-    return db
+    const result = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.difficulty, difficulty));
+
+    return result;
+  });
+}
+
+//create a function to get all projects by user id
+export async function getProjectsByUserId(  
+  userId: string
+): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    const result = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.user_id, userId));
+
+    return result;
+  });
+}
+
+//get all most recent projects
+export async function getRecentProjects(): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    const result = await db
+      .select()
+      .from(projects)
+      .orderBy(desc(projects.created_at))
+      .limit(5);
+
+    return result;
+  });
+}
+
+/**
+ * Get all projects with a specific difficulty level and user ID
+ * @param difficulty The difficulty level to filter projects by
+ * @param userId The user ID to filter projects by
+ * @returns An array of projects with the specified difficulty level and user ID
+ */
+export async function getProjectsByDifficultyAndUserId(
+  difficulty: string,
+  userId: string
+): Promise<SelectProject[]> {
+  return await executeQuery(async (db) => {
+    const result = await db
       .select()
       .from(projects)
       .where(
-        sql`${projects.tier}::text IN (
-          SELECT tier FROM (
-            VALUES ('free', 0), ('pro', 1), ('diamond', 2)
-          ) AS t(tier, level)
-          WHERE level <= ${userTierLevel}
-        )`
+        and(
+          eq(projects.difficulty, difficulty),
+          eq(projects.user_id, userId)
+        )
       );
-  });
-}
 
-/**
- * Get all free tier projects
- * @returns Array of free projects
- */
-export async function getFreeProjects(): Promise<SelectProject[]> {
-  return await executeQuery(async (db) => {
-    return db.select().from(projects).where(eq(projects.tier, "free"));
-  });
-}
-
-/**
- * Get project count by tier
- * @param tier The tier to count projects for
- * @returns Number of projects in the specified tier
- */
-export async function getProjectCountByTier(tier: string): Promise<number> {
-  return await executeQuery(async (db) => {
-    const result = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(projects)
-      .where(eq(projects.tier, tier));
-
-    return result[0]?.count || 0;
+    return result;
   });
 }

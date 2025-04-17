@@ -11,8 +11,6 @@ import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 // Custom Services
 import { getAuthenticatedClient } from "@/services/supabase";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import { useUserTier } from "@/hooks/use-tierServiceClient";
-import { getAccessibleTiers } from "@/services/tierServiceServer";
 
 // Application Components and Pages (Custom)
 import { ProjectsProvider } from "@/providers/projects-provider";
@@ -48,15 +46,8 @@ export default function DashBoard() {
     return client;
   }, [token]);
 
-  // Fetch user tier from database using authenticated client
-  const {
-    userTier,
-    loading: profileLoading,
-    error: profileError,
-  } = useUserTier(authenticatedClient, user?.id ?? null);
-
   // Determine overall loading state
-  const isLoading = !userLoaded || tokenLoading || profileLoading || !userTier;
+  const isLoading = !userLoaded || tokenLoading;
 
   return (
     <>
@@ -67,7 +58,6 @@ export default function DashBoard() {
       ) : (
         <ProjectsProvider
           token={token}
-          userTier={userTier}
           userId={user?.id ?? null}
           isLoading={isLoading}
         >
@@ -86,46 +76,30 @@ export default function DashBoard() {
                     <div className="flex flex-col gap-4">
                       <SignedIn>
                         <>
-                          {profileError && (
-                            <Alert variant="destructive" className="mb-4">
-                              <AlertTitle>Note</AlertTitle>
-                              <AlertDescription>
-                                <p>{profileError}</p>
-                                <p>
-                                  Using default &apos;free&apos; tier access.
-                                </p>
-                              </AlertDescription>
-                            </Alert>
-                          )}
-
-                          {/* User tier information */}
+                          {/* User welcome message */}
                           <Alert className="mb-6 h-[60px]">
                             <AlertDescription className="text-sm flex items-center justify-between">
                               <div>
                                 Welcome{" "}
-                                {user?.fullName ?? "Code Details Minion"}. You
-                                have access to the{" "}
-                                <span className="font-semibold">
-                                  {userTier}
-                                </span>{" "}
-                                tier.
+                                {user?.fullName ?? "Code Details Minion"}.
+                                Access projects by difficulty level.
                               </div>
                               <div className="flex gap-1">
-                                {getAccessibleTiers(userTier).map((tier) => (
+                                {["beginner", "intermediate", "advanced"].map((difficulty) => (
                                   <Badge
-                                    key={tier}
+                                    key={difficulty}
                                     variant="secondary"
                                     className="ml-1"
                                   >
-                                    {tier}
+                                    {difficulty}
                                   </Badge>
                                 ))}
                               </div>
                             </AlertDescription>
                           </Alert>
 
-                          {/* Pagination component */}
-                          <PaginatedControls
+                          {/* Pagination component TODO: NEED TO FIX PAGINATION ON MOBILE */}
+                          <PaginatedControls   
                             currentPage={currentPage}
                             setCurrentPage={setCurrentPage}
                             projectType="authenticated"
@@ -161,12 +135,12 @@ export default function DashBoard() {
                         <Card className="min-h-[300px]">
                           <CardHeader>
                             <CardTitle className="text-center">
-                              Explore Free Projects
+                              Explore Projects
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
                             <p className="text-muted-foreground text-center mb-6">
-                              Sign in to see premium projects
+                              Sign in to access all projects
                             </p>
                             {/* Display free projects for anonymous users with pagination */}
                             <div>

@@ -1,12 +1,12 @@
 import { useEffect } from "react";
 import { Project } from "@/types/models/project";
 import {
-  loadCachedFreeProjects,
-  cacheFreeProjects,
+  loadCachedProjects,
+  cacheProjects,
   loadCachedAuthenticatedProjects,
   cacheAuthenticatedProjects,
 } from "@/lib/ProjectsCacheUtils";
-import { getAllFreeProjects, getUserProjects } from "@/app/actions/projects";
+import { getAllProjects, getUserProjects } from "@/app/actions/projects";
 
 /**
  * Custom hook for handling project fetching logic
@@ -18,7 +18,6 @@ export function useProjectFetching(
   userId: string | null,
   isAuthenticating: boolean,
   isAuthenticated: boolean,
-  userTier: string,
   isBrowser: boolean,
   freeProjects: Project[],
   isMounted: React.RefObject<boolean>,
@@ -29,40 +28,40 @@ export function useProjectFetching(
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   setHasFetchedProjects: React.Dispatch<React.SetStateAction<boolean>>,
   setCachingDebug: React.Dispatch<React.SetStateAction<boolean>>,
-  systemReady: boolean = true // Add system readiness parameter with default value
+  systemReady: boolean = true
 ) {
-  // Fetch free projects - with caching
+  // Fetch projects for anonymous users
   useEffect(() => {
     // Skip if system is not ready or already fetched or if we have projects from cache
     if (!systemReady || hasFetchedFreeProjects || freeProjects.length > 0) {
       if (!systemReady) {
-        console.log("⏳ System not ready yet, waiting to fetch free projects...");
+        console.log("⏳ System not ready yet, waiting to fetch projects...");
       } else {
-        console.log("📋 Free projects already available, skipping fetch");
+        console.log("📋 Projects already available, skipping fetch");
       }
       return;
     }
 
     // Skip if parent is loading
     if (isLoading) {
-      console.log("⏳ Parent is loading, waiting to fetch free projects...");
+      console.log("⏳ Parent is loading, waiting to fetch projects...");
       return;
     }
 
     // Skip if user is present or in the process of authenticating
     if (userId || isAuthenticating) {
       console.log(
-        "👤 User detected or authenticating, skipping free projects fetch"
+        "👤 User detected or authenticating, skipping anonymous projects fetch"
       );
       return;
     }
 
-    const fetchFreeProjectsWithCache = async () => {
+    const fetchProjectsWithCache = async () => {
       // Check cache first - if we have valid cached projects, use them
       try {
-        const cachedProjects = await loadCachedFreeProjects(isBrowser);
+        const cachedProjects = await loadCachedProjects(isBrowser);
         console.log(
-          "🔍 Cache Check Before Fetch - Free Projects:",
+          "🔍 Cache Check Before Fetch - Projects:",
           cachedProjects
             ? `${cachedProjects.length} projects in cache`
             : "No cache available"
@@ -72,7 +71,7 @@ export function useProjectFetching(
           console.log(
             "🔄 Loading",
             cachedProjects.length,
-            "free projects from cache"
+            "projects from cache"
           );
           setFreeProjects(cachedProjects);
           setFreeLoading(false);
@@ -81,24 +80,24 @@ export function useProjectFetching(
         }
 
         // Only fetch from database if cache is empty or invalid
-        await fetchFreeProjects();
+        await fetchAllProjects();
       } catch (error) {
-        console.error("Error in fetchFreeProjectsWithCache:", error);
+        console.error("Error in fetchProjectsWithCache:", error);
         // Fallback to direct fetch if cache access fails
-        await fetchFreeProjects();
+        await fetchAllProjects();
       }
     };
 
-    // Only fetch from database if cache is empty or invalid
-    const fetchFreeProjects = async () => {
-      console.log("🔄 Fetching free projects from database...");
+    // Fetch all projects for anonymous users
+    const fetchAllProjects = async () => {
+      console.log("🔄 Fetching all projects from database...");
       try {
         setFreeLoading(true);
 
-        // Using server action instead of direct DB access
-        const data = await getAllFreeProjects();
+        // Using server action to fetch all projects
+        const data = await getAllProjects();
 
-        console.log("📦 Fetched", data?.length || 0, "free projects");
+        console.log("📦 Fetched", data?.length || 0, "projects");
 
         // Only update state if component is still mounted
         if (isMounted.current) {
@@ -107,15 +106,15 @@ export function useProjectFetching(
           // Cache the fetched projects
           if (data && data.length > 0) {
             console.log(
-              `💾 Caching ${data.length} free projects in Cache Storage`
+              `💾 Caching ${data.length} projects in Cache Storage`
             );
-            await cacheFreeProjects(data, isBrowser);
+            await cacheProjects(data, isBrowser);
 
             // Verify cache was properly set
             try {
-              const verifyCache = await loadCachedFreeProjects(isBrowser);
+              const verifyCache = await loadCachedProjects(isBrowser);
               console.log(
-                "🔍 Cache Verification - Free Projects:",
+                "🔍 Cache Verification - Projects:",
                 verifyCache
                   ? `${verifyCache.length} projects in cache after storing`
                   : "Failed to store in cache"
@@ -126,7 +125,7 @@ export function useProjectFetching(
           }
         }
       } catch (error) {
-        console.error("❌ Failed to load free projects:", error);
+        console.error("❌ Failed to load projects:", error);
         if (isMounted.current) {
           setFreeProjects([]);
         }
@@ -138,9 +137,9 @@ export function useProjectFetching(
       }
     };
 
-    fetchFreeProjectsWithCache();
+    fetchProjectsWithCache();
   }, [
-    systemReady, // Add systemReady to dependency array
+    systemReady,
     isLoading,
     hasFetchedFreeProjects,
     userId,
@@ -153,7 +152,7 @@ export function useProjectFetching(
     setHasFetchedFreeProjects,
   ]);
 
-  // Fetch authenticated projects - wait for full authentication and tier
+  // Fetch projects for authenticated users
   useEffect(() => {
     // Skip if system is not ready
     if (!systemReady) {
@@ -177,12 +176,7 @@ export function useProjectFetching(
       return;
     }
 
-    if (!userTier) {
-      console.log("⏳ Tier still loading, waiting...");
-      return;
-    }
-
-    console.log(`🚀 All prerequisites met for user ${userId} with tier ${userTier}, proceeding with project fetch`);
+    console.log(`🚀 All prerequisites met for user ${userId}, proceeding with project fetch`);
 
     const fetchAuthProjectsWithCache = async () => {
       // Check cache first - if we have valid cached auth projects, use them
@@ -192,7 +186,7 @@ export function useProjectFetching(
           userId
         );
         console.log(
-          "🔍 Cache Check Before Fetch - Auth Projects:",
+          "🔍 Cache Check - Auth Projects:",
           cachedAuthProjects
             ? `${cachedAuthProjects.length} projects in cache`
             : "No cache available"
@@ -205,7 +199,7 @@ export function useProjectFetching(
             "authenticated projects from cache"
           );
           console.log(
-            "🔍 Cache Contents - Auth Projects IDs:",
+            "🔍 Cache Contents - Projects IDs:",
             cachedAuthProjects.map((p) => p.id).join(", ")
           );
           setProjects(cachedAuthProjects);
@@ -215,34 +209,31 @@ export function useProjectFetching(
         }
 
         // If no valid cache, fetch from server
-        await fetchAccessibleProjects();
+        await fetchUserProjects();
       } catch (error) {
         console.error("Error in fetchAuthProjectsWithCache:", error);
         // Fallback to direct fetch if cache access fails
-        await fetchAccessibleProjects();
+        await fetchUserProjects();
       }
     };
 
-    const fetchAccessibleProjects = async () => {
-      console.log("✅ All conditions met, fetching authenticated projects...");
+    const fetchUserProjects = async () => {
+      console.log("✅ All conditions met, fetching user's projects...");
       console.log("🔐 Auth state:", isAuthenticated);
-      console.log("🎫 User tier:", userTier);
 
       try {
         setLoading(true);
 
-        console.log("🔄 Fetching authenticated projects with tier:", userTier);
-
-        // Using server action with tier access level checking
         try {
           // Make sure userId is not null before calling getUserProjects
           if (!userId) {
             throw new Error("User ID is null, cannot fetch projects");
           }
-          const data = await getUserProjects(userTier, userId);
+          
+          // Pass userTier parameter for backward compatibility, but it won't be used for filtering
+          const data = await getUserProjects(userId);
 
-          console.log("📦 Fetched projects data:", data);
-          console.log("📦 Fetched", data?.length || 0, "accessible projects");
+          console.log("📦 Fetched", data?.length || 0, "projects");
           console.log(
             "🔍 Fetched Project IDs:",
             data?.map((p) => p.id).join(", ")
@@ -266,7 +257,6 @@ export function useProjectFetching(
               console.log(
                 `💾 Caching ${data.length} authenticated projects in Cache Storage`
               );
-              // Make sure we're caching the complete data array
               await cacheAuthenticatedProjects(data, isBrowser, userId);
 
               // Verify cache was properly set
@@ -276,7 +266,7 @@ export function useProjectFetching(
                   userId
                 );
                 console.log(
-                  "🔍 Cache Verification - Auth Projects:",
+                  "🔍 Cache Verification:",
                   verifyCache
                     ? `${verifyCache.length} projects in cache after storing`
                     : "Failed to store in cache"
@@ -328,9 +318,8 @@ export function useProjectFetching(
 
     fetchAuthProjectsWithCache();
   }, [
-    systemReady, // Add systemReady to dependency array
+    systemReady,
     isAuthenticated,
-    userTier,
     isLoading,
     hasFetchedProjects,
     userId,

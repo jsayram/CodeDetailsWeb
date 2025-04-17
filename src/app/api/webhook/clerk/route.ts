@@ -37,8 +37,60 @@ async function extractClerkUserData(data: ClerkUserData) {
       "_" +
       (data.last_name || data.id.substring(5, 10)); // use email or generate username from first and last name if not provided
   // optional metadata
+  const profile_image_url = data.profile_image_url;
   const role = data.public_metadata?.role || "authenticated";
-  const tier = data.public_metadata?.tier || "free";
+  
+  // Get tier from metadata if provided
+  let tier = data.public_metadata?.tier;
+  
+  // If tier is not provided in the webhook data, try to get it from cache first, then database
+  if (!tier && user_id) {
+    // First check if this user was recently verified and is in our cache
+    const cachedTimestamp = recentlyVerifiedUsers.get(user_id);
+    const now = Date.now();
+
+    if (cachedTimestamp && now - cachedTimestamp < CACHE_TTL) {
+      console.log(`🎫 User ${user_id} found in cache, checking for tier`);
+      try {
+        // Try to get user data from Clerk's APIs if this user was recently verified
+        const { data: clerkUserData } = await fetchClerkUser(user_id);
+        
+        if (clerkUserData?.public_metadata?.tier) {
+          console.log(`🎫 Found tier in cached Clerk data: ${clerkUserData.public_metadata.tier}`);
+          tier = clerkUserData.public_metadata.tier;
+        } else {
+          console.log(`🎫 No tier found in cached Clerk data, will check database`);
+        }
+      } catch (cacheError) {
+        console.log("Cache lookup failed, will check database:", cacheError);
+      }
+    }
+    
+    // If still no tier from cache, try the database
+    if (!tier) {
+      try {
+        // Try to get the existing user data from the database
+        const { data: existingUser } = await supabaseServer
+          .from("profiles")
+          .select("tier")
+          .eq("user_id", user_id)
+          .single();
+        
+        // If the user exists, use their current tier
+        if (existingUser && existingUser.tier) {
+          console.log(`🎫 Using existing tier from database: ${existingUser.tier} for user ${user_id}`);
+          tier = existingUser.tier;
+        } else {
+          // For new users, default to 'free'
+          tier = "free";
+        }
+      } catch (error) {
+        console.error("Error fetching existing user tier:", error);
+        // Default to undefined so we don't overwrite the tier during updates
+        tier = undefined;
+      }
+    }
+  }
 
   return {
     user_id,
@@ -47,10 +99,12 @@ async function extractClerkUserData(data: ClerkUserData) {
     last_name,
     full_name,
     username,
+    profile_image_url,
     role,
     tier,
   };
 }
+
 // Handle user.created
 async function handleUserCreated(data: ClerkUserData) {
   // Function to extract user data from Clerk webhook data
@@ -61,14 +115,90 @@ async function handleUserCreated(data: ClerkUserData) {
     last_name,
     full_name,
     username,
+    profile_image_url,
     role,
     tier,
   } = await extractClerkUserData(data);
   console.log(
-    `Creating user: ${user_id} in Supabase profiles (no collisions assumed)`
+    `Creating user: ${user_id} in Supabase profiles (checking for collisions)`
   );
 
-  // Insert without conflict
+  // Check if the user already exists in the database
+  const { data: existingProfile, error: fetchError } = await supabaseServer
+    .from("profiles")
+    .select("*")
+    .eq("user_id", user_id)
+    .maybeSingle();
+
+  // If there was an error other than "no rows found"
+  if (fetchError && !fetchError.details?.includes("0 rows")) {
+    console.error("Supabase fetch error (user.created):", fetchError);
+    return NextResponse.json(
+      { error: "Error checking profile existence" },
+      { status: 500 }
+    );
+  }
+
+  // If user already exists, update only different fields (similar to handleUserUpdated)
+  if (existingProfile) {
+    console.log(`User ${user_id} already exists in profiles. Updating different fields only.`);
+    
+    // Build an object of only changed fields
+    const fieldUpdates = [
+      { key: "email_address", value: email_address, requireDefined: true },
+      { key: "first_name", value: first_name, requireDefined: true },
+      { key: "last_name", value: last_name, requireDefined: true },
+      { key: "full_name", value: full_name, requireDefined: true },
+      { key: "username", value: username, requireDefined: true },
+      { key: "profile_image_url", value: profile_image_url, requireDefined: false },
+      { key: "role", value: role, requireDefined: false },
+      { key: "tier", value: tier, requireDefined: false },
+    ];
+
+    // Initialize the updatedFields object
+    type ProfileFieldValue = string | number | boolean | null | undefined;
+    const updatedFields: Record<string, ProfileFieldValue> = {};
+
+    // Process field updates
+    fieldUpdates.forEach(({ key, value, requireDefined }) => {
+      if (
+        existingProfile[key] !== value &&
+        (!requireDefined || value !== undefined)
+      ) {
+        updatedFields[key] = value;
+      }
+    });
+
+    // If no fields changed, no need to update
+    if (Object.keys(updatedFields).length === 0) {
+      console.log("No changes detected, skipping update for existing user");
+      return NextResponse.json({ 
+        message: "User already exists and no changes needed",
+        status: "unchanged" 
+      });
+    }
+
+    // Perform partial update for existing user
+    const { error: updateError } = await supabaseServer
+      .from("profiles")
+      .update(updatedFields)
+      .eq("user_id", user_id);
+
+    if (updateError) {
+      console.error("Supabase update error (user collision handling):", updateError);
+      return NextResponse.json(
+        { error: "Error updating existing profile" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      message: "Existing user updated successfully with changed fields",
+      status: "updated"
+    });
+  }
+
+  // Create new user if they don't exist yet
   const { error } = await supabaseServer.from("profiles").insert([
     {
       user_id,
@@ -76,6 +206,7 @@ async function handleUserCreated(data: ClerkUserData) {
       first_name,
       full_name,
       last_name,
+      profile_image_url,
       role,
       username,
       tier,
@@ -90,7 +221,8 @@ async function handleUserCreated(data: ClerkUserData) {
     );
   }
   return NextResponse.json({
-    message: "User created successfully (no collisions)",
+    message: "User created successfully",
+    status: "created"
   });
 }
 
@@ -104,6 +236,7 @@ async function handleUserUpdated(data: ClerkUserData) {
     last_name,
     full_name,
     username,
+    profile_image_url,
     role,
     tier,
   } = await extractClerkUserData(data);
@@ -144,6 +277,7 @@ async function handleUserUpdated(data: ClerkUserData) {
     { key: "last_name", value: last_name, requireDefined: true },
     { key: "full_name", value: full_name, requireDefined: true },
     { key: "username", value: username, requireDefined: true },
+    { key: "profile_image_url", value: profile_image_url, requireDefined: false },
     //optional metadata
     { key: "role", value: role, requireDefined: false },
     { key: "tier", value: tier, requireDefined: false },

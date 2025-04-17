@@ -22,13 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { DebugJwt } from "@/components/debug/page";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
 import {
-  getAllFreeProjects,
-  getAllProProjects,
-  getAllDiamondProjects,
-  getProjectsByTier,
 } from "@/app/actions/projects";
 import { Project } from "@/types/models/project";
-import { canAccessTier } from "@/services/tierServiceServer";
 import { toast } from "sonner";
 import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
 
@@ -39,9 +34,6 @@ export default function ProjectApiTest() {
   const [isLoading, setIsLoading] = useState(false);
   const { token } = useSupabaseToken();
 
-  // User tier state
-  const [userTier, setUserTier] = useState<string>("free");
-
   // Form states
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
@@ -50,54 +42,14 @@ export default function ProjectApiTest() {
   const [tier, setTier] = useState("free");
   const [difficulty, setDifficulty] = useState("beginner");
 
-  // Load initial projects and fetch user tier
+  // Load initial projects
   useEffect(() => {
     fetchProjects();
-    fetchUserTier();
   }, []);
 
   // Helper to format responses for display
   const formatResponse = (data: unknown): string => {
     return JSON.stringify(data, null, 2);
-  };
-
-  // Fetch the user's current tier
-  const fetchUserTier = async () => {
-    try {
-      // In a real application, you would get this from your authentication system
-      // Here we're making a call to the API to get the user's tier
-      const response = await fetch("/api/tiers/user-tier");
-      const data = await response.json();
-
-      if (data.success && data.tier) {
-        console.log(`User tier fetched: ${data.tier}`);
-        setUserTier(data.tier);
-      } else {
-        // Default to 'free' if there's an issue
-        console.log("Using default free tier");
-        setUserTier("free");
-      }
-    } catch (error) {
-      console.error("Error fetching user tier:", error);
-      setUserTier("free"); // Default to free tier on error
-    }
-  };
-
-  // Helper to check if user has access to a specific tier
-  const checkTierAccess = (contentTier: string): boolean => {
-    // Use the canAccessTier function to determine if the user can access this tier
-    const hasAccess = canAccessTier(userTier, contentTier);
-
-    if (!hasAccess) {
-      setApiResponse(
-        formatResponse({
-          success: false,
-          error: `Access denied: Your tier (${userTier}) doesn't have access to ${contentTier} tier projects`,
-        })
-      );
-    }
-
-    return hasAccess;
   };
 
   // Fetch projects using the appropriate server action based on tier and difficulty
@@ -112,22 +64,6 @@ export default function ProjectApiTest() {
       // If we have a tier filter, use the appropriate tier-specific server action
       if (filterTier) {
         console.log(`Fetching projects with tier: ${filterTier}`);
-
-        // Use the tier-specific server actions for better performance
-        switch (filterTier) {
-          case "free":
-            fetchedProjects = await getAllFreeProjects();
-            break;
-          case "pro":
-            fetchedProjects = await getAllProProjects();
-            break;
-          case "diamond":
-            fetchedProjects = await getAllDiamondProjects();
-            break;
-          default:
-            // Use the generic function for any other tier
-            fetchedProjects = await getProjectsByTier(filterTier);
-        }
 
         // Format the response for the API response display
         setApiResponse(
@@ -213,12 +149,6 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to create a project with this tier
-    if (!checkTierAccess(tier)) {
-      toast.error(`You don't have permission to create ${tier} tier projects`);
-      return;
-    }
-
     setIsLoading(true);
     try {
       const projectData = {
@@ -271,20 +201,6 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to the tier they're trying to set
-    if (!checkTierAccess(tier)) {
-      toast.error(`You don't have permission to set projects to ${tier} tier`);
-      return;
-    }
-
-    // Check if user has access to the selected project's tier
-    if (!checkTierAccess(selectedProject.tier)) {
-      toast.error(
-        `You don't have permission to modify ${selectedProject.tier} tier projects`
-      );
-      return;
-    }
-
     setIsLoading(true);
     try {
       const projectData = {
@@ -330,32 +246,12 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to the selected project's tier
-    if (!checkTierAccess(selectedProject.tier)) {
-      toast.error(
-        `You don't have permission to modify ${selectedProject.tier} tier projects`
-      );
-      return;
-    }
-
     // Build an object with only the fields that have values
     const updateData: Partial<Project> = {};
     if (title) updateData.title = title;
     if (slug) updateData.slug = slug;
     if (description) updateData.description = description;
     if (tags) updateData.tags = tags.split(",").map((tag) => tag.trim());
-
-    // Check tier access if trying to change tier
-    if (tier && tier !== selectedProject.tier) {
-      if (!checkTierAccess(tier)) {
-        toast.error(
-          `You don't have permission to set projects to ${tier} tier`
-        );
-        return;
-      }
-      updateData.tier = tier;
-    }
-
     if (difficulty) updateData.difficulty = difficulty;
 
     if (Object.keys(updateData).length === 0) {
@@ -401,14 +297,6 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to the selected project's tier
-    if (!checkTierAccess(selectedProject.tier)) {
-      toast.error(
-        `You don't have permission to delete ${selectedProject.tier} tier projects`
-      );
-      return;
-    }
-
     if (
       !confirm(`Are you sure you want to delete "${selectedProject.title}"?`)
     ) {
@@ -445,7 +333,6 @@ export default function ProjectApiTest() {
     setSlug(project.slug);
     setDescription(project.description || "");
     setTags(project.tags ? project.tags.join(", ") : "");
-    setTier(project.tier);
     setDifficulty(project.difficulty);
   };
 
@@ -573,16 +460,15 @@ export default function ProjectApiTest() {
                         <div className="flex gap-1 mt-1">
                           <Badge
                             variant={
-                              project.tier === "free"
+                              project.difficulty === "beginner"
                                 ? "outline"
-                                : project.tier === "pro"
+                                : project.difficulty === "intermediate"
                                 ? "secondary"
                                 : "default"
                             }
                           >
-                            {project.tier}
+                            {project.difficulty}
                           </Badge>
-                          <Badge variant="outline">{project.difficulty}</Badge>
                         </div>
                       </div>
                     ))

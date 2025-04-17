@@ -1,11 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Heart, Trash2, Edit } from "lucide-react";
+import { ExternalLink, Heart, Trash2, Edit, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useUser } from "@clerk/nextjs";
 
 interface ProjectCardProps {
   project: Project;
@@ -25,6 +27,9 @@ export const ProjectCard = React.memo(
     onUpdateProject,
     isFavorite = false,
   }: ProjectCardProps) {
+    // Get the current user to check if the project belongs to them
+    const { user } = useUser();
+    
     // Prevent event bubbling for interactive elements inside the card
     const handleChildClick = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -37,6 +42,24 @@ export const ProjectCard = React.memo(
         onDeleteProject(project.id);
       }
     };
+    
+    // Safely handle tags array (could be undefined or null after migration)
+    const tags = useMemo(() => {
+      return project.tags || [];
+    }, [project.tags]);
+
+    // Check if the current user is the project owner
+    const isCurrentUserProject = useMemo(() => {
+      return user?.id === project.user_id;
+    }, [user?.id, project.user_id]);
+
+    // Display username logic
+    const displayUsername = useMemo(() => {
+      if (isCurrentUserProject) {
+        return "Your Project";
+      }
+      return project.owner_username || "Unknown user";
+    }, [isCurrentUserProject, project.owner_username]);
 
     return (
       <>
@@ -103,10 +126,10 @@ export const ProjectCard = React.memo(
             </p>
 
             {/* Tags (show if available) */}
-            {project.tags && project.tags.length > 0 && (
+            {tags.length > 0 && (
               <div className="mt-auto mb-2">
                 <div className="flex flex-wrap gap-1">
-                  {project.tags.slice(0, 2).map((tag, index) => (
+                  {tags.slice(0, 2).map((tag, index) => (
                     <Badge
                       key={index}
                       variant="outline"
@@ -116,13 +139,13 @@ export const ProjectCard = React.memo(
                       {tag}
                     </Badge>
                   ))}
-                  {project.tags.length > 2 && (
+                  {tags.length > 2 && (
                     <Badge
                       variant="outline"
                       onClick={handleChildClick}
                       className="badge text-xs"
                     >
-                      +{project.tags.length - 2}
+                      +{tags.length - 2}
                     </Badge>
                   )}
                 </div>
@@ -133,18 +156,10 @@ export const ProjectCard = React.memo(
             <div className="mt-auto flex items-center justify-between">
               <Badge
                 variant="secondary"
-                className={`badge capitalize ${
-                  project.tier === "free"
-                    ? "bg-green-100 text-green-800"
-                    : project.tier === "pro"
-                    ? "bg-blue-100 text-blue-800"
-                    : project.tier === "diamond"
-                    ? "bg-purple-100 text-purple-800"
-                    : ""
-                }`}
+                className="badge capitalize bg-gray-100 text-gray-800"
                 onClick={handleChildClick}
               >
-                {project.tier}
+                {project.difficulty}
               </Badge>
 
               {project.slug && (
@@ -162,11 +177,22 @@ export const ProjectCard = React.memo(
             </div>
           </div>
 
-          {/* Fixed height footer */}
+          {/* Fixed height footer TODO:PROFILE IMAGE URL RERENDER CLEARING OUT THE IMAGE ON THE PROJECT */} 
           <div className="card-footer h-auto sm:h-[50px] bg-secondary/10 p-2 sm:p-3 flex justify-between items-center">
-            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-              {project.difficulty}
-            </span>
+            <div className="flex items-center space-x-2">
+              <Avatar className="h-7 w-7">
+                {project.owner_profile_image_url ? (
+                  <AvatarImage src={project.owner_profile_image_url} alt={displayUsername} />
+                ) : (
+                  <AvatarFallback>
+                    <User size={12} />
+                  </AvatarFallback>
+                )}
+              </Avatar>
+              <span className="text-xs truncate max-w-[120px]" title={displayUsername}>
+                {displayUsername}
+              </span>
+            </div>
 
             <Button
               variant="default"
@@ -188,9 +214,8 @@ export const ProjectCard = React.memo(
       prevProps.project.title === nextProps.project.title &&
       prevProps.project.description === nextProps.project.description &&
       prevProps.isFavorite === nextProps.isFavorite &&
-      JSON.stringify(prevProps.project.tags) ===
-        JSON.stringify(nextProps.project.tags) &&
-      prevProps.project.tier === nextProps.project.tier &&
+      JSON.stringify(prevProps.project.tags || []) ===
+        JSON.stringify(nextProps.project.tags || []) &&
       prevProps.project.difficulty === nextProps.project.difficulty
     );
   }

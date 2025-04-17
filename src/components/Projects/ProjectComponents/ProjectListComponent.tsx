@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, use } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
 import { GridIcon, Heart, TableIcon, Trash2, Edit } from "lucide-react";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Project } from "@/types/models/project";
 import { UpdateProjectModal } from "./UpdateProjectModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { useAuth } from "@clerk/nextjs";
 
 interface ProjectListProps {
   projectType?: "free" | "authenticated";
@@ -43,6 +44,9 @@ export function ProjectList({
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+
+  // Add auth hook to get the current user's ID
+  const { userId } = useAuth();
 
   // Determine which projects and loading state to use based on projectType
   const allProjects = projectType === "free" ? freeProjects : projects;
@@ -73,7 +77,7 @@ export function ProjectList({
 
   // Handle the actual deletion after confirmation
   const handleDeleteConfirm = useCallback(async () => {
-    if (!projectToDelete) return;
+    if (!projectToDelete || !userId) return;
 
     try {
       // Set deleting state
@@ -82,8 +86,8 @@ export function ProjectList({
       // Close the dialog immediately to prevent double-rendering issues
       setShowDeleteDialog(false);
 
-      // Call the server action to delete the project
-      const result = await removeProject(projectToDelete.id);
+      // Use the current user's ID instead of the project creator's ID
+      const result = await removeProject(projectToDelete.id, userId);
 
       if (!result.success) {
         toast.error(result.error || "Failed to delete project");
@@ -104,7 +108,7 @@ export function ProjectList({
       setDeletingProjectId(null);
       setProjectToDelete(null);
     }
-  }, [projectToDelete, handleProjectDeleted]);
+  }, [projectToDelete, handleProjectDeleted, userId]);
 
   // Handle delete button click
   const handleDeleteProject = useCallback((project: Project) => {
@@ -205,9 +209,8 @@ export function ProjectList({
                 <th className="border p-2">Slug</th>
                 <th className="border p-2">Tags</th>
                 <th className="border p-2">Description</th>
-                <th className="border p-2">Tier</th>
                 <th className="border p-2">Difficulty</th>
-                <th className="border p-2">Created At</th>
+                <th className="border p-2">Created</th>
                 <th className="border p-2">Actions</th>
               </tr>
             </thead>
@@ -252,21 +255,6 @@ export function ProjectList({
                     <p className="line-clamp-2 text-sm">
                       {project.description}
                     </p>
-                  </td>
-                  <td className="border p-2" data-label="Tier">
-                    <span
-                      className={`badge px-2 py-1 rounded text-xs ${
-                        project.tier === "free"
-                          ? "bg-green-100 text-green-800"
-                          : project.tier === "pro"
-                          ? "bg-blue-100 text-blue-800"
-                          : project.tier === "diamond"
-                          ? "bg-purple-100 text-purple-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {project.tier}
-                    </span>
                   </td>
                   <td className="border p-2" data-label="Difficulty">
                     {project.difficulty}
