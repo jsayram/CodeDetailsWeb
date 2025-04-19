@@ -219,7 +219,7 @@ export const HeroSection = () => {
               // Projects section - CLICKABLE
               {
                 href: "/projects",
-                label: "Projects",
+                label: "Community-Projects",
                 clickable: true,
                 visibleOn: "all", // Default if not specified
               },

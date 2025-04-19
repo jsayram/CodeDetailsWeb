@@ -1,19 +1,35 @@
 "use server";
 
+import { eq, sql } from "drizzle-orm";
 import {
   createProjectServer,
-  getProjectBySlugServer,
   getAccessibleProjectsServer,
   deleteProjectServer,
   updateProjectServer,
   getUserProjectsServer,
   isProjectOwner,
+  getProjectTagNames,
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
+import { projects } from "@/db/schema/projects";
 import { revalidatePath } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
+import { executeQuery } from "@/db/server";
 
-const pathToRevalidate = "/projects"; //TODO: Make this dynamic
+const pathToRevalidate = "/projects";
+
+// Get a single project by slug
+export async function getProjectBySlugServer(slug: string) {
+  return executeQuery(async (db) => {
+    const results = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.slug, slug))
+      .limit(1);
+
+    return results[0] || null;
+  });
+}
 
 // Server action to create a new project
 export async function createProject(project: InsertProject, userId: string) {
@@ -187,9 +203,7 @@ export async function updateProject(
 }
 
 // Server action to get all projects accessible to a user
-export async function getUserProjects(
-  userId: string
-) {
+export async function getUserProjects(userId: string) {
   try {
     console.log(`Fetching all projects for user ${userId}`);
 
@@ -199,7 +213,9 @@ export async function getUserProjects(
 
       // Map the data to our Project type
       const mappedProjects = projects.map(mapDrizzleProjectToProject);
-      console.log(`Successfully fetched ${mappedProjects.length} projects for user ${userId}`);
+      console.log(
+        `Successfully fetched ${mappedProjects.length} projects for user ${userId}`
+      );
       return mappedProjects;
     } catch (dbError) {
       console.error("Database error when getting projects:", dbError);
@@ -243,13 +259,121 @@ export async function getUserOwnProjects(userId: string) {
     // Map the data to our Project type
     const mappedProjects = projects.map(mapDrizzleProjectToProject);
     console.log(`Successfully fetched ${mappedProjects.length} user projects`);
-    
+
     return {
       success: true,
       data: mappedProjects,
     };
   } catch (error) {
     console.error("Failed to get user's own projects:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+// Server action to permanently delete a project
+export async function permanentlyDeleteProject(id: string, userId: string) {
+  try {
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to delete a project",
+      };
+    }
+
+    // First check if the user is the owner of this project
+    const isOwner = await isProjectOwner(id, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: "You don't have permission to delete this project",
+      };
+    }
+
+    // Permanently delete the project
+    await executeQuery(async (db) => {
+      // First verify the project exists and is deleted
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, id))
+        .limit(1);
+
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      if (!project.deleted_at) {
+        throw new Error("Project must be in the graveyard before permanent deletion");
+      }
+
+      // If checks pass, perform the permanent deletion
+      await db.delete(projects).where(eq(projects.id, id));
+    });
+
+    revalidatePath(pathToRevalidate);
+    return {
+      success: true,
+      data: null,
+    };
+  } catch (error) {
+    console.error("Failed to permanently delete project:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+// Server action to restore a deleted project
+export async function restoreProject(id: string, userId: string) {
+  try {
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to restore a project",
+      };
+    }
+
+    // First check if the user is the owner of this project
+    const isOwner = await isProjectOwner(id, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: "You don't have permission to restore this project",
+      };
+    }
+
+    // Restore the project by clearing deleted_at
+    const restoredProject = await executeQuery(async (db) => {
+      const [updated] = await db
+        .update(projects)
+        .set({ 
+          deleted_at: null,
+          updated_at: new Date()
+        })
+        .where(eq(projects.id, id))
+        .returning();
+      
+      if (!updated) {
+        throw new Error("Project not found");
+      }
+
+      const tags = await getProjectTagNames(id);
+      return { ...updated, tags };
+    });
+
+    revalidatePath(pathToRevalidate);
+    return {
+      success: true,
+      data: mapDrizzleProjectToProject(restoredProject),
+    };
+  } catch (error) {
+    console.error("Failed to restore project:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",

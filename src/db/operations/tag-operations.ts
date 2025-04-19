@@ -1,7 +1,8 @@
-import { eq, and, inArray, sql } from "drizzle-orm";
+import { eq, and, inArray, sql, isNull } from "drizzle-orm";
 import { executeQuery } from "../server";
 import { project_tags } from "../schema/project_tags";
 import { tags } from "../schema/tags";
+import { projects } from "../schema/projects";
 import { z } from "zod";
 
 /**
@@ -28,7 +29,7 @@ export interface TagInfo {
 /**
  * Associates a tag with a content item
  * Currently only supports projects
- * 
+ *
  * @param contentType - Type of content (currently only "project" is supported)
  * @param contentId - The UUID of the content item
  * @param tagId - The UUID of the tag to associate
@@ -52,10 +53,12 @@ export async function addTagToContent(
       return await db
         .select()
         .from(project_tags)
-        .where(and(
-          eq(project_tags.project_id, contentId),
-          eq(project_tags.tag_id, tagId)
-        ));
+        .where(
+          and(
+            eq(project_tags.project_id, contentId),
+            eq(project_tags.tag_id, tagId)
+          )
+        );
     });
 
     // If the association already exists, return it
@@ -86,7 +89,7 @@ export async function addTagToContent(
 /**
  * Removes a tag association from a content item
  * Currently only supports projects
- * 
+ *
  * @param contentType - Type of content (currently only "project" is supported)
  * @param contentId - The UUID of the content item
  * @param tagId - The UUID of the tag to remove
@@ -122,7 +125,7 @@ export async function removeTagFromContent(
 /**
  * Gets all tags associated with a specific content item
  * Currently only supports projects
- * 
+ *
  * @param contentType - Type of content (currently only "project" is supported)
  * @param contentId - The UUID of the content item
  * @returns Promise resolving to an array of tags
@@ -134,7 +137,9 @@ export async function getTagsForContent(
   try {
     // Only support projects for now
     if (contentType !== "project") {
-      console.warn(`Content type ${contentType} is not supported yet, returning empty tag list`);
+      console.warn(
+        `Content type ${contentType} is not supported yet, returning empty tag list`
+      );
       return [];
     }
 
@@ -157,7 +162,7 @@ export async function getTagsForContent(
 /**
  * Gets all projects that have a given tag
  * Currently only supports projects
- * 
+ *
  * @param tagId - The UUID of the tag to search for
  * @param contentType - Optional content type filter (currently only "project" is supported)
  * @returns Promise resolving to an array of content IDs
@@ -169,24 +174,30 @@ export async function getContentIdsByTag(
   try {
     // Only support projects for now
     if (contentType && contentType !== "project") {
-      console.warn(`Content type ${contentType} is not supported yet, returning empty list`);
+      console.warn(
+        `Content type ${contentType} is not supported yet, returning empty list`
+      );
       return [];
     }
 
     return await executeQuery(async (db) => {
-      const query = db
+      const results = await db
         .select({
           contentId: project_tags.project_id,
         })
         .from(project_tags)
-        .where(eq(project_tags.tag_id, tagId));
-      
-      // Execute and map results to match the expected return type
-      const results = await query;
-      return results.map(result => ({
-        contentId: result.contentId,
-        contentType: "project" // Hardcoded since we only support projects
-      }));
+        .innerJoin(projects, eq(project_tags.project_id, projects.id))
+        .where(
+          and(eq(project_tags.tag_id, tagId), isNull(projects.deleted_at))
+        );
+
+      // Map results to match the expected return type
+      return results.map(
+        (result): { contentId: string; contentType: string } => ({
+          contentId: result.contentId,
+          contentType: "project", // Hardcoded since we only support projects
+        })
+      );
     });
   } catch (error) {
     console.error("Error getting content by tag:", error);
@@ -197,7 +208,7 @@ export async function getContentIdsByTag(
 /**
  * Bulk add tags to a content item
  * Currently only supports projects
- * 
+ *
  * @param contentType - Type of content (currently only "project" is supported)
  * @param contentId - The UUID of the content item
  * @param tagIds - Array of tag IDs to associate
@@ -217,36 +228,36 @@ export async function addTagsToContent(
     }
 
     if (!tagIds.length) return [];
-    
+
     return await executeQuery(async (db) => {
-      // Get existing tag associations to avoid duplicates
-      const existingTags = await db
-        .select({ tagId: project_tags.tag_id })
-        .from(project_tags)
-        .where(
-          and(
-            eq(project_tags.project_id, contentId),
-            inArray(project_tags.tag_id, tagIds)
-          )
-        );
-  
-      const existingTagIds = new Set(existingTags.map(tag => tag.tagId));
-      
-      // Create values array for new associations
-      const values = tagIds
-        .filter(tagId => !existingTagIds.has(tagId))
-        .map(tagId => ({
-          project_id: contentId,
-          project_slug: contentSlug,
-          tag_id: tagId,
-        }));
-      
-      if (values.length === 0) return [];
-      
-      return await db
-        .insert(project_tags)
-        .values(values)
-        .returning();
+      return await db.transaction(async (tx) => {
+        // Get existing tag associations to avoid duplicates
+        const existingTags = await tx
+          .select({ tagId: project_tags.tag_id })
+          .from(project_tags)
+          .where(
+            and(
+              eq(project_tags.project_id, contentId),
+              inArray(project_tags.tag_id, tagIds)
+            )
+          );
+
+        const existingTagIds = new Set(existingTags.map((tag) => tag.tagId));
+
+        // Create values array for new associations
+        const values = tagIds
+          .filter((tagId) => !existingTagIds.has(tagId))
+          .map((tagId) => ({
+            project_id: contentId,
+            project_slug: contentSlug,
+            tag_id: tagId,
+          }));
+
+        if (values.length === 0) return [];
+
+        // Insert new associations within the transaction
+        return await tx.insert(project_tags).values(values).returning();
+      });
     });
   } catch (error) {
     console.error("Error bulk adding tags:", error);
@@ -257,7 +268,7 @@ export async function addTagsToContent(
 /**
  * Replace all tags for a content item with a new set of tags
  * Currently only supports projects
- * 
+ *
  * @param contentType - Type of content (currently only "project" is supported)
  * @param contentId - The UUID of the content item
  * @param tagIds - Array of tag IDs that should be associated
@@ -286,18 +297,16 @@ export async function replaceContentTags(
 
         // Skip insert if no new tags
         if (!tagIds.length) return true;
-        
+
         // Create new tag associations
-        const values = tagIds.map(tagId => ({
+        const values = tagIds.map((tagId) => ({
           project_id: contentId,
           project_slug: contentSlug,
           tag_id: tagId,
         }));
-        
-        await tx
-          .insert(project_tags)
-          .values(values);
-          
+
+        await tx.insert(project_tags).values(values);
+
         return true;
       });
     });
@@ -310,8 +319,8 @@ export async function replaceContentTags(
 /**
  * Gets popular tags for a given content type
  * Currently only supports projects
- * 
- * @param contentType - Type of content (currently only "project" is supported) 
+ *
+ * @param contentType - Type of content (currently only "project" is supported)
  * @param limit - Maximum number of tags to return
  * @returns Promise resolving to an array of tags with usage counts
  */
@@ -322,25 +331,24 @@ export async function getPopularTagsForContentType(
   try {
     // Only support projects for now
     if (contentType !== "project") {
-      console.warn(`Content type ${contentType} is not supported yet, returning empty list`);
+      console.warn(
+        `Content type ${contentType} is not supported yet, returning empty list`
+      );
       return [];
     }
 
     return await executeQuery(async (db) => {
-      // Use Drizzle ORM's built-in functions
-      const result = await db
+      return await db
         .select({
           id: tags.id,
           name: tags.name,
-          count: sql<number>`COUNT(${project_tags.id})`.as('count')
+          count: sql<number>`count(${project_tags.id})`.as("count"),
         })
         .from(tags)
         .innerJoin(project_tags, eq(tags.id, project_tags.tag_id))
         .groupBy(tags.id, tags.name)
         .orderBy(sql`count DESC`)
         .limit(limit);
-      
-      return result;
     });
   } catch (error) {
     console.error("Error getting popular tags:", error);

@@ -65,10 +65,12 @@ export function DynamicBreadcrumbs({
       currentPath += `/${segment}`;
       const isLast = index === segments.length - 1;
 
-      // Get friendly name for the segment or capitalize the segment
+      // Get friendly name for the segment or capitalize and clean up the segment
       const label =
         routeNames[segment] ||
-        segment.charAt(0).toUpperCase() + segment.slice(1);
+        segment
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
 
       result.push({
         label,

@@ -5,8 +5,9 @@ import { projects } from "./schema/projects";
 import { profiles } from "./schema/profiles";
 import { project_tags } from "./schema/project_tags";
 import { tags } from "./schema/tags";
+import { favorites } from "./schema/favorites";
 import { InsertProject, SelectProject } from "./schema/projects";
-import { eq, and, isNull, or } from "drizzle-orm";
+import { eq, and, isNull, or, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
 /**
@@ -17,7 +18,10 @@ export async function createProjectServer(
 ): Promise<SelectProject> {
   return await executeQuery(async (db) => {
     // Create the project
-    const [createdProject] = await db.insert(projects).values(project).returning();
+    const [createdProject] = await db
+      .insert(projects)
+      .values(project)
+      .returning();
 
     // If there are tags, associate them with the project
     if (project.tags && project.tags.length > 0) {
@@ -63,19 +67,15 @@ export async function createProjectServer(
 /**
  * Helper function to get tag names for a project
  */
-export async function getProjectTagNames(
-  projectId: string
-): Promise<string[]> {
+export async function getProjectTagNames(projectId: string): Promise<string[]> {
   return await executeQuery(async (db) => {
-    const projectTags = await db
-      .select({
-        tagName: tags.name,
-      })
-      .from(project_tags)
-      .innerJoin(tags, eq(project_tags.tag_id, tags.id))
-      .where(eq(project_tags.project_id, projectId));
-
-    return projectTags.map((tag) => tag.tagName);
+    return (
+      await db
+        .select({ tagName: tags.name })
+        .from(project_tags)
+        .innerJoin(tags, eq(project_tags.tag_id, tags.id))
+        .where(eq(project_tags.project_id, projectId))
+    ).map((tag) => tag.tagName);
   });
 }
 
@@ -89,45 +89,46 @@ export async function getProjectBySlugServer(
     const projectData = await db
       .select()
       .from(projects)
-      .where(eq(projects.slug, slug));
+      .where(and(eq(projects.slug, slug), isNull(projects.deleted_at)));
 
     if (!projectData.length) {
       return null;
     }
 
     const tags = await getProjectTagNames(projectData[0].id);
-
     return { ...projectData[0], tags };
   });
 }
 
 /**
- * Server-side function to delete a project
+ * Server-side function to soft delete a project
  */
 export async function deleteProjectServer(id: string): Promise<SelectProject> {
   return await executeQuery(async (db) => {
-    // First, get the project to return it later
-    const projectData = await db
-      .select()
-      .from(projects)
-      .where(eq(projects.id, id));
+    // Update the project to set deleted_at timestamp
+    const [updatedProject] = await db
+      .update(projects)
+      .set({ 
+        deleted_at: new Date(),
+        updated_at: new Date()
+      })
+      .where(eq(projects.id, id))
+      .returning();
 
-    if (!projectData.length) {
+    if (!updatedProject) {
       throw new Error(`Project with ID ${id} not found`);
     }
 
-    // Get the tags associated with the project before deleting
+    // Remove all favorites for this project since it's being sent to graveyard
+    await db
+      .delete(favorites)
+      .where(eq(favorites.project_id, id));
+
+    // Get the tags associated with the project
     const tags = await getProjectTagNames(id);
 
-    // Explicitly delete project_tags entries first to ensure they're removed
-    // This should be redundant with cascade delete but will ensure they're deleted
-    await db.delete(project_tags).where(eq(project_tags.project_id, id));
-    
-    // Then delete the project
-    await db.delete(projects).where(eq(projects.id, id));
-
-    // Return the deleted project with tags
-    return { ...projectData[0], tags };
+    // Return the soft-deleted project with its tags
+    return { ...updatedProject, tags };
   });
 }
 
@@ -193,7 +194,7 @@ export async function updateProjectServer(
 
 /**
  * Server-side function to get all projects accessible to a user
- * Updated to not filter by tier anymore - all projects are accessible
+ * Updated to include deleted projects
  */
 export async function getAccessibleProjectsServer(
   userId: string,
@@ -202,14 +203,17 @@ export async function getAccessibleProjectsServer(
   return await executeQuery(async (db) => {
     console.log(`Finding projects for user ID: ${userId}`);
 
-    // Get all projects that are not soft-deleted
-    const allProjects = await db.select().from(projects).where(isNull(projects.deleted_at));
+    // Get all projects, including deleted ones, ordered by creation date desc
+    const allProjects = await db
+      .select()
+      .from(projects)
+      .orderBy(desc(projects.created_at)); // Get all projects, including deleted ones
 
     // Fetch tags and owner info for each project and map to the final structure
     const projectsWithTagsAndOwner = await Promise.all(
       allProjects.map(async (projectData) => {
         const tags = await getProjectTagNames(projectData.id);
-        
+
         // Get profile information for the project's creator
         let ownerProfile = null;
         if (projectData.user_id) {
@@ -217,16 +221,16 @@ export async function getAccessibleProjectsServer(
             .select()
             .from(profiles)
             .where(eq(profiles.user_id, projectData.user_id));
-          
+
           ownerProfile = ownerProfiles.length > 0 ? ownerProfiles[0] : null;
         }
-        
+
         return {
           ...projectData,
           tags,
           owner_username: ownerProfile?.username || null,
           owner_email: ownerProfile?.email_address || null,
-          owner_profile_image_url: ownerProfile?.profile_image_url || null
+          owner_profile_image_url: ownerProfile?.profile_image_url || null,
         };
       })
     );
@@ -246,16 +250,14 @@ export async function getUserProjectsServer(
     const userProjects = await db
       .select()
       .from(projects)
-      .where(and(
-        eq(projects.user_id, userId),
-        isNull(projects.deleted_at)
-      ));
+      .where(eq(projects.user_id, userId))  // Removed the isNull check for deleted_at
+      .orderBy(desc(projects.created_at));
 
     // Fetch tags and owner profile info for each project
     const projectsWithTagsAndOwner = await Promise.all(
       userProjects.map(async (projectData) => {
         const tags = await getProjectTagNames(projectData.id);
-        
+
         // Get profile information for the project's creator
         let ownerProfile = null;
         if (projectData.user_id) {
@@ -263,16 +265,16 @@ export async function getUserProjectsServer(
             .select()
             .from(profiles)
             .where(eq(profiles.user_id, projectData.user_id));
-          
+
           ownerProfile = ownerProfiles.length > 0 ? ownerProfiles[0] : null;
         }
-        
+
         return {
           ...projectData,
           tags,
           owner_username: ownerProfile?.username || null,
           owner_email: ownerProfile?.email_address || null,
-          owner_profile_image_url: ownerProfile?.profile_image_url || null
+          owner_profile_image_url: ownerProfile?.profile_image_url || null,
         };
       })
     );
@@ -292,12 +294,7 @@ export async function isProjectOwner(
     const result = await db
       .select({ count: sql<number>`count(*)` })
       .from(projects)
-      .where(
-        and(
-          eq(projects.id, projectId),
-          eq(projects.user_id, userId)
-        )
-      );
+      .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)));
 
     return result[0]?.count > 0;
   });

@@ -7,6 +7,7 @@ export const profiles = pgTable("profiles", {
   username: text("username").notNull(),
   full_name: text("full_name"),
   profile_image_url: text("profile_image_url"),
+  tier: text("tier").default("free"),
   email_address: text("email_address"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

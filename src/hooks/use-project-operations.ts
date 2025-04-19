@@ -1,10 +1,17 @@
 import { useCallback } from "react";
-import { Project } from "@/types/models/project";
+import { Project, mapProjectToDrizzle } from "@/types/models/project";
 import {
-  cacheAuthenticatedProjects,
-  cacheProjects,
-  updateProjectInCache,
+  revalidateProjectsCache,
+  revalidateUserCache,
 } from "@/lib/ProjectsCacheUtils";
+import { createProject, removeProject, updateProject } from "@/app/actions/projects";
+import { InsertProject } from "@/db/schema/projects";
+
+type ServerResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
 
 /**
  * Custom hook that provides functions to handle project operations (add, update, delete)
@@ -18,133 +25,154 @@ export function useProjectOperations(
 ) {
   // Handler to add a new project
   const handleProjectAdded = useCallback(
-    (newProject: Project) => {
-      console.log("+ Adding new project:", newProject.title);
-      
-      // Add to user's visible projects if authenticated
-      if (isAuthenticated) {
-        setProjects((prev) => {
-          const updatedProjects = [...prev, newProject];
-          // Update cache for authenticated projects
-          if (userId) {
-            console.log(
-              `💾 Caching ${updatedProjects.length} projects after adding new project`
+    async (newProject: Project) => {
+      try {
+        console.log("+ Adding new project:", newProject.title);
+        
+        const projectData = mapProjectToDrizzle(newProject) as InsertProject;
+        
+        // Create the project in the database
+        const response = await createProject(projectData, userId || '') as ServerResponse<Project>;
+        
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to create project');
+        }
+
+        const createdProject = response.data;
+
+        // Update UI state based on authentication
+        if (isAuthenticated) {
+          setProjects((prev) => {
+            const updatedProjects = [...prev, createdProject];
+            if (userId) {
+              // Invalidate user's projects cache
+              revalidateUserCache(userId).catch((error: Error) =>
+                console.error("Error invalidating cache after add:", error)
+              );
+            }
+            return updatedProjects;
+          });
+        } else {
+          setFreeProjects((prev) => {
+            const updatedProjects = [...prev, createdProject];
+            // Invalidate public projects cache
+            revalidateProjectsCache().catch((error: Error) =>
+              console.error("Error invalidating cache after add:", error)
             );
-            cacheAuthenticatedProjects(
-              updatedProjects,
-              isBrowser,
-              userId
-            ).catch((err) =>
-              console.error("Error caching projects after add:", err)
-            );
-          }
-          return updatedProjects;
-        });
-      } 
-      
-      // Add to non-authenticated projects view
-      if (!isAuthenticated) {
-        setFreeProjects((prev) => {
-          const updatedProjects = [...prev, newProject];
-          // Update cache with new project
-          cacheProjects(updatedProjects, isBrowser).catch((err) =>
-            console.error("Error caching projects after add:", err)
-          );
-          return updatedProjects;
-        });
+            return updatedProjects;
+          });
+        }
+      } catch (error) {
+        console.error("Error adding project:", error);
+        throw error;
       }
     },
-    [isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
+    [isAuthenticated, userId, setProjects, setFreeProjects]
   );
 
   // Handler to delete a project
   const handleProjectDeleted = useCallback(
-    (projectId: string) => {
-      console.log("- Deleting project with ID:", projectId);
-      
-      // Remove from authenticated user's view
-      if (isAuthenticated) {
-        setProjects((prev) => {
-          const updatedProjects = prev.filter(
-            (project) => project.id !== projectId
-          );
-          // Update cache for authenticated projects
-          if (userId) {
-            console.log(
-              `💾 Caching ${updatedProjects.length} projects after deletion`
-            );
-            cacheAuthenticatedProjects(updatedProjects, isBrowser, userId).catch(
-              (err) => console.error("Error caching projects after delete:", err)
-            );
-          }
-          return updatedProjects;
-        });
-      }
+    async (projectId: string) => {
+      try {
+        console.log("- Deleting project with ID:", projectId);
 
-      // Remove from non-authenticated view
-      if (!isAuthenticated) {
+        // Delete the project from the database
+        const response = await removeProject(projectId, userId || '') as ServerResponse<Project>;
+        
+        if (!response.success) {
+          throw new Error(response.error || 'Failed to delete project');
+        }
+
+        // Update UI state based on authentication
+        if (isAuthenticated) {
+          setProjects((prev) => {
+            const updatedProjects = prev.filter(
+              (project) => project.id !== projectId
+            );
+            if (userId) {
+              // Invalidate user's projects cache
+              revalidateUserCache(userId).catch((error: Error) =>
+                console.error("Error invalidating cache after delete:", error)
+              );
+            }
+            return updatedProjects;
+          });
+        }
+
+        // Always update free projects view since deleted projects should be removed everywhere
         setFreeProjects((prev) => {
           const updatedProjects = prev.filter(
             (project) => project.id !== projectId
           );
-          // Update cache for projects
-          cacheProjects(updatedProjects, isBrowser).catch((err) =>
-            console.error("Error caching projects after delete:", err)
+          // Invalidate public projects cache
+          revalidateProjectsCache().catch((error: Error) =>
+            console.error("Error invalidating cache after delete:", error)
           );
           return updatedProjects;
         });
+      } catch (error) {
+        console.error("Error deleting project:", error);
+        throw error;
       }
     },
-    [isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
+    [isAuthenticated, userId, setProjects, setFreeProjects]
   );
 
   // Handler to update a project
   const handleProjectUpdated = useCallback(
-    (updatedProject: Project) => {
-      console.log("✏️ Updating project:", updatedProject.title);
+    async (updatedProject: Project) => {
+      try {
+        console.log("✏️ Updating project:", updatedProject.title);
 
-      // Use the optimized cache update function
-      updateProjectInCache(
-        updatedProject,
-        isBrowser,
-        isAuthenticated ? userId : null
-      ).catch((err) => console.error("Error updating project in cache:", err));
+        // Convert project to database format
+        const projectData = mapProjectToDrizzle(updatedProject);
 
-      if (isAuthenticated) {
-        setProjects((prev) => {
-          const updatedProjects = prev.map((project) =>
-            project.id === updatedProject.id ? updatedProject : project
-          );
+        // Update the project in the database
+        const response = await updateProject(
+          updatedProject.id,
+          projectData,
+          userId || ''
+        ) as ServerResponse<Project>;
 
-          // Also ensure the full cache is updated
-          if (userId) {
-            console.log(
-              `💾 Updating cache with ${updatedProjects.length} projects after project update`
+        if (!response.success || !response.data) {
+          throw new Error(response.error || 'Failed to update project');
+        }
+
+        const result = response.data;
+
+        // Update UI state based on authentication
+        if (isAuthenticated) {
+          setProjects((prev) => {
+            const updatedProjects = prev.map((project) =>
+              project.id === updatedProject.id ? result : project
             );
-            cacheAuthenticatedProjects(updatedProjects, isBrowser, userId).catch(
-              (err) => console.error("Error caching projects after update:", err)
-            );
-          }
+            if (userId) {
+              // Invalidate user's projects cache
+              revalidateUserCache(userId).catch((error: Error) =>
+                console.error("Error invalidating cache after update:", error)
+              );
+            }
+            return updatedProjects;
+          });
+        }
 
-          return updatedProjects;
-        });
-      }
-
-      if (!isAuthenticated) {
+        // Update free projects view if needed
         setFreeProjects((prev) => {
           const updatedProjects = prev.map((project) =>
-            project.id === updatedProject.id ? updatedProject : project
+            project.id === updatedProject.id ? result : project
           );
-          
-          cacheProjects(updatedProjects, isBrowser).catch(
-            (err) => console.error("Error caching projects after update:", err)
+          // Invalidate public projects cache
+          revalidateProjectsCache().catch((error: Error) =>
+            console.error("Error invalidating cache after update:", error)
           );
-          
           return updatedProjects;
         });
+      } catch (error) {
+        console.error("Error updating project:", error);
+        throw error;
       }
     },
-    [isBrowser, userId, isAuthenticated, setProjects, setFreeProjects]
+    [isAuthenticated, userId, setProjects, setFreeProjects]
   );
 
   return {

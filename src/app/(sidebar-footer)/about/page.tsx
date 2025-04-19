@@ -312,7 +312,7 @@ export default function AboutPage() {
                     href="/projects"
                     className="inline-flex items-center px-6 py-3 rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/90 transition-colors"
                   >
-                    <ExternalLink size={18} className="mr-2" /> View Projects
+                    <ExternalLink size={18} className="mr-2" /> View Community Projects
                   </a>
                 </div>
               </CardContent>

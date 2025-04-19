@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Project } from "@/types/models/project";
 import { InsertProject } from "@/db/schema/projects";
 import { createProject, updateProject } from "@/app/actions/projects";
@@ -16,6 +16,7 @@ import {
 import { TagInfo } from "@/db/operations/tag-operations";
 import { TagSelector } from "./TagSelectorComponent";
 import { slugify } from "@/utils/stringUtils";
+import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 
 // shadcn/ui imports
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ interface ProjectFormBaseProps {
   // Project data (if updating)
   project?: Project | null;
   // Mode (create or update)
-  mode: 'create' | 'update';
+  mode: "create" | "update";
   // Callbacks
   onSuccess?: (project: Project) => void;
   onCancel?: () => void;
@@ -48,7 +49,7 @@ interface ProjectFormBaseProps {
 
 export function ProjectFormBase({
   project,
-  mode = 'create',
+  mode = "create",
   onSuccess,
   onCancel,
   className = "",
@@ -58,7 +59,7 @@ export function ProjectFormBase({
 }: ProjectFormBaseProps) {
   // Get global project context handler
   const projectsContext = useProjects();
-  
+
   // Get current user information from Clerk
   const { userId } = useAuth();
 
@@ -69,9 +70,9 @@ export function ProjectFormBase({
     slug: "",
     tags: "",
     description: "",
-    difficulty: "beginner",
+    category: "web",
   });
-  
+
   // Add a key to track project data updates and force re-initialization
   const [projectUpdateKey, setProjectUpdateKey] = useState(Date.now());
 
@@ -81,9 +82,12 @@ export function ProjectFormBase({
   // Track the original project data for comparison when updating
   const [originalProject, setOriginalProject] = useState<Project | null>(null);
 
+  // Fix useRef initialization
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Initialize form data when the project changes
   useEffect(() => {
-    if (project && mode === 'update') {
+    if (project && mode === "update") {
       // Store the original project for later comparison
       setOriginalProject(project);
 
@@ -93,14 +97,14 @@ export function ProjectFormBase({
         slug: project.slug || "", // Ensure slug is properly loaded from project
         tags: project.tags ? project.tags.join(", ") : "",
         description: project.description || "",
-        difficulty: project.difficulty || "beginner",
+        category: project.category || "web",
       });
 
       console.log("Loaded project for edit with slug:", project.slug);
 
       // Reset errors when project changes
       setFormErrors({});
-      
+
       // We'll let the TagSelector handle the initialization of tags
       setSelectedTags([]);
     }
@@ -111,22 +115,23 @@ export function ProjectFormBase({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    const fieldName = name as keyof ProjectFormErrors;
 
     // Clear error when user starts typing
-    if (formErrors[name]) {
+    if (formErrors[fieldName]) {
       setFormErrors((prev) => ({
         ...prev,
-        [name]: undefined,
+        [fieldName]: undefined,
       }));
     }
 
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [fieldName]: value,
     }));
   };
 
-  // Handle select changes (for difficulty dropdown)
+  // Handle select changes (for category dropdown)
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -145,7 +150,7 @@ export function ProjectFormBase({
     };
   }, []);
 
-  // Handle tag changes from TagSelector component  TODO: NEED TO FIX TAGS
+  // Handle tag changes from TagSelector component  //TODO: NEED TO FIX TAGS
   const handleTagsChange = useCallback((tags: TagInfo[]) => {
     // Use a safe way to update state to avoid "Cannot update during render" errors
     setTimeout(() => {
@@ -167,21 +172,21 @@ export function ProjectFormBase({
     if (formData.title) {
       // Use our slugify utility to generate a clean slug from the title
       const newSlug = slugify(formData.title);
-      
+
       // Update formData with the new slug
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        slug: newSlug
+        slug: newSlug,
       }));
-      
+
       // Clear any errors associated with the slug field
       if (formErrors.slug) {
-        setFormErrors(prev => ({
+        setFormErrors((prev) => ({
           ...prev,
-          slug: undefined
+          slug: undefined,
         }));
       }
-      
+
       console.log("Generated slug:", newSlug);
     }
   }, [formData.title, formErrors.slug]);
@@ -193,7 +198,7 @@ export function ProjectFormBase({
       validateProjectForm,
       setFormErrors,
       async () => {
-        if (mode === 'update' && !project?.id) {
+        if (mode === "update" && !project?.id) {
           setFormErrors((prev) => ({
             ...prev,
             server: "Project ID is missing",
@@ -220,17 +225,19 @@ export function ProjectFormBase({
             description: formData.description || undefined,
             // Use selected tags instead of comma-separated string
             tags: selectedTags.map((tag) => tag.name),
-            difficulty: formData.difficulty as
-              | "beginner"
-              | "intermediate"
-              | "advanced",
+            category: formData.category,
           };
 
           let result;
-          if (mode === 'create') {
+          if (mode === "create") {
             // Use the server action to create the project
             result = await createProject(projectData as InsertProject, userId);
           } else {
+            // Clear any existing update timeout
+            if (updateTimeoutRef.current) {
+              clearTimeout(updateTimeoutRef.current);
+            }
+
             // Use the server action to update the project
             result = await updateProject(project!.id, projectData, userId);
           }
@@ -245,70 +252,80 @@ export function ProjectFormBase({
 
           if (result.data) {
             // If we're updating, check if slug changed
-            if (mode === 'update' && originalProject?.slug !== projectData.slug) {
+            if (
+              mode === "update" &&
+              originalProject?.slug !== projectData.slug
+            ) {
               console.log(
                 `Project slug changed from ${originalProject?.slug} to ${projectData.slug}`
               );
+              // Immediately trigger a refresh when slug changes
+              projectsContext?.refreshProjects();
             }
 
             // Call the appropriate handler based on mode
-            if (mode === 'create') {
+            if (mode === "create") {
               if (onSuccess) {
                 onSuccess(result.data);
               } else if (projectsContext?.handleProjectAdded) {
                 projectsContext.handleProjectAdded(result.data);
               }
               toast.success("Project added successfully!");
-              
+
               // Reset form after creation
               setFormData({
                 title: "",
                 slug: "",
                 tags: "",
                 description: "",
-                difficulty: "beginner",
+                category: "web",
               });
               setSelectedTags([]);
               setFormErrors({});
             } else {
               // Store the updated project data
               const updatedProject = result.data;
-              
+
               if (onSuccess) {
                 onSuccess(updatedProject);
-              } 
-              
+              }
+
               if (projectsContext?.handleProjectUpdated) {
                 // Update the project in the global context
                 projectsContext.handleProjectUpdated(updatedProject);
-                
-                // Force a refresh of projects to ensure UI is updated with latest data
-                projectsContext.refreshProjects();
+
+                // Only refresh projects if the slug changed
+                if (originalProject?.slug !== updatedProject.slug) {
+                  projectsContext.refreshProjects();
+                }
               }
-              
+
               toast.success("Project updated successfully!");
-              
+
               // Update the originalProject to match the latest changes
               setOriginalProject(updatedProject);
-              
+
               // Also update the project state to ensure formData is set correctly on reopen
               if (project) {
                 Object.assign(project, updatedProject);
               }
-              
-              // Force UI to update by setting a new key to trigger re-initialization
+
+              // Force UI to update by setting a new key
               setProjectUpdateKey(Date.now());
-              
+
               // Log the updated slug to confirm it changed
-              console.log("Project updated with new slug:", updatedProject.slug);
-              
+              console.log(
+                "Project updated with new slug:",
+                updatedProject.slug
+              );
+
               // Force re-render by updating form data
               setFormData({
                 title: updatedProject.title || "",
                 slug: updatedProject.slug || "",
                 tags: updatedProject.tags ? updatedProject.tags.join(", ") : "",
                 description: updatedProject.description || "",
-                difficulty: updatedProject.difficulty || "beginner",
+                category: updatedProject.category || "web",
               });
             }
           }
@@ -327,15 +344,30 @@ export function ProjectFormBase({
     );
   };
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    // Store ref value in a variable inside the effect
+    const currentTimeout = updateTimeoutRef.current;
+
+    return () => {
+      // Use the stored variable in the cleanup function
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+      }
+    };
+  }, []);
+
   // Determine button text based on mode and loading state
   const buttonText = isSubmitting
-    ? mode === 'create' ? "Adding Project..." : "Updating..."
-    : submitButtonText || (mode === 'create' ? "Add Project" : "Save Changes");
+    ? mode === "create"
+      ? "Adding Project..."
+      : "Updating..."
+    : submitButtonText || (mode === "create" ? "Add Project" : "Save Changes");
 
   return (
-    <>
+    <div className="flex flex-col h-full width-full p-4">
       {formTitle && <h2 className="text-lg font-semibold mb-2">{formTitle}</h2>}
-      
+
       {formErrors.server && (
         <Alert variant="destructive" className="mb-4">
           <AnnoyedIcon className="h-4 w-4" />
@@ -392,13 +424,41 @@ export function ProjectFormBase({
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="category" className="text-sm font-medium">
+              Project Category <span className="text-red-500">*</span>
+            </label>
+            <Select
+              key={`category-${formData.category}`}
+              defaultValue={formData.category}
+              value={formData.category}
+              onValueChange={(value) => handleSelectChange("category", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="tags" className="text-sm font-medium">
               Tags
             </label>
             <TagSelector
               projectId={project?.id}
-              initialTags={mode === 'update' ? (project?.tags || []) : 
-                (formData.tags ? formData.tags.split(",").map(t => t.trim()) : [])}
+              initialTags={
+                mode === "update"
+                  ? project?.tags || []
+                  : formData.tags
+                  ? formData.tags.split(",").map((t) => t.trim())
+                  : []
+              }
               onTagsChange={handleTagsChange}
             />
           </div>
@@ -416,27 +476,6 @@ export function ProjectFormBase({
               rows={3}
             />
           </div>
-
-          <div className="space-y-2">
-            <label htmlFor="difficulty" className="text-sm font-medium">
-              Difficulty Level
-            </label>
-            <Select
-              key={`difficulty-${formData.difficulty}`}
-              defaultValue={formData.difficulty}
-              value={formData.difficulty}
-              onValueChange={(value) => handleSelectChange("difficulty", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="beginner">Beginner</SelectItem>
-                <SelectItem value="intermediate">Intermediate</SelectItem>
-                <SelectItem value="advanced">Advanced</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         <div className="text-xs text-muted-foreground mt-2">
@@ -446,11 +485,7 @@ export function ProjectFormBase({
 
         <div className="flex justify-end mt-4 space-x-2">
           {showCancelButton && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-            >
+            <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
             </Button>
           )}
@@ -459,6 +494,6 @@ export function ProjectFormBase({
           </Button>
         </div>
       </form>
-    </>
+    </div>
   );
 }

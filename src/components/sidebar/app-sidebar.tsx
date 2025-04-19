@@ -20,6 +20,7 @@ import {
   BookOpen,
   Bot,
   Send,
+  Folder,
 } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "../CodeDetailsLogoComponent";
+import { API_ROUTES } from "../../constants/api-routes";
 
 const data = {
   navMain: [
@@ -47,39 +49,36 @@ const data = {
       items: [
         {
           title: "Project API Test Page",
-          url: "/api/projects/test",
+          url: API_ROUTES.PROJECTS.TEST_PAGE,
+          isNew: true,
         },
         {
           title: "Dark Mode Test Page",
-          url: "/api/darkmodetest",
+          url: API_ROUTES.THEME.TEST_PAGE,
         },
         {
           title: "Toast Test Page",
-          url: "/api/toasttest",
+          url: API_ROUTES.TOAST.TEST_PAGE,
         },
       ],
     },
 
     {
-      title: "Code Analysis",
-      url: "/analysis",
-      icon: SquareTerminal,
+      title: "Community Projects",
+      url:  "/projects",
+      icon: Folder,
       items: [
         {
-          title: "Performance",
-          url: "/analysis/performance",
+          title: "My Showcase",
+          url: "/projects/projecta-showcase",
         },
         {
-          title: "Security",
-          url: "/analysis/security",
+          title: "Favorites",
+          url: "/projects/favorites",
         },
         {
-          title: "Best Practices",
-          url: "/analysis/best-practices",
-        },
-        {
-          title: "History",
-          url: "/analysis/history",
+          title: "Deleted",
+          url: "/projects/deleted"
         },
       ],
     },

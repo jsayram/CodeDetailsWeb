@@ -21,11 +21,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DebugJwt } from "@/components/debug/page";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import {
-} from "@/app/actions/projects";
+import { API_ROUTES } from "@/constants/api-routes";
 import { Project } from "@/types/models/project";
 import { toast } from "sonner";
 import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
+import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 
 export default function ProjectApiTest() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -40,7 +40,7 @@ export default function ProjectApiTest() {
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [tier, setTier] = useState("free");
-  const [difficulty, setDifficulty] = useState("beginner");
+  const [category, setCategory] = useState<ProjectCategory>("web");
 
   // Load initial projects
   useEffect(() => {
@@ -52,58 +52,25 @@ export default function ProjectApiTest() {
     return JSON.stringify(data, null, 2);
   };
 
-  // Fetch projects using the appropriate server action based on tier and difficulty
+  // Fetch projects using the appropriate server action based on category and tier
   const fetchProjects = async (
     filterTier?: string,
-    filterDifficulty?: string
+    filterCategory?: ProjectCategory
   ) => {
     setIsLoading(true);
     try {
-      let fetchedProjects: Project[] = [];
+      const url = API_ROUTES.PROJECTS.WITH_FILTERS({
+        showAll: true,
+        category: filterCategory,
+      });
 
-      // If we have a tier filter, use the appropriate tier-specific server action
-      if (filterTier) {
-        console.log(`Fetching projects with tier: ${filterTier}`);
+      const response = await fetch(url);
+      const data = await response.json();
+      setApiResponse(formatResponse(data));
 
-        // Format the response for the API response display
-        setApiResponse(
-          formatResponse({
-            success: true,
-            data: fetchedProjects,
-            message: `Projects fetched with tier: ${filterTier}`,
-          })
-        );
-      } else {
-        // If no tier filter, fetch all projects through the API
-        console.log("Fetching all projects");
-        const response = await fetch("/api/projects");
-        const data = await response.json();
-        setApiResponse(formatResponse(data));
-
-        if (data.success && data.data) {
-          fetchedProjects = data.data;
-        }
+      if (data.success && data.data) {
+        setProjects(data.data);
       }
-
-      // Apply difficulty filter if specified (client-side filtering)
-      if (filterDifficulty && fetchedProjects.length > 0) {
-        console.log(`Filtering by difficulty: ${filterDifficulty}`);
-        fetchedProjects = fetchedProjects.filter(
-          (p) => p.difficulty === filterDifficulty
-        );
-
-        setApiResponse(
-          formatResponse({
-            success: true,
-            data: fetchedProjects,
-            message: `Projects filtered by tier: ${
-              filterTier || "all"
-            } and difficulty: ${filterDifficulty}`,
-          })
-        );
-      }
-
-      setProjects(fetchedProjects);
     } catch (error) {
       console.error("Error fetching projects:", error);
       setApiResponse(
@@ -124,9 +91,7 @@ export default function ProjectApiTest() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/projects?slug=${encodeURIComponent(slug)}`
-      );
+      const response = await fetch(API_ROUTES.PROJECTS.BY_SLUG(slug));
       const data = await response.json();
       setApiResponse(formatResponse(data));
       if (data.success && data.data) {
@@ -157,10 +122,10 @@ export default function ProjectApiTest() {
         description,
         tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
         tier,
-        difficulty,
+        category,
       };
 
-      const response = await fetch("/api/projects", {
+      const response = await fetch(API_ROUTES.PROJECTS.BASE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -173,7 +138,6 @@ export default function ProjectApiTest() {
 
       if (data.success) {
         toast.success("Project created successfully!");
-        // Clear form and refresh projects
         clearForm();
         fetchProjects();
       }
@@ -209,16 +173,19 @@ export default function ProjectApiTest() {
         description,
         tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
         tier,
-        difficulty,
+        category,
       };
 
-      const response = await fetch(`/api/projects?id=${selectedProject.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(projectData),
-      });
+      const response = await fetch(
+        API_ROUTES.PROJECTS.BY_ID(selectedProject.id),
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(projectData),
+        }
+      );
 
       const data = await response.json();
       setApiResponse(formatResponse(data));
@@ -252,7 +219,7 @@ export default function ProjectApiTest() {
     if (slug) updateData.slug = slug;
     if (description) updateData.description = description;
     if (tags) updateData.tags = tags.split(",").map((tag) => tag.trim());
-    if (difficulty) updateData.difficulty = difficulty;
+    if (category) updateData.category = category;
 
     if (Object.keys(updateData).length === 0) {
       setApiResponse(
@@ -263,13 +230,16 @@ export default function ProjectApiTest() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/projects?id=${selectedProject.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
+      const response = await fetch(
+        API_ROUTES.PROJECTS.BY_ID(selectedProject.id),
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
 
       const data = await response.json();
       setApiResponse(formatResponse(data));
@@ -305,9 +275,12 @@ export default function ProjectApiTest() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/projects?id=${selectedProject.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        API_ROUTES.PROJECTS.BY_ID(selectedProject.id),
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
       setApiResponse(formatResponse(data));
@@ -333,7 +306,7 @@ export default function ProjectApiTest() {
     setSlug(project.slug);
     setDescription(project.description || "");
     setTags(project.tags ? project.tags.join(", ") : "");
-    setDifficulty(project.difficulty);
+    setCategory(project.category);
   };
 
   // Clear the form
@@ -343,7 +316,7 @@ export default function ProjectApiTest() {
     setDescription("");
     setTags("");
     setTier("free");
-    setDifficulty("beginner");
+    setCategory("web");
   };
 
   // Generate a slug from title
@@ -378,7 +351,7 @@ export default function ProjectApiTest() {
               <CardHeader>
                 <CardTitle>Filter Projects</CardTitle>
                 <CardDescription>
-                  Filter projects by tier and difficulty
+                  Filter projects by tier and category
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -397,28 +370,31 @@ export default function ProjectApiTest() {
                   </div>
 
                   <div className="flex-1">
-                    <Select value={difficulty} onValueChange={setDifficulty}>
+                    <Select 
+                      value={category} 
+                      onValueChange={(value: ProjectCategory) => setCategory(value)}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Difficulty" />
+                        <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">
-                          Intermediate
-                        </SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
+                        {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                          <SelectItem key={value} value={value as ProjectCategory}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <Button onClick={() => fetchProjects(tier, difficulty)}>
+                  <Button onClick={() => fetchProjects(tier, category)}>
                     Apply Filters
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setTier("free");
-                      setDifficulty("beginner");
+                      setCategory("web");
                       fetchProjects();
                     }}
                   >
@@ -460,14 +436,14 @@ export default function ProjectApiTest() {
                         <div className="flex gap-1 mt-1">
                           <Badge
                             variant={
-                              project.difficulty === "beginner"
+                              project.category === "web"
                                 ? "outline"
-                                : project.difficulty === "intermediate"
+                                : project.category === "mobile"
                                 ? "secondary"
                                 : "default"
                             }
                           >
-                            {project.difficulty}
+                            {PROJECT_CATEGORIES[project.category]?.label || project.category}
                           </Badge>
                         </div>
                       </div>
@@ -582,19 +558,22 @@ export default function ProjectApiTest() {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="difficulty" className="font-medium">
-                      Difficulty Level
+                    <label htmlFor="category" className="font-medium">
+                      Category
                     </label>
-                    <Select value={difficulty} onValueChange={setDifficulty}>
-                      <SelectTrigger id="difficulty">
-                        <SelectValue placeholder="Select Difficulty" />
+                    <Select 
+                      value={category} 
+                      onValueChange={(value: ProjectCategory) => setCategory(value)}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">
-                          Intermediate
-                        </SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
+                        {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                          <SelectItem key={value} value={value as ProjectCategory}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

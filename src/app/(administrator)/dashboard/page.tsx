@@ -24,6 +24,74 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+// Type definitions for the component props
+interface StatsCardProps {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+interface ActivityItemProps {
+  title: string;
+  description: string;
+  timestamp: string;
+}
+
+interface ProjectItemProps {
+  title: string;
+  description: string;
+  progress: number;
+}
+
+// Simple stats card component
+function StatsCard({ title, value, description, icon }: StatsCardProps) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Activity item component
+function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
+  return (
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{timestamp}</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+// Project item with progress bar
+function ProjectItem({ title, description, progress }: ProjectItemProps) {
+  return (
+    <div className="flex flex-col space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{progress}%</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+      <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { isLoaded } = useUser();
 
@@ -173,74 +241,6 @@ export default function DashboardPage() {
           <FooterSection />
         </SidebarInset>
       </SidebarProvider>
-    </div>
-  );
-}
-
-// Type definitions for the component props
-interface StatsCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-interface ActivityItemProps {
-  title: string;
-  description: string;
-  timestamp: string;
-}
-
-interface ProjectItemProps {
-  title: string;
-  description: string;
-  progress: number;
-}
-
-// Simple stats card component
-function StatsCard({ title, value, description, icon }: StatsCardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Activity item component
-function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
-  return (
-    <div className="flex flex-col space-y-1">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{timestamp}</p>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-// Project item with progress bar
-function ProjectItem({ title, description, progress }: ProjectItemProps) {
-  return (
-    <div className="flex flex-col space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{progress}%</p>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary rounded-full"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
     </div>
   );
 }

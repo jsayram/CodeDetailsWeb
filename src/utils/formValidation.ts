@@ -1,51 +1,54 @@
-import { FormEvent, Dispatch, SetStateAction } from "react";
+import { FormEvent } from "react";
+import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 
 /**
  * Error type for project form validation
  */
-export type ProjectFormErrors = {
+export interface ProjectFormErrors {
   title?: string;
   slug?: string;
+  tags?: string;
+  description?: string;
+  category?: string;
   server?: string;
-  [key: string]: string | undefined;
-};
+}
 
 /**
  * Project form data type
  */
-export type ProjectFormData = {
+export interface ProjectFormData {
   title: string;
   slug: string;
   tags: string;
   description: string;
-  difficulty: string;
-};
+  category: ProjectCategory;
+}
 
 /**
  * Validates a project form data
- * @param formData Project form data to validate
+ * @param data Project form data to validate
  * @returns An object containing validation errors, empty if valid
  */
-export const validateProjectForm = (
-  formData: ProjectFormData
-): ProjectFormErrors => {
+export const validateProjectForm = (data: ProjectFormData): ProjectFormErrors => {
   const errors: ProjectFormErrors = {};
 
-  // Trim values to ensure consistent validation
-  const trimmedTitle = formData.title.trim();
-  const trimmedSlug = formData.slug.trim();
-
-  if (!trimmedTitle) {
-    errors.title = "Project title is required";
-  } else if (trimmedTitle.length < 3) {
-    errors.title = "Project title must be at least 3 characters";
+  if (!data.title || data.title.trim().length === 0) {
+    errors.title = "Title is required";
+  } else if (data.title.length < 3) {
+    errors.title = "Title must be at least 3 characters";
+  } else if (data.title.length > 100) {
+    errors.title = "Title must be less than 100 characters";
   }
 
-  if (!trimmedSlug) {
-    errors.slug = "Project slug is required";
-  } else if (!/^[a-z0-9]+([-][a-z0-9]+)*$/.test(trimmedSlug)) {
+  if (!data.slug || data.slug.trim().length === 0) {
+    errors.slug = "Slug is required";
+  } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug)) {
     errors.slug =
-      "Slug must start with a letter or number, and contain only lowercase letters, numbers, and hyphens";
+      "Slug must contain only lowercase letters, numbers, and hyphens";
+  }
+
+  if (!data.category || !(data.category in PROJECT_CATEGORIES)) {
+    errors.category = "Please select a valid category";
   }
 
   return errors;
@@ -54,25 +57,21 @@ export const validateProjectForm = (
 /**
  * Helper to handle form submission with validation
  */
-export const handleFormSubmit = <
-  T extends Record<string, string | number | boolean | string[]>
->(
+export const handleFormSubmit = async (
   e: FormEvent,
-  formData: T,
-  validateFn: (data: T) => Record<string, string | undefined>,
-  setFormErrors: Dispatch<SetStateAction<Record<string, string | undefined>>>,
-  onValid: () => Promise<void> | void
+  formData: ProjectFormData,
+  validateFn: (data: ProjectFormData) => ProjectFormErrors,
+  setErrors: (errors: ProjectFormErrors) => void,
+  onSuccess: () => Promise<void>
 ) => {
   e.preventDefault();
+  setErrors({});
 
-  // Clear previous errors and start fresh
-  const newErrors = validateFn(formData);
-
-  // Update form errors state
-  setFormErrors(newErrors);
-
-  if (Object.keys(newErrors).length === 0) {
-    // Only proceed if validation passes
-    return onValid();
+  const errors = validateFn(formData);
+  if (Object.keys(errors).length > 0) {
+    setErrors(errors);
+    return;
   }
+
+  await onSuccess();
 };

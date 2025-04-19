@@ -1,4 +1,5 @@
 import { ClerkUserData } from "@/types/models/clerkUserData";
+import { API_ROUTES } from "@/constants/api-routes";
 
 // Check for server-side secret key
 if (!process.env.CLERK_SECRET_KEY) {
@@ -8,7 +9,7 @@ if (!process.env.CLERK_SECRET_KEY) {
 }
 
 const CLERK_API_KEY = process.env.CLERK_SECRET_KEY;
-const CLERK_BACK_API_URL = process.env.CLERK_BACK_API_URL;
+const CLERK_API_BASE = process.env.CLERK_BACK_API_URL;
 
 /**
  * Server-side function to fetch user data from Clerk API using API key
@@ -23,14 +24,17 @@ export async function fetchClerkUser(
       throw new Error("CLERK_API_KEY environment variable is not set");
     }
 
-    // Use fetch with the Clerk API directly
-    const response = await fetch(`${CLERK_BACK_API_URL}/users/${userId}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${CLERK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
+    // Use fetch with the Clerk API directly using centralized API routes
+    const response = await fetch(
+      `${CLERK_API_BASE}${API_ROUTES.AUTH.USER(userId)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${CLERK_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -18,7 +18,7 @@ interface ProjectFormProps {
 export function ProjectForm({
   onProjectAdded,
   className = "",
-  containerClassName = "border p-4 rounded-lg shadow-md mb-6",
+  containerClassName = "border p-4 rounded-lg shadow-md mb-6 ",
   showTitle = true,
 }: ProjectFormProps) {
   return (

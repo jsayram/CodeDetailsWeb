@@ -1,5 +1,5 @@
 import { executeQuery } from "@/db/server";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import { tags } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
 import { SelectTag } from "@/db/schema/tags";
@@ -14,11 +14,11 @@ export const slugify = (text: string): string => {
     .toString()
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, '-')       // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')   // Remove all non-word chars
-    .replace(/\-\-+/g, '-')     // Replace multiple - with single -
-    .replace(/^-+/, '')         // Trim - from start of text
-    .replace(/-+$/, '');        // Trim - from end of text
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w\-]+/g, "") // Remove all non-word chars
+    .replace(/\-\-+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start of text
+    .replace(/-+$/, ""); // Trim - from end of text
 };
 
 /**
@@ -28,16 +28,17 @@ export const slugify = (text: string): string => {
  */
 export async function getProjectTags(projectId: string): Promise<SelectTag[]> {
   return executeQuery(async (db) =>
-    db.select({
-      id: tags.id,
-      name: tags.name,
-      created_at: tags.created_at,
-      updated_at: tags.updated_at,
-    })
-    .from(tags)
-    .innerJoin(project_tags, sql`${project_tags.tag_id} = ${tags.id}`)
-    .where(sql`${project_tags.project_id} = ${projectId}`)
-    .orderBy(tags.name)
+    db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        created_at: tags.created_at,
+        updated_at: tags.updated_at,
+      })
+      .from(tags)
+      .innerJoin(project_tags, eq(project_tags.tag_id, tags.id))
+      .where(eq(project_tags.project_id, projectId))
+      .orderBy(tags.name)
   );
 }
 
@@ -47,13 +48,15 @@ export async function getProjectTags(projectId: string): Promise<SelectTag[]> {
  * @param projectSlug The project slug to set tags for
  * @param tagNames Array of tag names to associate with the project
  */
-export async function setProjectTags(projectId: string, projectSlug: string, tagNames: string[]): Promise<void> {
+export async function setProjectTags(
+  projectId: string,
+  projectSlug: string,
+  tagNames: string[]
+): Promise<void> {
   await executeQuery(async (db) => {
     // First, remove all existing tags
-    await db
-      .delete(project_tags)
-      .where(sql`${project_tags.project_id} = ${projectId}`);
-    
+    await db.delete(project_tags).where(eq(project_tags.project_id, projectId));
+
     // Skip processing if no tags were provided
     if (!tagNames || tagNames.length === 0) return;
 
@@ -69,9 +72,9 @@ export async function setProjectTags(projectId: string, projectSlug: string, tag
       const existingTag = await db
         .select({ id: tags.id })
         .from(tags)
-        .where(sql`${tags.name} = ${tagName.trim()}`)
+        .where(eq(tags.name, tagName.trim()))
         .limit(1);
-      
+
       if (existingTag.length > 0) {
         // Use existing tag
         tagId = existingTag[0].id;
@@ -83,20 +86,21 @@ export async function setProjectTags(projectId: string, projectSlug: string, tag
             name: tagName.trim(),
           })
           .returning({ id: tags.id });
-        
+
         tagId = newTag.id;
       }
+
       // Create association
       await db.insert(project_tags).values({
         project_id: projectId,
-        project_slug: projectSlug, // Add the missing project_slug
+        project_slug: projectSlug,
         tag_id: tagId,
       });
     }
   });
 }
 
- /* @returns Array of all tags in the system
+/* @returns Array of all tags in the system
  */
 export async function getAllTags(): Promise<SelectTag[]> {
   return executeQuery(async (db) => db.select().from(tags).orderBy(tags.name));
@@ -111,5 +115,5 @@ export async function getAllTags(): Promise<SelectTag[]> {
  */
 export async function getProjectTagNames(projectId: string): Promise<string[]> {
   const projectTags = await getProjectTags(projectId);
-  return projectTags.map(tag => tag.name);
+  return projectTags.map((tag) => tag.name);
 }
