@@ -345,12 +345,13 @@ export async function getProjectsByTag(
   tagName: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
-    return await db
+    const projectsWithTags = await db
       .select({
         id: projects.id,
         title: projects.title,
         slug: projects.slug,
         description: projects.description,
+        difficulty: projects.difficulty,
         category: projects.category,
         created_at: projects.created_at,
         updated_at: projects.updated_at,
@@ -360,6 +361,17 @@ export async function getProjectsByTag(
       .from(projects)
       .innerJoin(project_tags, eq(projects.id, project_tags.project_id))
       .innerJoin(tags, eq(project_tags.tag_id, tags.id))
-      .where(and(eq(tags.name, tagName), isNull(projects.deleted_at)));
+      .where(and(eq(tags.name, tagName), isNull(projects.deleted_at)))
+      .orderBy(desc(projects.created_at));
+
+    // Get tags for each project
+    const projectsWithAllTags = await Promise.all(
+      projectsWithTags.map(async (project) => {
+        const tags = await getProjectTagNames(project.id);
+        return { ...project, tags };
+      })
+    );
+
+    return projectsWithAllTags;
   });
 }

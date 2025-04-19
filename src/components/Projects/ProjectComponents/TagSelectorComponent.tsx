@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { TagInput } from "@/components/ui/tag-input";
 import { TagInfo } from "@/db/operations/tag-operations";
-import { searchTagsAction, createTagAction } from "@/app/actions/tags";
+import { createTagAction } from "@/app/actions/tags";
+import { useTagCache } from "@/hooks/use-tag-cache";
 
 interface TagSelectorProps {
   projectId?: string;
@@ -12,27 +13,17 @@ interface TagSelectorProps {
   className?: string;
 }
 
-// Helper function to validate if a string is a valid UUID
-const isValidUUID = (uuid: string): boolean => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-};
-
 export function TagSelector({
   projectId = "new",
   initialTags = [],
   onTagsChange,
   className,
 }: TagSelectorProps) {
-  // State for managing tags
-  const [tags, setTags] = useState<TagInfo[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [selectedTags, setSelectedTags] = useState<TagInfo[]>([]);
+  const { tags: cachedTags, isLoading: isTagCacheLoading, addTagToCache } = useTagCache();
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-
-  // Use a ref to track if component is mounted to avoid state updates during render
   const isMounted = React.useRef(false);
   
-  // Set mounted state
   useEffect(() => {
     isMounted.current = true;
     return () => {
@@ -40,47 +31,33 @@ export function TagSelector({
     };
   }, []);
 
-  // Function to search for tags
+  // Function to search for tags using the cache
   const handleSearchTags = useCallback(async (query: string): Promise<TagInfo[]> => {
-    try {
-      const results = await searchTagsAction(query);
-      return Array.isArray(results) ? results : [];
-    } catch (error) {
-      console.error("Error searching tags:", error);
-      return [];
-    }
-  }, []);
+    const searchTerm = query.toLowerCase();
+    return cachedTags.filter(tag => tag.name.toLowerCase().includes(searchTerm));
+  }, [cachedTags]);
 
   // Function to create a new tag
   const handleCreateTag = useCallback(async (name: string): Promise<{ id: string } | null> => {
     try {
       const result = await createTagAction(name);
       if (result && result.success && 'id' in result) {
-        // Instead of synchronous state update, schedule it in next tick
-        setTimeout(() => {
-          if (!isMounted.current) return;
-          
-          const newTag: TagInfo = {
-            id: result.id,
-            name: name,
-          };
-          
-          setTags(prevTags => {
-            // Avoid adding duplicate tags
-            if (prevTags.some(t => t.id === result.id)) {
-              return prevTags;
-            }
-            
-            const updatedTags = [...prevTags, newTag];
-            
-            // Notify parent if needed
-            if (onTagsChange) {
-              onTagsChange(updatedTags);
-            }
-            
-            return updatedTags;
-          });
-        }, 0);
+        const newTag: TagInfo = {
+          id: result.id,
+          name: name,
+        };
+        
+        // Update selected tags
+        setSelectedTags(prevTags => {
+          if (prevTags.some(t => t.id === result.id)) {
+            return prevTags;
+          }
+          const updatedTags = [...prevTags, newTag];
+          if (onTagsChange) {
+            onTagsChange(updatedTags);
+          }
+          return updatedTags;
+        });
         
         return { id: result.id };
       }
@@ -92,117 +69,84 @@ export function TagSelector({
   }, [onTagsChange]);
 
   // Function to add a tag
-  const handleAddTag = useCallback(async (tagId: string) => {
-    setIsLoading(true);
-    try {
-      // Find the tag details
-      const searchResults = await handleSearchTags("");
-      const tagToAdd = searchResults.find(tag => tag.id === tagId);
-      
-      if (tagToAdd && !tags.some(t => t.id === tagId)) {
-        const updatedTags = [...tags, tagToAdd];
-        setTags(updatedTags);
-        
-        if (onTagsChange) {
-          onTagsChange(updatedTags);
-        }
-      }
-    } catch (error) {
-      console.error("Error adding tag:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [tags, onTagsChange, handleSearchTags]);
-
-  // Function to remove a tag
-  const handleRemoveTag = useCallback(async (tagId: string) => {
-    // Safety check to ensure the component is still mounted
-    if (!isMounted.current) return;
+  const handleAddTag = useCallback((tagId: string) => {
+    const tagToAdd = cachedTags.find(tag => tag.id === tagId);
     
-    try {
-      // Update local state immediately for better UX
-      const updatedTags = tags.filter(tag => tag.id !== tagId);
-      setTags(updatedTags);
+    if (tagToAdd && !selectedTags.some(t => t.id === tagId)) {
+      const updatedTags = [...selectedTags, tagToAdd];
+      setSelectedTags(updatedTags);
       
-      // Notify parent component
       if (onTagsChange) {
         onTagsChange(updatedTags);
       }
-    } catch (error) {
-      console.error("Error removing tag:", error);
     }
-  }, [tags, onTagsChange]);
+  }, [selectedTags, cachedTags, onTagsChange]);
+
+  // Function to remove a tag
+  const handleRemoveTag = useCallback((tagId: string) => {
+    const updatedTags = selectedTags.filter(tag => tag.id !== tagId);
+    setSelectedTags(updatedTags);
+    
+    if (onTagsChange) {
+      onTagsChange(updatedTags);
+    }
+  }, [selectedTags, onTagsChange]);
 
   // Process initial tags when component mounts or initialTags change
   useEffect(() => {
-    // Skip if already initialized with the same tags
-    const currentTagNames = tags.map(t => t.name).sort();
-    const sortedInitialTags = [...initialTags].sort();
-    
-    if (isInitialized && 
-        JSON.stringify(currentTagNames) === JSON.stringify(sortedInitialTags)) {
-      return;
-    }
-    
+    if (!isMounted.current || isTagCacheLoading || isInitialized || !addTagToCache) return;
+
     const processInitialTags = async () => {
-      setIsLoading(true);
-      try {
-        const processedTags: TagInfo[] = [];
+      const processedTags: TagInfo[] = [];
+      
+      for (const tagName of initialTags) {
+        if (!tagName.trim()) continue;
         
-        for (const tagName of initialTags) {
-          if (!tagName.trim()) continue;
-          
-          // Search for this tag name
-          const searchResults = await handleSearchTags(tagName);
-          const existingTag = searchResults.find(
-            t => t.name.toLowerCase() === tagName.toLowerCase()
-          );
-          
-          if (existingTag) {
-            processedTags.push(existingTag);
-          } else {
-            // Create the tag if it doesn't exist
-            const newTag = await createTagAction(tagName.trim());
-            if (newTag && newTag.success && 'id' in newTag) {
-              processedTags.push({
-                id: newTag.id,
-                name: tagName.trim(),
-              });
-            }
+        // Search in cached tags first
+        const existingTag = cachedTags.find(
+          t => t.name.toLowerCase() === tagName.toLowerCase()
+        );
+        
+        if (existingTag) {
+          processedTags.push(existingTag);
+        } else {
+          // Create new tag if it doesn't exist
+          const newTagResult = await createTagAction(tagName.trim());
+          if (newTagResult && newTagResult.success && 'id' in newTagResult) {
+            const newTagInfo: TagInfo = {
+              id: newTagResult.id,
+              name: tagName.trim(),
+            };
+            processedTags.push(newTagInfo);
+            addTagToCache(newTagInfo);
           }
         }
+      }
+      
+      if (isMounted.current) {
+        setSelectedTags(processedTags);
         
-        if (isMounted.current) {
-          setTags(processedTags);
-          
-          if (onTagsChange) {
-            onTagsChange(processedTags);
-          }
-          
-          setIsInitialized(true);
+        if (onTagsChange) {
+          onTagsChange(processedTags);
         }
-      } catch (error) {
-        console.error("Error processing initial tags:", error);
-      } finally {
-        if (isMounted.current) {
-          setIsLoading(false);
-        }
+        
+        setIsInitialized(true);
       }
     };
     
     processInitialTags();
-  }, [initialTags, handleSearchTags, onTagsChange, isInitialized, tags]);
+  }, [initialTags, cachedTags, isTagCacheLoading, onTagsChange, isInitialized, addTagToCache]);
 
   return (
     <div className={className}>
       <TagInput
-        tags={tags}
+        tags={selectedTags}
         onAddTag={handleAddTag}
         onRemoveTag={handleRemoveTag}
         searchTags={handleSearchTags}
         onCreateTag={handleCreateTag}
         placeholder="Search for tags or create new ones..."
-        disabled={isLoading}
+        disabled={isTagCacheLoading}
       />
     </div>
   );
