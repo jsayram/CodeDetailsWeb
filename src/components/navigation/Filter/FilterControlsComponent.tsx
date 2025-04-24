@@ -23,12 +23,12 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
   if (!showControls) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
+    <div className="flex flex-wrap gap-2 items-center justify-center lg:justify-start h-9">
       <Select
         value={filters.sortBy}
         onValueChange={(value) => setFilters({ sortBy: value })}
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="w-[150px] h-9">
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>
@@ -45,7 +45,7 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
         value={filters.category}
         onValueChange={(value) => setFilters({ category: value as ProjectCategory | "all" })}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[180px] h-9">
           <SelectValue placeholder="Filter by category" />
         </SelectTrigger>
         <SelectContent>

@@ -301,11 +301,11 @@ export function ProjectList({
   }
 
   return (
-    <div className="flex flex-col py-6 md:py-10 md:-mt-10">
+    <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">
       {/* Controls Section - New Layout */}
-      <div className="space-y-4 md:space-y-0 mb-6">
+      <div className="space-y-4 sm:space-y-0 mb-6">
         {/* Top Row - Create Project and Show All/My Projects buttons */}
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           {/* Left side buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Create Project Button */}
@@ -341,20 +341,20 @@ export function ProjectList({
             )}
           </div>
 
-          {/* Right side controls - Stack on mobile, row on desktop */}
-          <div className="flex flex-col md:py-10 md:flex-row items-stretch md:items-center gap-4">
+          {/* Right side controls - Align everything in a single row */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
             {/* Filters */}
             {showSortingFilters && (
-              <div className="w-full pt-6 md:w-auto">
+              <div className="w-full lg:w-auto flex-none">
                 <FilterControls showControls={showSortingFilters} />
               </div>
             )}
 
             {/* View Mode Toggle */}
-            <div className="flex rounded-md overflow-hidden">
+            <div className="flex rounded-md overflow-hidden flex-none">
               <Button
                 variant={viewMode === "card" ? "default" : "outline"}
-                className="flex-1 md:flex-initial rounded-r-none"
+                className="flex-1 lg:flex-initial rounded-r-none"
                 onClick={() => setViewMode("card")}
                 size="sm"
               >
@@ -363,7 +363,7 @@ export function ProjectList({
               </Button>
               <Button
                 variant={viewMode === "table" ? "default" : "outline"}
-                className="flex-1 md:flex-initial rounded-l-none"
+                className="flex-1 lg:flex-initial rounded-l-none"
                 onClick={() => setViewMode("table")}
                 size="sm"
               >
