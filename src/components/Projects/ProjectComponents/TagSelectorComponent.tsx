@@ -5,6 +5,8 @@ import { TagInput } from "@/components/ui/tag-input";
 import { TagInfo } from "@/db/operations/tag-operations";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { TagSubmissionModal } from "./TagSubmissionModal";
+import { useAuth } from "@clerk/nextjs";
+import { useProjects } from "@/providers/projects-provider";
 
 interface TagSelectorProps {
   projectId?: string;
@@ -23,6 +25,12 @@ export function TagSelector({
   const { tags: cachedTags, isLoading: isTagCacheLoading } = useTagCache();
   const isMounted = useRef(false);
   const initialTagsRef = useRef<string[]>(initialTags);
+  const { userId } = useAuth();
+  const { projects } = useProjects();
+
+  // Check if the current user is the owner of the project
+  const project = projects?.find(p => p.id === projectId);
+  const isOwner = projectId === "new" || project?.user_id === userId;
 
   useEffect(() => {
     isMounted.current = true;
@@ -37,19 +45,23 @@ export function TagSelector({
   }, [cachedTags]);
 
   const handleAddTag = useCallback(async (tagId: string): Promise<void> => {
+    if (!isOwner) return; // Prevent adding tags if not the owner
+
     const tagToAdd = cachedTags.find(tag => tag.id === tagId);
     if (tagToAdd && !selectedTags.some(t => t.id === tagId)) {
       const updatedTags = [...selectedTags, tagToAdd];
       setSelectedTags(updatedTags);
       onTagsChange?.(updatedTags);
     }
-  }, [selectedTags, cachedTags, onTagsChange]);
+  }, [selectedTags, cachedTags, onTagsChange, isOwner]);
 
   const handleRemoveTag = useCallback(async (tagId: string): Promise<void> => {
+    if (!isOwner) return; // Prevent removing tags if not the owner
+
     const updatedTags = selectedTags.filter(tag => tag.id !== tagId);
     setSelectedTags(updatedTags);
     onTagsChange?.(updatedTags);
-  }, [selectedTags, onTagsChange]);
+  }, [selectedTags, onTagsChange, isOwner]);
 
   // Process initial tags
   useEffect(() => {
@@ -96,11 +108,11 @@ export function TagSelector({
           onAddTag={handleAddTag}
           onRemoveTag={handleRemoveTag}
           searchTags={handleSearchTags}
-          placeholder="Search for tags..."
-          disabled={isTagCacheLoading}
+          placeholder={isOwner ? "Search for tags..." : "Only project owners can edit tags"}
+          disabled={isTagCacheLoading || !isOwner}
           className="flex-1"
         />
-        {projectId !== "new" && <TagSubmissionModal projectId={projectId} />}
+        {projectId !== "new" && isOwner && <TagSubmissionModal projectId={projectId} />}
       </div>
     </div>
   );
