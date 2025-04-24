@@ -242,7 +242,7 @@ export const ProjectCard = React.memo(
                       onClick={handleChildClick}
                       className={`badge text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] ${project.deleted_at ? 'bg-red-950/40 text-red-200/70 hover:bg-red-900/30' : ''}`}
                     >
-                      {tag}
+                      #{tag}
                     </Badge>
                   ))}
                   {tags.length > 3 && (

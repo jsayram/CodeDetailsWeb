@@ -242,6 +242,24 @@
   margin-top: auto;
 }
 
+/* Button standardization */
+.card-button {
+  height: 32px !important;
+  min-width: 32px !important;
+  padding: 0 12px !important;
+  font-size: 0.875rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Action buttons in cards */
+.project-card button[aria-label] {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 6px !important;
+}
+
 /* Project grid styling for clean snapping and responsive layout */
 .project-grid {
   display: grid;

@@ -507,7 +507,7 @@ export function ProjectList({
                                     variant="outline"
                                     className="badge text-xs"
                                   >
-                                    {tag}
+                                    #{tag}
                                   </Badge>
                                 ))}
                               {project.tags.length > 2 && (
