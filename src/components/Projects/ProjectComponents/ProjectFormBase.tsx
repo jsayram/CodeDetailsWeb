@@ -66,6 +66,7 @@ export function ProjectFormBase({
 }: ProjectFormBaseProps) {
   const projectsContext = useProjects();
   const { userId } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<ProjectFormErrors>({});
@@ -81,8 +82,15 @@ export function ProjectFormBase({
   const [originalProject, setOriginalProject] = useState<Project | null>(null);
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize form data when project changes
+  // Handle mounting state
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Initialize form data when project changes and component is mounted
+  useEffect(() => {
+    if (!mounted) return;
+
     if (project && mode === "update") {
       setOriginalProject(project);
       setFormData({
@@ -102,7 +110,7 @@ export function ProjectFormBase({
       }
       setFormErrors({});
     }
-  }, [project, mode, projectUpdateKey]);
+  }, [project, mode, projectUpdateKey, mounted]);
 
   const handleInputChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -284,6 +292,11 @@ export function ProjectFormBase({
       ? "Adding Project..."
       : "Updating..."
     : submitButtonText || (mode === "create" ? "Add Project" : "Save Changes");
+
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="flex flex-col h-full width-full p-4">

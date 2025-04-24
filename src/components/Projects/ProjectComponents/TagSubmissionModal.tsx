@@ -18,19 +18,21 @@ import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/providers/projects-provider";
+import { ClientOnly } from "@/components/ClientOnly";
 
 interface TagSubmissionModalProps {
   projectId: string;
 }
 
 export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tagName, setTagName] = useState("");
   const [email, setEmail] = useState("");
   const [description, setDescription] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   // Get project details
   const project = projects?.find(p => p.id === projectId);
@@ -38,12 +40,17 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
   // Check if the current user is the owner of the project
   const isOwner = project?.user_id === user?.id;
 
-  // Auto-populate email from Clerk user data
+  // Handle mounting state
   useEffect(() => {
-    if (user?.primaryEmailAddress?.emailAddress) {
+    setMounted(true);
+  }, []);
+
+  // Auto-populate email from Clerk user data only after mounting and user is loaded
+  useEffect(() => {
+    if (mounted && isLoaded && user?.primaryEmailAddress?.emailAddress) {
       setEmail(user.primaryEmailAddress.emailAddress);
     }
-  }, [user]);
+  }, [user, isLoaded, mounted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,10 +76,15 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
     }
   };
 
+  // Don't render anything until mounted to prevent hydration issues
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" disabled={!isOwner}>
+        <Button variant="outline" size="sm" disabled={!isOwner || !isLoaded}>
           Request New Tag
         </Button>
       </DialogTrigger>
@@ -84,11 +96,13 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
               <DialogDescription>
                 <div className="space-y-2">
                   Propose a new tag for this project
-                  {project && (
-                    <div className="bg-muted/50 p-2 rounded-md text-sm">
-                      <Badge variant="outline" className="mb-1">{project.title}</Badge>
-                    </div>
-                  )}
+                  <ClientOnly>
+                    {project && (
+                      <div className="bg-muted/50 p-2 rounded-md text-sm">
+                        <Badge variant="outline" className="mb-1">{project.title}</Badge>
+                      </div>
+                    )}
+                  </ClientOnly>
                   <div className="text-xs text-muted-foreground mt-2">
                     Once approved, this tag will be automatically connected to the project.
                   </div>
