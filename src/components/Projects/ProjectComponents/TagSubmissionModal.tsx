@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
 import { submitNewTag } from "@/app/actions/tag-submissions";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
@@ -24,62 +24,122 @@ interface TagSubmissionModalProps {
   projectId: string;
 }
 
+// Validation function for tag names
+const validateTagName = (tag: string): { isValid: boolean; message?: string } => {
+  const normalized = tag.trim().toLowerCase();
+  
+  if (!normalized) {
+    return { isValid: false, message: "Tag name cannot be empty" };
+  }
+  
+  if (normalized.length < 2) {
+    return { isValid: false, message: "Tag name must be at least 2 characters long" };
+  }
+  
+  if (normalized.length > 30) {
+    return { isValid: false, message: "Tag name must be less than 30 characters" };
+  }
+  
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(normalized)) {
+    return { 
+      isValid: false, 
+      message: "Tags can only contain lowercase letters, numbers, and hyphens" 
+    };
+  }
+  
+  return { isValid: true };
+};
+
 export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
   const { user, isLoaded } = useUser();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tagName, setTagName] = useState("");
+  const [tagInput, setTagInput] = useState("");
   const [email, setEmail] = useState("");
   const [description, setDescription] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [processedTags, setProcessedTags] = useState<Array<{ name: string; isValid: boolean; message?: string }>>([]);
 
   // Get project details
   const project = projects?.find(p => p.id === projectId);
-
-  // Check if the current user is the owner of the project
   const isOwner = project?.user_id === user?.id;
 
-  // Handle mounting state
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Auto-populate email from Clerk user data only after mounting and user is loaded
   useEffect(() => {
     if (mounted && isLoaded && user?.primaryEmailAddress?.emailAddress) {
       setEmail(user.primaryEmailAddress.emailAddress);
     }
   }, [user, isLoaded, mounted]);
 
+  const processTagInput = (input: string) => {
+    const tags = input
+      .split(',')
+      .map(tag => ({ 
+        original: tag,
+        normalized: tag.trim().toLowerCase()
+      }))
+      .filter(({ normalized }) => normalized) // Remove empty tags
+      .map(({ normalized }) => {
+        const validation = validateTagName(normalized);
+        return {
+          name: normalized,
+          isValid: validation.isValid,
+          message: validation.message
+        };
+      });
+
+    setProcessedTags(tags);
+    const hasInvalid = tags.some(tag => !tag.isValid);
+    setTagError(hasInvalid ? "Please fix invalid tags" : null);
+    return !hasInvalid;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isOwner) {
+      toast.error("You are not authorized to request a tag for this project.");
+      return;
+    }
+
+    const isValid = processTagInput(tagInput);
+    if (!isValid) return;
+
     setIsSubmitting(true);
 
     try {
-      if (!isOwner) {
-        toast.error("You are not authorized to request a tag for this project.");
-        return;
+      // Submit each valid tag as a separate submission
+      const validTags = processedTags.filter(tag => tag.isValid);
+      
+      for (const tag of validTags) {
+        await submitNewTag(tag.name, projectId, email, description);
       }
 
-      await submitNewTag(tagName, projectId, email, description);
-      toast.success("Tag submission received! Once approved, it will be automatically connected to this project.");
+      const message = validTags.length === 1
+        ? "Tag submission received! Once approved, it will be automatically connected to this project."
+        : `${validTags.length} tag submissions received! Once approved, they will be automatically connected to this project.`;
+
+      toast.success(message);
       setOpen(false);
+      
       // Reset form
-      setTagName("");
+      setTagInput("");
       setEmail("");
       setDescription("");
+      setProcessedTags([]);
+      setTagError(null);
     } catch (error) {
-      toast.error("Failed to submit tag. Please try again.");
+      toast.error("Failed to submit tag(s). Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Don't render anything until mounted to prevent hydration issues
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -95,7 +155,7 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
               <DialogTitle>Submit New Tag</DialogTitle>
               <DialogDescription>
                 <div className="space-y-2">
-                  Propose a new tag for this project
+                  Propose new tags for this project
                   <ClientOnly>
                     {project && (
                       <div className="bg-muted/50 p-2 rounded-md text-sm">
@@ -104,7 +164,8 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
                     )}
                   </ClientOnly>
                   <div className="text-xs text-muted-foreground mt-2">
-                    Once approved, this tag will be automatically connected to the project.
+                    You can submit multiple tags by separating them with commas.
+                    Tags must be lowercase, no spaces, URL-safe, and contain only letters, numbers, and hyphens.
                   </div>
                 </div>
               </DialogDescription>
@@ -114,11 +175,33 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
                 <label htmlFor="tag-name">Tag Name</label>
                 <Input
                   id="tag-name"
-                  placeholder="Enter tag name"
-                  value={tagName}
-                  onChange={(e) => setTagName(e.target.value)}
+                  placeholder="e.g. react, next-js, typescript"
+                  value={tagInput}
+                  onChange={(e) => {
+                    setTagInput(e.target.value);
+                    if (!e.target.value) {
+                      setProcessedTags([]);
+                      setTagError(null);
+                    }
+                  }}
+                  onBlur={() => processTagInput(tagInput)}
                   required
                 />
+                {processedTags.length > 0 && (
+                  <div className="space-y-2">
+                    {processedTags.map((tag, index) => (
+                      <div 
+                        key={index}
+                        className={`text-sm ${tag.isValid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
+                      >
+                        {tag.name} {!tag.isValid && `- ${tag.message}`}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {tagError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{tagError}</p>
+                )}
               </div>
               <div className="grid gap-2">
                 <label htmlFor="email">Your Email</label>
@@ -135,14 +218,14 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
                 <label htmlFor="description">Description (Optional)</label>
                 <Textarea
                   id="description"
-                  placeholder="Why should this tag be added to this project?"
+                  placeholder="Why should these tags be added to this project?"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button type="submit" disabled={isSubmitting || !!tagError}>
                 {isSubmitting ? "Submitting..." : "Submit Tag"}
               </Button>
             </DialogFooter>
