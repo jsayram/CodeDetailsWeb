@@ -162,10 +162,15 @@ export function ProjectsProvider({
 
   const handleProjectUpdated = async (updatedProject: Project) => {
     console.log("✏️ Updating project:", updatedProject.title);
+    // Update local state immediately
     setProjects((prev) =>
       prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
     );
-    fetchProjects(); // Refresh to ensure consistency
+    // Only force a refresh if it's been more than 30 seconds since last fetch
+    const now = Date.now();
+    if (now - lastFetchRef.current.timestamp >= 30000) {
+      await refreshProjects();
+    }
   };
 
   const refreshProjects = async () => {

@@ -153,21 +153,19 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Submit New Tag</DialogTitle>
-              <DialogDescription>
-                <div className="space-y-2">
-                  Propose new tags for this project
-                  <ClientOnly>
-                    {project && (
-                      <div className="bg-muted/50 p-2 rounded-md text-sm">
-                        <Badge variant="outline" className="mb-1">{project.title}</Badge>
-                      </div>
-                    )}
-                  </ClientOnly>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    You can submit multiple tags by separating them with commas.
-                    Tags must be lowercase, no spaces, URL-safe, and contain only letters, numbers, and hyphens.
-                  </div>
-                </div>
+              <DialogDescription className="space-y-2">
+                Propose new tags for this project.
+                <ClientOnly>
+                  {project && (
+                    <span className="block bg-muted/50 p-2 rounded-md text-sm">
+                      <Badge variant="outline" className="mb-1">{project.title}</Badge>
+                    </span>
+                  )}
+                </ClientOnly>
+                <span className="block text-xs text-muted-foreground">
+                  You can submit multiple tags by separating them with commas.
+                  Tags must be lowercase, no spaces, URL-safe, and contain only letters, numbers, and hyphens.
+                </span>
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -224,7 +222,10 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="sm:justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
               <Button type="submit" disabled={isSubmitting || !!tagError}>
                 {isSubmitting ? "Submitting..." : "Submit Tag"}
               </Button>
