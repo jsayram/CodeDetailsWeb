@@ -5,8 +5,9 @@ import { TagInput } from "@/components/ui/tag-input";
 import { TagInfo } from "@/db/operations/tag-operations";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { TagSubmissionModal } from "./TagSubmissionModal";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { useProjects } from "@/providers/projects-provider";
+import { SelectTagSubmission } from "@/db/schema/tag_submissions";
 
 interface TagSelectorProps {
   projectId?: string;
@@ -22,10 +23,12 @@ export function TagSelector({
   className,
 }: TagSelectorProps) {
   const [selectedTags, setSelectedTags] = useState<TagInfo[]>([]);
+  const [pendingTags, setPendingTags] = useState<SelectTagSubmission[]>([]);
   const { tags: cachedTags, isLoading: isTagCacheLoading } = useTagCache();
   const isMounted = useRef(false);
   const initialTagsRef = useRef<string[]>(initialTags);
   const { userId } = useAuth();
+  const { user } = useUser();
   const { projects } = useProjects();
 
   // Check if the current user is the owner of the project
@@ -45,7 +48,7 @@ export function TagSelector({
   }, [cachedTags]);
 
   const handleAddTag = useCallback(async (tagId: string): Promise<void> => {
-    if (!isOwner) return; // Prevent adding tags if not the owner
+    if (!isOwner) return;
 
     const tagToAdd = cachedTags.find(tag => tag.id === tagId);
     if (tagToAdd && !selectedTags.some(t => t.id === tagId)) {
@@ -56,7 +59,7 @@ export function TagSelector({
   }, [selectedTags, cachedTags, onTagsChange, isOwner]);
 
   const handleRemoveTag = useCallback(async (tagId: string): Promise<void> => {
-    if (!isOwner) return; // Prevent removing tags if not the owner
+    if (!isOwner) return;
 
     const updatedTags = selectedTags.filter(tag => tag.id !== tagId);
     setSelectedTags(updatedTags);
@@ -100,19 +103,67 @@ export function TagSelector({
     processInitialTags();
   }, [initialTags, cachedTags, isTagCacheLoading, onTagsChange]);
 
+  const loadPendingSubmissions = useCallback(async () => {
+    if (projectId === "new" || !user?.primaryEmailAddress?.emailAddress) return;
+
+    try {
+      const submissions = await fetch(
+        `/api/projects/${projectId}/tag-submissions?status=pending&email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
+      ).then(res => res.json());
+      
+      if (Array.isArray(submissions)) {
+        setPendingTags(submissions);
+      } else {
+        console.error("Invalid submissions response:", submissions);
+        setPendingTags([]);
+      }
+    } catch (error) {
+      console.error("Failed to load pending tag submissions:", error);
+      setPendingTags([]);
+    }
+  }, [projectId, user?.primaryEmailAddress?.emailAddress]);
+
+  useEffect(() => {
+    loadPendingSubmissions();
+  }, [loadPendingSubmissions]);
+
   return (
     <div className={className}>
-      <div className="flex gap-2 items-center">
-        <TagInput
-          tags={selectedTags}
-          onAddTag={handleAddTag}
-          onRemoveTag={handleRemoveTag}
-          searchTags={handleSearchTags}
-          placeholder={isOwner ? "Search for tags..." : "Only project owners can edit tags"}
-          disabled={isTagCacheLoading || !isOwner}
-          className="flex-1"
-        />
-        {projectId !== "new" && isOwner && <TagSubmissionModal projectId={projectId} />}
+      <div className="space-y-4">
+        <div className="flex gap-2 items-center">
+          <TagInput
+            tags={selectedTags}
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+            searchTags={handleSearchTags}
+            placeholder={isOwner ? "Search for tags..." : "Only project owners can edit tags"}
+            disabled={isTagCacheLoading || !isOwner}
+            className="flex-1"
+          />
+          {projectId !== "new" && isOwner && (
+            <TagSubmissionModal 
+              projectId={projectId} 
+              onSubmit={loadPendingSubmissions} 
+            />
+          )}
+        </div>
+
+        {pendingTags.length > 0 && (
+          <div className="rounded-md bg-muted/50 p-3 space-y-2">
+            <p className="text-sm font-medium">Your Pending Tag Submissions:</p>
+            <div className="flex flex-wrap gap-2">
+              {pendingTags.map((submission) => (
+                <span
+                  key={submission.id}
+                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                >
+                  {submission.tag_name}
+                </span>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">These tags will appear on the project once approved.</p>
+          </div>
+        )}
       </div>
     </div>
   );

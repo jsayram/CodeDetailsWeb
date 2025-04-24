@@ -22,6 +22,7 @@ import { ClientOnly } from "@/components/ClientOnly";
 
 interface TagSubmissionModalProps {
   projectId: string;
+  onSubmit?: () => void;
 }
 
 // Validation function for tag names
@@ -50,7 +51,7 @@ const validateTagName = (tag: string): { isValid: boolean; message?: string } =>
   return { isValid: true };
 };
 
-export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
+export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalProps) {
   const { user, isLoaded } = useUser();
   const { projects } = useProjects();
   const [open, setOpen] = useState(false);
@@ -75,6 +76,18 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
       setEmail(user.primaryEmailAddress.emailAddress);
     }
   }, [user, isLoaded, mounted]);
+
+  // Reset form when dialog is closed
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setTagInput("");
+      setDescription("");
+      setProcessedTags([]);
+      setTagError(null);
+      // Don't reset email as it comes from the user's profile
+    }
+  };
 
   const processTagInput = (input: string) => {
     const tags = input
@@ -132,6 +145,9 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
       setDescription("");
       setProcessedTags([]);
       setTagError(null);
+
+      // Call onSubmit callback to refresh pending tags
+      onSubmit?.();
     } catch (error) {
       toast.error("Failed to submit tag(s). Please try again.");
     } finally {
@@ -142,7 +158,7 @@ export function TagSubmissionModal({ projectId }: TagSubmissionModalProps) {
   if (!mounted) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" disabled={!isOwner || !isLoaded}>
           Request New Tag
