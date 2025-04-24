@@ -389,6 +389,11 @@ export function ProjectFormBase({
               initialTags={selectedTags.map((tag) => tag.name)}
               onTagsChange={handleTagsChange}
             />
+            {mode === "create" && (
+              <div className="text-xs text-muted-foreground">
+                Need more tags? You can always request additional tags by editing your project later.
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
