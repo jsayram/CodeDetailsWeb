@@ -105,6 +105,9 @@ export async function getPendingTagSubmissions() {
         description: tag_submissions.description,
         status: tag_submissions.status,
         created_at: tag_submissions.created_at,
+        updated_at: tag_submissions.updated_at,
+        admin_notes: tag_submissions.admin_notes,
+        reviewed_at: tag_submissions.reviewed_at
       })
       .from(tag_submissions)
       .where(eq(tag_submissions.status, "pending"))

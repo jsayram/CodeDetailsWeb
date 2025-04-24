@@ -11,7 +11,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,7 +18,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { addTagToProjectAction } from "@/app/actions/tags";
 import { getProjectById } from "@/app/actions/projects";
 import { FormattedDate } from "@/lib/FormattedDate";
 import {
