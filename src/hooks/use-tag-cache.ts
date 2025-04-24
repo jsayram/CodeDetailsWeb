@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { TagInfo } from '@/db/operations/tag-operations';
 import { searchTagsAction } from '@/app/actions/tags';
 
@@ -9,6 +9,13 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 export function useTagCache() {
   const [tags, setTags] = useState<TagInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const addTagToCache = useCallback((tag: TagInfo) => {
+    if (!globalTagCache.some(t => t.id === tag.id)) {
+      globalTagCache = [...globalTagCache, tag];
+      setTags(globalTagCache);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchTags = async () => {
@@ -34,5 +41,5 @@ export function useTagCache() {
     fetchTags();
   }, []);
 
-  return { tags, isLoading };
+  return { tags, isLoading, addTagToCache };
 }

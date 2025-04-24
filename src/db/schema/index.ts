@@ -11,3 +11,4 @@ export * from "./snippets";
 export * from "./tutorial_tags";
 export * from "./page_tags";
 export * from "./snippet_tags";
+export * from "./tag_submissions";

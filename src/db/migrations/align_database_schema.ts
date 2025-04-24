@@ -173,7 +173,24 @@ export async function alignDatabaseWithSchema() {
           )
         `);
         
-        // 10. Update profiles table to align with schema
+        // 10. Create tag_submissions table if it doesn't exist
+        console.log('Creating tag_submissions table...');
+        await tx.execute(sql`
+          CREATE TABLE IF NOT EXISTS tag_submissions (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            tag_name TEXT NOT NULL,
+            submitter_email TEXT NOT NULL,
+            description TEXT,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            admin_notes TEXT,
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW(),
+            reviewed_at TIMESTAMP
+          )
+        `);
+        
+        // 11. Update profiles table to align with schema
         console.log('Updating profiles table...');
         // Check for profile_image_url column
         const hasAvatarColumn = await tx.execute(sql`
@@ -196,36 +213,47 @@ export async function alignDatabaseWithSchema() {
           `);
         }
         
-        // 11. Migrate data from projects.tags array to project_tags junction table
+        // 12. Migrate data from projects.tags array to project_tags junction table
         console.log('Migrating project tags from array to junction table...');
-        // This is a complex operation - need to extract tags from array and ensure they exist in tags table
-        await tx.execute(sql`
-          DO $$
-          DECLARE
-            project_record RECORD;
-            tag_name TEXT;
-            tag_id_var UUID;
-          BEGIN
-            -- For each project with non-empty tags
-            FOR project_record IN SELECT id, tags FROM projects WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
-            LOOP
-              -- For each tag in the project's tags array
-              FOREACH tag_name IN ARRAY project_record.tags
-              LOOP
-                -- Check if the tag exists, if not create it
-                SELECT id INTO tag_id_var FROM tags WHERE name = tag_name;
-                IF tag_id_var IS NULL THEN
-                  INSERT INTO tags (name) VALUES (tag_name) RETURNING id INTO tag_id_var;
-                END IF;
-                
-                -- Associate the project with the tag if not already associated
-                IF NOT EXISTS (SELECT 1 FROM project_tags WHERE project_id = project_record.id AND tag_id = tag_id_var) THEN
-                  INSERT INTO project_tags (project_id, tag_id) VALUES (project_record.id, tag_id_var);
-                END IF;
-              END LOOP;
-            END LOOP;
-          END $$;
+        // First check if the tags column exists
+        const hasTagsColumn = await tx.execute(sql`
+          SELECT column_name 
+          FROM information_schema.columns 
+          WHERE table_name = 'projects' AND column_name = 'tags'
         `);
+
+        if (hasTagsColumn.length > 0) {
+          // Only attempt migration if tags column exists
+          await tx.execute(sql`
+            DO $$
+            DECLARE
+              project_record RECORD;
+              tag_name TEXT;
+              tag_id_var UUID;
+            BEGIN
+              -- For each project with non-empty tags
+              FOR project_record IN SELECT id, tags FROM projects WHERE tags IS NOT NULL AND array_length(tags, 1) > 0
+              LOOP
+                -- For each tag in the project's tags array
+                FOREACH tag_name IN ARRAY project_record.tags
+                LOOP
+                  -- Check if the tag exists, if not create it
+                  SELECT id INTO tag_id_var FROM tags WHERE name = tag_name;
+                  IF tag_id_var IS NULL THEN
+                    INSERT INTO tags (name) VALUES (tag_name) RETURNING id INTO tag_id_var;
+                  END IF;
+                  
+                  -- Associate the project with the tag if not already associated
+                  IF NOT EXISTS (SELECT 1 FROM project_tags WHERE project_id = project_record.id AND tag_id = tag_id_var) THEN
+                    INSERT INTO project_tags (project_id, tag_id) VALUES (project_record.id, tag_id_var);
+                  END IF;
+                END LOOP;
+              END LOOP;
+            END $$;
+          `);
+        } else {
+          console.log('Tags column does not exist in projects table - skipping migration');
+        }
         
         return { success: true, message: 'Database schema alignment successful' };
       });

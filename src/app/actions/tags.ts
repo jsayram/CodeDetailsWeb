@@ -8,11 +8,11 @@ import {
   removeTagFromContent,
   getTagsForContent,
   replaceContentTags,
-  searchTags
+  searchTags,
+  findOrCreateTags
 } from "@/db/operations/tag-operations";
 import { executeQuery } from "@/db/server";
 import { tags } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 // Fixed content type for this file
 const PROJECT_CONTENT_TYPE = "project" as const;
@@ -34,12 +34,15 @@ export async function fetchProjectTags(projectId: string): Promise<TagInfo[]> {
  */
 export async function addTagToProjectAction(
   projectId: string,
-  tagId: string,
-  projectSlug: string
+  tagName: string, // Changed from tagId to tagName
 ) {
   try {
-    await addTagToContent(PROJECT_CONTENT_TYPE, projectId, tagId, projectSlug);
-    revalidatePath(`/projects/${projectSlug}`);
+    // Ensure the tag exists in the tags table
+    const [tag] = await findOrCreateTags([tagName]);
+
+    // Connect the tag to the project
+    await addTagToContent("project", projectId, tag.id);
+
     return { success: true };
   } catch (error) {
     console.error("Error adding tag to project:", error);
@@ -56,11 +59,9 @@ export async function addTagToProjectAction(
 export async function removeTagFromProjectAction(
   projectId: string,
   tagId: string,
-  projectSlug: string
 ) {
   try {
     await removeTagFromContent(PROJECT_CONTENT_TYPE, projectId, tagId);
-    revalidatePath(`/projects/${projectSlug}`);
     return { success: true };
   } catch (error) {
     console.error("Error removing tag from project:", error);
@@ -77,11 +78,9 @@ export async function removeTagFromProjectAction(
 export async function replaceProjectTagsAction(
   projectId: string,
   tagIds: string[],
-  projectSlug: string
 ) {
   try {
-    await replaceContentTags(PROJECT_CONTENT_TYPE, projectId, tagIds, projectSlug);
-    revalidatePath(`/projects/${projectSlug}`);
+    await replaceContentTags(PROJECT_CONTENT_TYPE, projectId, tagIds);
     return { success: true };
   } catch (error) {
     console.error("Error replacing project tags:", error);

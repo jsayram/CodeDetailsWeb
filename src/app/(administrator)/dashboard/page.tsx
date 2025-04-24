@@ -1,11 +1,9 @@
-"use client";
-
 import React from "react";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { SignedIn, useUser } from "@clerk/nextjs";
+import { SignedIn } from "@clerk/nextjs";
 import { SidebarLoadingState } from "@/components/LoadingState/SidebarLoadingState";
 import {
   Card,
@@ -23,6 +21,8 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
+import { getPendingTagSubmissions } from "@/app/actions/tag-submissions";
 
 // Type definitions for the component props
 interface StatsCardProps {
@@ -92,14 +92,14 @@ function ProjectItem({ title, description, progress }: ProjectItemProps) {
   );
 }
 
-export default function DashboardPage() {
-  const { isLoaded } = useUser();
+export default async function DashboardPage() {
+  const submissions = await getPendingTagSubmissions();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SidebarProvider>
         <SignedIn>
-          {!isLoaded ? <SidebarLoadingState /> : <AppSidebar />}
+          <AppSidebar />
         </SignedIn>
         <SidebarInset>
           <HeaderSection
@@ -133,9 +133,9 @@ export default function DashboardPage() {
                 icon={<Users className="h-4 w-4 text-primary" />}
               />
               <StatsCard
-                title="Code Reviews"
-                value="24"
-                description="7 awaiting review"
+                title="Pending Tags"
+                value={submissions.length.toString()}
+                description="Tag submissions awaiting review"
                 icon={<FileText className="h-4 w-4 text-primary" />}
               />
               <StatsCard
@@ -234,6 +234,18 @@ export default function DashboardPage() {
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </CardFooter>
+              </Card>
+            </div>
+
+            {/* Tag Submissions Management Section */}
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Tag Submissions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TagSubmissionManagement initialSubmissions={submissions} />
+                </CardContent>
               </Card>
             </div>
           </main>

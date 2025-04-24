@@ -18,6 +18,18 @@ import { executeQuery } from "@/db/server";
 
 const pathToRevalidate = "/projects";
 
+export async function getProjectById(projectId: string) {
+  return executeQuery(async (db) => {
+    const results = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    return results[0] || null;
+  });
+}
+
 // Get a single project by slug
 export async function getProjectBySlugServer(slug: string) {
   return executeQuery(async (db) => {

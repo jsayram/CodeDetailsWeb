@@ -30,11 +30,10 @@ async function fetchContentTags(contentType: ContentType, contentId: string) {
 async function addTagToContentAction(
   contentType: ContentType, 
   contentId: string, 
-  tagId: string,
-  contentSlug?: string
+  tagId: string
 ) {
-  if (contentType === 'project' && contentSlug) {
-    return await addTagToProjectAction(contentId, tagId, contentSlug);
+  if (contentType === 'project') {
+    return await addTagToProjectAction(contentId, tagId);
   }
   // Add support for other content types as needed
   return { success: false, message: `Content type ${contentType} is not supported yet` };
@@ -46,11 +45,10 @@ async function addTagToContentAction(
 async function removeTagFromContentAction(
   contentType: ContentType, 
   contentId: string, 
-  tagId: string,
-  contentSlug?: string
+  tagId: string
 ) {
-  if (contentType === 'project' && contentSlug) {
-    return await removeTagFromProjectAction(contentId, tagId, contentSlug);
+  if (contentType === 'project') {
+    return await removeTagFromProjectAction(contentId, tagId);
   }
   // Add support for other content types as needed
   return { success: false, message: `Content type ${contentType} is not supported yet` };
@@ -62,11 +60,10 @@ async function removeTagFromContentAction(
 async function replaceContentTagsAction(
   contentType: ContentType, 
   contentId: string, 
-  tagIds: string[],
-  contentSlug?: string
+  tagIds: string[]
 ) {
-  if (contentType === 'project' && contentSlug) {
-    return await replaceProjectTagsAction(contentId, tagIds, contentSlug);
+  if (contentType === 'project') {
+    return await replaceProjectTagsAction(contentId, tagIds);
   }
   // Add support for other content types as needed
   return { success: false, message: `Content type ${contentType} is not supported yet` };
@@ -79,13 +76,11 @@ async function replaceContentTagsAction(
  * 
  * @param contentType The type of content (project, tutorial, page, etc.)
  * @param contentId The ID of the content item
- * @param contentSlug The slug of the content item (required for projects)
  * @returns Object with tags and tag management functions
  */
 export function useTagOperations(
   contentType: ContentType,
   contentId: string,
-  contentSlug?: string
 ) {
   // Create tag operation functions that connect to server actions
   const tagOperations = {
@@ -93,13 +88,13 @@ export function useTagOperations(
       fetchContentTags(type, id), []),
     
     addTag: useCallback((type: ContentType, id: string, tagId: string) => 
-      addTagToContentAction(type, id, tagId, contentSlug), [contentSlug]),
+      addTagToContentAction(type, id, tagId), []),
     
     removeTag: useCallback((type: ContentType, id: string, tagId: string) => 
-      removeTagFromContentAction(type, id, tagId, contentSlug), [contentSlug]),
+      removeTagFromContentAction(type, id, tagId), []),
     
     replaceTags: useCallback((type: ContentType, id: string, tagIds: string[]) => 
-      replaceContentTagsAction(type, id, tagIds, contentSlug), [contentSlug]),
+      replaceContentTagsAction(type, id, tagIds), []),
     
     searchTags: useCallback((query: string) => 
       searchTagsAction(query), []),

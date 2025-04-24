@@ -1,13 +1,9 @@
-import { eq, and, inArray, sql, isNull, like, desc } from "drizzle-orm";
+import { eq, and, inArray, sql, like, desc } from "drizzle-orm";
 import { executeQuery } from "../server";
 import { project_tags } from "../schema/project_tags";
-import { tags } from "../schema/tags";
-import { projects } from "../schema/projects";
+import { tags as tagsTable } from "../schema/tags";
 import { z } from "zod";
 
-/**
- * Supported content types for tagging
- */
 export const ContentType = z.enum([
   "project",
   "tutorial",
@@ -17,22 +13,17 @@ export const ContentType = z.enum([
 
 export type ContentType = z.infer<typeof ContentType>;
 
-/**
- * Interface representing a tag with its essential properties
- */
 export interface TagInfo {
   id: string;
   name: string;
 }
 
-// Cache structure for tag queries
+// Cache structure for tag queries with improved typing
 const tagQueryCache = new Map<string, { tags: TagInfo[]; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Get all tags matching a search query, with caching
- */
-export async function searchTags(query: string = ''): Promise<TagInfo[]> {
+// Helper to get cached tags or fetch from database
+async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
   const cacheKey = query.toLowerCase();
   const now = Date.now();
   const cached = tagQueryCache.get(cacheKey);
@@ -44,14 +35,14 @@ export async function searchTags(query: string = ''): Promise<TagInfo[]> {
   const tags = await executeQuery(async (db) => {
     const baseQuery = db
       .select({
-        id: tags.id,
-        name: tags.name,
+        id: tagsTable.id,
+        name: tagsTable.name,
       })
-      .from(tags)
-      .orderBy(tags.name);
+      .from(tagsTable)
+      .orderBy(desc(tagsTable.name));
 
     if (query) {
-      return await baseQuery.where(like(tags.name, `%${query}%`));
+      return await baseQuery.where(like(tagsTable.name, `%${query}%`));
     }
     
     return await baseQuery;
@@ -61,9 +52,12 @@ export async function searchTags(query: string = ''): Promise<TagInfo[]> {
   return tags;
 }
 
-/**
- * Get tags for a specific content item
- */
+// Optimized tag search with caching
+export async function searchTags(query: string = ''): Promise<TagInfo[]> {
+  return getOrFetchTags(query);
+}
+
+// Optimized get tags for content using a single query
 export async function getTagsForContent(
   contentType: ContentType,
   contentId: string
@@ -71,27 +65,85 @@ export async function getTagsForContent(
   return await executeQuery(async (db) => {
     return await db
       .select({
-        id: tags.id,
-        name: tags.name,
+        id: tagsTable.id,
+        name: tagsTable.name,
       })
-      .from(tags)
-      .innerJoin(project_tags, eq(project_tags.tag_id, tags.id))
+      .from(tagsTable)
+      .innerJoin(project_tags, eq(project_tags.tag_id, tagsTable.id))
       .where(eq(project_tags.project_id, contentId))
-      .orderBy(tags.name);
+      .orderBy(desc(tagsTable.name));
   });
 }
 
-/**
- * Add a tag to a content item
- */
+// Helper to find or create tags in batch
+export async function findOrCreateTags(tagNames: string[]): Promise<TagInfo[]> {
+  return await executeQuery(async (db) => {
+    const uniqueNames = [...new Set(tagNames.map(name => name.trim()))];
+    
+    // First, try to find existing tags
+    const existingTags = await db
+      .select({
+        id: tagsTable.id,
+        name: tagsTable.name,
+      })
+      .from(tagsTable)
+      .where(inArray(tagsTable.name, uniqueNames));
+
+    const existingTagNames = new Set(existingTags.map(tag => tag.name));
+    const newTagNames = uniqueNames.filter(name => !existingTagNames.has(name));
+
+    // Create new tags in batch if needed
+    if (newTagNames.length > 0) {
+      const newTags = await db
+        .insert(tagsTable)
+        .values(newTagNames.map(name => ({ name })))
+        .returning({
+          id: tagsTable.id,
+          name: tagsTable.name,
+        });
+
+      // Combine existing and new tags
+      return [...existingTags, ...newTags];
+    }
+
+    return existingTags;
+  });
+}
+
+// Optimized replace content tags using batch operations
+export async function replaceContentTags(
+  contentType: ContentType,
+  contentId: string,
+  tagIds: string[]
+): Promise<void> {
+  await executeQuery(async (db) => {
+    // Delete existing associations
+    await db
+      .delete(project_tags)
+      .where(eq(project_tags.project_id, contentId));
+
+    // Create new associations in batch
+    if (tagIds.length > 0) {
+      await db.insert(project_tags).values(
+        tagIds.map(tagId => ({
+          project_id: contentId,
+          tag_id: tagId,
+        }))
+      );
+    }
+  });
+
+  // Clear cache after modification
+  tagQueryCache.clear();
+}
+
+// Add a single tag to content
 export async function addTagToContent(
   contentType: ContentType,
   contentId: string,
-  tagId: string,
-  contentSlug: string
+  tagId: string
 ): Promise<void> {
   await executeQuery(async (db) => {
-    // Check if the association already exists
     const existing = await db
       .select()
       .from(project_tags)
@@ -106,19 +158,15 @@ export async function addTagToContent(
     if (existing.length === 0) {
       await db.insert(project_tags).values({
         project_id: contentId,
-        project_slug: contentSlug,
         tag_id: tagId,
       });
     }
   });
 
-  // Clear cache after modification
   tagQueryCache.clear();
 }
 
-/**
- * Remove a tag from a content item
- */
+// Remove a single tag from content
 export async function removeTagFromContent(
   contentType: ContentType,
   contentId: string,
@@ -135,58 +183,5 @@ export async function removeTagFromContent(
       );
   });
 
-  // Clear cache after modification
-  tagQueryCache.clear();
-}
-
-/**
- * Replace all tags for a content item
- */
-export async function replaceContentTags(
-  contentType: ContentType,
-  contentId: string,
-  tagIds: string[],
-  contentSlug: string
-): Promise<void> {
-  await executeQuery(async (db) => {
-    // Get existing tags
-    const existingTags = await db
-      .select()
-      .from(project_tags)
-      .where(
-        and(
-          eq(project_tags.project_id, contentId),
-          inArray(project_tags.tag_id, tagIds)
-        )
-      );
-
-    const existingTagIds = new Set(existingTags.map((tag) => tag.tag_id));
-
-    // Create values array for new associations
-    const newAssociations = tagIds
-      .filter((tagId) => !existingTagIds.has(tagId))
-      .map((tagId) => ({
-        project_id: contentId,
-        project_slug: contentSlug,
-        tag_id: tagId,
-      }));
-
-    // Remove tags that are no longer needed
-    await db
-      .delete(project_tags)
-      .where(
-        and(
-          eq(project_tags.project_id, contentId),
-          sql`${project_tags.tag_id} NOT IN ${tagIds}`
-        )
-      );
-
-    // Add new associations if any
-    if (newAssociations.length > 0) {
-      await db.insert(project_tags).values(newAssociations);
-    }
-  });
-
-  // Clear cache after modification
   tagQueryCache.clear();
 }

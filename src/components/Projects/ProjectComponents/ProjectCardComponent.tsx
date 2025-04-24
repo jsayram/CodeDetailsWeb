@@ -235,7 +235,7 @@ export const ProjectCard = React.memo(
             {tags.length > 0 && (
               <div className="mt-auto mb-2">
                 <div className="flex flex-wrap gap-1">
-                  {tags.slice(0, 5).map((tag, index) => (
+                  {tags.slice(0, 3).map((tag, index) => (
                     <Badge
                       key={index}
                       variant={project.deleted_at ? "destructive" : "outline"}
@@ -245,13 +245,13 @@ export const ProjectCard = React.memo(
                       {tag}
                     </Badge>
                   ))}
-                  {tags.length > 2 && (
+                  {tags.length > 3 && (
                     <Badge
                       variant={project.deleted_at ? "destructive" : "outline"}
                       onClick={handleChildClick}
                       className={`badge text-xs ${project.deleted_at ? 'bg-red-950/40 text-red-200/70 hover:bg-red-900/30' : ''}`}
                     >
-                      +{tags.length - 2}
+                      +{tags.length - 3}
                     </Badge>
                   )}
                 </div>

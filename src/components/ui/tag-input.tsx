@@ -1,16 +1,14 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from "react";
-import { PlusIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Tag } from "./tag";
 import { TagInfo } from "@/db/operations/tag-operations";
 import { cn } from "@/lib/utils";
 import { Input } from "./input";
-import { Button } from "./button";
 
 interface TagInputProps extends React.HTMLAttributes<HTMLDivElement> {
   tags: TagInfo[];
   onAddTag: (tagId: string) => Promise<void>;
   onRemoveTag: (tagId: string) => Promise<void>;
-  onCreateTag?: (tagName: string) => Promise<{ id: string } | null>;
   searchTags: (query: string) => Promise<TagInfo[]>;
   placeholder?: string;
   disabled?: boolean;
@@ -20,7 +18,6 @@ export function TagInput({
   tags,
   onAddTag,
   onRemoveTag,
-  onCreateTag,
   searchTags,
   placeholder = "Add a tag...",
   disabled = false,
@@ -49,7 +46,7 @@ export function TagInput({
           setSuggestions(filteredResults);
           setShowSuggestions(true);
         } catch (error) {
-          console.error("Error searching for tags:", error);
+          console.error("Error searching tags:", error);
         } finally {
           setLoading(false);
         }
@@ -59,11 +56,11 @@ export function TagInput({
       }
     };
 
-    const debounce = setTimeout(search, 300);
-    return () => clearTimeout(debounce);
+    const timeoutId = setTimeout(search, 300);
+    return () => clearTimeout(timeoutId);
   }, [inputValue, searchTags, tags]);
 
-  // Close suggestions when clicking outside
+  // Close suggestions on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -72,9 +69,7 @@ export function TagInput({
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [containerRef]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,8 +95,6 @@ export function TagInput({
         e.preventDefault();
         if (selectedSuggestionIndex >= 0) {
           await handleSelectTag(suggestions[selectedSuggestionIndex]);
-        } else if (inputValue.trim() && onCreateTag) {
-          await handleCreateTag();
         }
         break;
       case "Escape":
@@ -116,25 +109,6 @@ export function TagInput({
     setSuggestions([]);
     setShowSuggestions(false);
     inputRef.current?.focus();
-  };
-
-  const handleCreateTag = async () => {
-    if (!onCreateTag || !inputValue.trim()) return;
-    
-    try {
-      setLoading(true);
-      const result = await onCreateTag(inputValue.trim());
-      if (result) {
-        await onAddTag(result.id);
-      }
-    } catch (error) {
-      console.error("Error creating tag:", error);
-    } finally {
-      setLoading(false);
-      setInputValue("");
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
   };
 
   return (
@@ -175,54 +149,25 @@ export function TagInput({
               </div>
             )}
           </div>
-          
-          {onCreateTag && (
-            <Button
-              type="button"
-              onClick={handleCreateTag}
-              disabled={!inputValue.trim() || disabled || loading}
-              variant="outline"
-              size="icon"
-              title="Create new tag"
-            >
-              <PlusIcon className="h-4 w-4" />
-              <span className="sr-only">Create tag</span>
-            </Button>
-          )}
         </div>
-        
-        {/* Tag suggestions dropdown */}
-        {showSuggestions && (
-          <div className="absolute z-50 w-full mt-1 py-1 bg-popover text-popover-foreground rounded-md border border-border shadow-md max-h-60 overflow-auto">
-            {loading ? (
-              <div className="p-2 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Loading tags...</span>
-              </div>
-            ) : suggestions.length > 0 ? (
-              <ul className="py-1">
-                {suggestions.map((suggestion, index) => (
-                  <li 
-                    key={suggestion.id}
-                    onClick={() => handleSelectTag(suggestion)}
-                    className={cn(
-                      "px-3 py-2 text-sm cursor-pointer flex items-center",
-                      index === selectedSuggestionIndex 
-                        ? "bg-accent text-accent-foreground" 
-                        : "hover:bg-accent hover:text-accent-foreground"
-                    )}
-                  >
-                    {suggestion.name}
-                  </li>
-                ))}
-              </ul>
-            ) : inputValue.trim() && onCreateTag ? (
-              <div className="p-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground" onClick={handleCreateTag}>
-                <span className="text-muted-foreground">Create tag:</span> {inputValue}
-              </div>
-            ) : (
-              <div className="p-2 text-sm text-muted-foreground">No matches found</div>
-            )}
+
+        {/* Suggestions dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+            <ul className="py-1">
+              {suggestions.map((suggestion, index) => (
+                <li
+                  key={suggestion.id}
+                  className={cn(
+                    "px-3 py-2 cursor-pointer hover:bg-accent",
+                    selectedSuggestionIndex === index && "bg-accent"
+                  )}
+                  onClick={() => handleSelectTag(suggestion)}
+                >
+                  {suggestion.name}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

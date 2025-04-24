@@ -1,5 +1,8 @@
 import { FormEvent } from "react";
-import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
+import { PROJECT_CATEGORIES, ProjectCategory as BaseProjectCategory } from "@/constants/project-categories";
+import { TagInfo } from "@/db/operations/tag-operations";
+
+export type ProjectCategory = BaseProjectCategory;
 
 /**
  * Error type for project form validation
@@ -7,7 +10,6 @@ import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categor
 export interface ProjectFormErrors {
   title?: string;
   slug?: string;
-  tags?: string;
   description?: string;
   category?: string;
   server?: string;
@@ -19,7 +21,6 @@ export interface ProjectFormErrors {
 export interface ProjectFormData {
   title: string;
   slug: string;
-  tags: string;
   description: string;
   category: ProjectCategory;
 }
@@ -27,11 +28,16 @@ export interface ProjectFormData {
 /**
  * Validates a project form data
  * @param data Project form data to validate
+ * @param tags Optional list of tags for validation
  * @returns An object containing validation errors, empty if valid
  */
-export const validateProjectForm = (data: ProjectFormData): ProjectFormErrors => {
+export const validateProjectForm = (
+  data: ProjectFormData,
+  tags?: TagInfo[]
+): ProjectFormErrors => {
   const errors: ProjectFormErrors = {};
 
+  // Title validation
   if (!data.title || data.title.trim().length === 0) {
     errors.title = "Title is required";
   } else if (data.title.length < 3) {
@@ -40,15 +46,23 @@ export const validateProjectForm = (data: ProjectFormData): ProjectFormErrors =>
     errors.title = "Title must be less than 100 characters";
   }
 
+  // Slug validation
   if (!data.slug || data.slug.trim().length === 0) {
     errors.slug = "Slug is required";
   } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug)) {
-    errors.slug =
-      "Slug must contain only lowercase letters, numbers, and hyphens";
+    errors.slug = "Slug must contain only lowercase letters, numbers, and hyphens";
+  } else if (data.slug.length > 100) {
+    errors.slug = "Slug must be less than 100 characters";
   }
 
+  // Category validation
   if (!data.category || !(data.category in PROJECT_CATEGORIES)) {
     errors.category = "Please select a valid category";
+  }
+
+  // Description length validation
+  if (data.description && data.description.length > 1000) {
+    errors.description = "Description must be less than 1000 characters";
   }
 
   return errors;
@@ -60,18 +74,26 @@ export const validateProjectForm = (data: ProjectFormData): ProjectFormErrors =>
 export const handleFormSubmit = async (
   e: FormEvent,
   formData: ProjectFormData,
-  validateFn: (data: ProjectFormData) => ProjectFormErrors,
+  validateFn: (data: ProjectFormData, tags?: TagInfo[]) => ProjectFormErrors,
   setErrors: (errors: ProjectFormErrors) => void,
-  onSuccess: () => Promise<void>
+  onSuccess: () => Promise<void>,
+  tags?: TagInfo[]
 ) => {
   e.preventDefault();
   setErrors({});
 
-  const errors = validateFn(formData);
+  const errors = validateFn(formData, tags);
   if (Object.keys(errors).length > 0) {
     setErrors(errors);
     return;
   }
 
-  await onSuccess();
+  try {
+    await onSuccess();
+  } catch (error) {
+    console.error("Form submission error:", error);
+    setErrors({
+      server: error instanceof Error ? error.message : "An unknown error occurred",
+    });
+  }
 };
