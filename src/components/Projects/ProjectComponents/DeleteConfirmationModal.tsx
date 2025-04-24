@@ -41,12 +41,12 @@ export function DeleteConfirmationModal({
           <DialogDescription className="text-red-200/70">
             This project will be removed from community projects and sent to the digital graveyard.
             You can find it later in the deleted projects section.
-            {projectCategory && (
-              <p className="mt-2 text-red-200/70">
-                Category: {PROJECT_CATEGORIES[projectCategory].label}
-              </p>
-            )}
           </DialogDescription>
+          {projectCategory && (
+            <span className="text-sm text-red-200/70 mt-2">
+              Category: {PROJECT_CATEGORIES[projectCategory].label}
+            </span>
+          )}
         </DialogHeader>
 
         <div className="py-4">

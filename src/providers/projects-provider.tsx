@@ -166,9 +166,12 @@ export function ProjectsProvider({
     setProjects((prev) =>
       prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
     );
-    // Only force a refresh if it's been more than 30 seconds since last fetch
+    
+    // Don't trigger a refresh since we've already updated the local state
+    // Only refresh if the last fetch was more than 5 minutes ago
     const now = Date.now();
-    if (now - lastFetchRef.current.timestamp >= 30000) {
+    if (now - lastFetchRef.current.timestamp >= 300000) { // 5 minutes
+      console.log("🔄 Last fetch was > 5 minutes ago, refreshing data");
       await refreshProjects();
     }
   };
