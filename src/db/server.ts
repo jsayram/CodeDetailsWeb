@@ -35,14 +35,37 @@ class DatabaseClient {
     // Clean up any existing listeners from previous instances
     this.removeExistingListeners();
 
-    // Create a PostgreSQL connection with proper connection pool configuration
-    this.client = postgres(process.env.DATABASE_URL!, {
-      max: 5, // Reduced max connections
-      idle_timeout: 20,
-      connect_timeout: 10,
-      max_lifetime: 60 * 30, // Max connection lifetime of 30 minutes
-    });
+    // Create a PostgreSQL connection with proper connection pool configuration and retry logic
+    const maxRetries = 3;
+    const retryInterval = 2000; // 2 seconds
 
+    const createConnection = (attempt = 1): ReturnType<typeof postgres> => {
+      try {
+        return postgres(process.env.DATABASE_URL!, {
+          max: 5, // Reduced max connections
+          idle_timeout: 20,
+          connect_timeout: 10,
+          max_lifetime: 60 * 30, // Max connection lifetime of 30 minutes
+          connection: {
+            application_name: 'CodeDetails',
+          },
+          transform: {
+            undefined: null,
+          },
+          onnotice: (notice: { message?: string; severity?: string }) => {
+            console.log('Database notice:', notice.message ?? notice);
+          },
+        });
+      } catch (error) {
+        if (attempt < maxRetries) {
+          console.log(`Connection failed, retrying (attempt ${attempt + 1}/${maxRetries})...`);
+          return createConnection(attempt + 1);
+        }
+        throw error;
+      }
+    };
+
+    this.client = createConnection();
     this.db = drizzle(this.client, { schema });
 
     // Initialize shutdown handler

@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
 import { getPendingTagSubmissions } from "@/app/actions/tag-submissions";
+import { TagList } from "@/components/TagList";
 
 // Type definitions for the component props
 interface StatsCardProps {
@@ -245,6 +246,16 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <TagSubmissionManagement initialSubmissions={submissions} />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Tag List</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TagList />
                 </CardContent>
               </Card>
             </div>

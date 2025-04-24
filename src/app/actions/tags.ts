@@ -1,7 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
 import {
   TagInfo,
   addTagToContent,
@@ -13,6 +11,7 @@ import {
 } from "@/db/operations/tag-operations";
 import { executeQuery } from "@/db/server";
 import { tags } from "@/db/schema";
+import { searchTags as dbSearchTags } from "@/db/operations/tag-operations";
 
 // Fixed content type for this file
 const PROJECT_CONTENT_TYPE = "project" as const;
@@ -150,5 +149,17 @@ export async function createTagAction(name: string) {
       success: false,
       message: error instanceof Error ? error.message : "Failed to create tag",
     };
+  }
+}
+
+/**
+ * Fetch all tags
+ */
+export async function getTags(): Promise<TagInfo[]> {
+  try {
+    return await dbSearchTags();
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    throw new Error('Failed to fetch tags');
   }
 }
