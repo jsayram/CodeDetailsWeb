@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Project } from "@/types/models/project";
 import { useIsBrowser } from "@/hooks/use-is-browser";
 import { useProjects } from "@/providers/projects-provider";
+import { useTagCache } from "@/hooks/use-tag-cache";
 
 // Component imports
 import { ProjectFormBase } from "./ProjectFormBase";
@@ -39,6 +40,9 @@ export function UpdateProjectModal({
   // Create a local copy of the project to avoid reference issues
   const [localProject, setLocalProject] = useState<Project | null>(null);
   
+  // Access tag cache hook
+  const { refreshCache } = useTagCache();
+
   // Update local state when project prop changes
   useEffect(() => {
     if (project) {
@@ -46,6 +50,13 @@ export function UpdateProjectModal({
       setLocalProject(JSON.parse(JSON.stringify(project)));
     }
   }, [project, isOpen]);
+
+  // Refresh tag cache when modal is opened
+  useEffect(() => {
+    if (isOpen) {
+      refreshCache();
+    }
+  }, [isOpen, refreshCache]);
 
   // Handle successful project update
   const handleProjectUpdated = (updatedProject: Project) => {

@@ -19,6 +19,8 @@ import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/providers/projects-provider";
 import { ClientOnly } from "@/components/ClientOnly";
+import { searchTagsAction } from "@/app/actions/tags";
+import { useTagCache } from "@/hooks/use-tag-cache";
 
 interface TagSubmissionModalProps {
   projectId: string;
@@ -26,7 +28,7 @@ interface TagSubmissionModalProps {
 }
 
 // Validation function for tag names
-const validateTagName = (tag: string): { isValid: boolean; message?: string } => {
+const validateTagName = async (tag: string): Promise<{ isValid: boolean; message?: string }> => {
   const normalized = tag.trim().toLowerCase();
   
   if (!normalized) {
@@ -54,6 +56,7 @@ const validateTagName = (tag: string): { isValid: boolean; message?: string } =>
 export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalProps) {
   const { user, isLoaded } = useUser();
   const { projects } = useProjects();
+  const { refreshCache } = useTagCache();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tagInput, setTagInput] = useState("");
@@ -89,16 +92,30 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
     }
   };
 
-  const processTagInput = (input: string) => {
-    const tags = input
+  const processTagInput = async (input: string) => {
+    setProcessedTags([]); // Clear existing tags while processing
+    
+    // Keep track of normalized tags we've seen
+    const seenNormalizedTags = new Set<string>();
+    
+    const tagPromises = input
       .split(',')
       .map(tag => ({ 
         original: tag,
         normalized: tag.trim().toLowerCase()
       }))
       .filter(({ normalized }) => normalized) // Remove empty tags
-      .map(({ normalized }) => {
-        const validation = validateTagName(normalized);
+      .filter(({ normalized }) => {
+        // If we've seen this normalized tag before, filter it out
+        if (seenNormalizedTags.has(normalized)) {
+          return false;
+        }
+        // Otherwise, add it to our set and keep it
+        seenNormalizedTags.add(normalized);
+        return true;
+      })
+      .map(async ({ normalized }) => {
+        const validation = await validateTagName(normalized);
         return {
           name: normalized,
           isValid: validation.isValid,
@@ -106,8 +123,10 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
         };
       });
 
-    setProcessedTags(tags);
-    const hasInvalid = tags.some(tag => !tag.isValid);
+    const processedResults = await Promise.all(tagPromises);
+    setProcessedTags(processedResults);
+    
+    const hasInvalid = processedResults.some(tag => !tag.isValid);
     setTagError(hasInvalid ? "Please fix invalid tags" : null);
     return !hasInvalid;
   };
@@ -119,7 +138,7 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
       return;
     }
 
-    const isValid = processTagInput(tagInput);
+    const isValid = await processTagInput(tagInput);
     if (!isValid) return;
 
     setIsSubmitting(true);
@@ -127,27 +146,71 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
     try {
       // Submit each valid tag as a separate submission
       const validTags = processedTags.filter(tag => tag.isValid);
+      const results = [];
+      const errors = [];
+      const autoApproved = [];
       
       for (const tag of validTags) {
-        await submitNewTag(tag.name, projectId, email, description);
+        try {
+          const result = await submitNewTag(tag.name, projectId, email, description);
+          if (result.status === "auto_approved") {
+            autoApproved.push(tag.name);
+          } else {
+            results.push(result);
+          }
+        } catch (error: any) {
+          errors.push(`${tag.name}: ${error?.message || 'Unknown error occurred'}`);
+        }
       }
 
-      const message = validTags.length === 1
-        ? "Tag submission received! Once approved, it will be automatically connected to this project."
-        : `${validTags.length} tag submissions received! Once approved, they will be automatically connected to this project.`;
+      // If any tags were auto-approved, refresh the tag cache
+      if (autoApproved.length > 0) {
+        await refreshCache();
+      }
 
-      toast.success(message);
-      setOpen(false);
-      
-      // Reset form
-      setTagInput("");
-      setEmail("");
-      setDescription("");
-      setProcessedTags([]);
-      setTagError(null);
+      if (errors.length > 0) {
+        // Show errors for failed submissions
+        toast.error(
+          <div>
+            <p>Some tags could not be submitted:</p>
+            <ul className="list-disc pl-4 mt-2">
+              {errors.map((error, i) => (
+                <li key={i}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      }
 
-      // Call onSubmit callback to refresh pending tags
-      onSubmit?.();
+      // Show message for auto-approved tags
+      if (autoApproved.length > 0) {
+        toast.success(
+          `${autoApproved.join(", ")} ${autoApproved.length === 1 ? "has" : "have"} been automatically added to your project`
+        );
+      }
+
+      // Show message for pending tags
+      if (results.length > 0) {
+        const message = results.length === 1
+          ? "Tag submission received! Once approved, it will be automatically connected to this project."
+          : `${results.length} tag submissions received! Once approved, they will be automatically connected to this project.`;
+        toast.success(message);
+      }
+
+      // If any tags were processed successfully (either auto-approved or submitted)
+      if (results.length > 0 || autoApproved.length > 0) {
+        setOpen(false);
+        
+        // Reset form
+        setTagInput("");
+        setEmail("");
+        setDescription("");
+        setProcessedTags([]);
+        setTagError(null);
+
+        // Call onSubmit callback to refresh pending tags and project tags
+        onSubmit?.();
+      }
     } catch (error) {
       toast.error("Failed to submit tag(s). Please try again.");
     } finally {
