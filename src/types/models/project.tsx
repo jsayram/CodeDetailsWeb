@@ -9,7 +9,7 @@ import { ProjectCategory } from "@/constants/project-categories";
 export interface Project extends DrizzleProject {
   // Application-specific fields
   formattedDate?: string; // Human-readable date
-  isBookmarked?: boolean; // UI state for user preferences
+  isFavorite?: boolean; // UI state for user favorites
   displayBadge?: boolean; // UI presentation flag
   readableSlug?: string; // User-friendly version of the slug
   
@@ -17,10 +17,17 @@ export interface Project extends DrizzleProject {
   // The tags array is added to the project by the getProjectTagNames() function
   tags?: string[];
   
-  // Owner information
-  owner_username?: string; // Username of project owner
-  owner_email?: string; // Email of project owner
-  owner_profile_image_url?: string; // Avatar URL of project owner
+  // Profile relationship fields
+  profile?: {
+    username: string | null;
+    email_address: string | null;
+    profile_image_url: string | null;
+  };
+  
+  // Legacy owner information (kept for backwards compatibility)
+  owner_username?: string | null; // Username of project owner
+  owner_email?: string | null; // Email of project owner
+  owner_profile_image_url?: string | null; // Avatar URL of project owner
   
   // Category information
   category: ProjectCategory;
@@ -28,11 +35,21 @@ export interface Project extends DrizzleProject {
 
 // Helper function to convert from DrizzleProject to Project interface
 export function mapDrizzleProjectToProject(
-  drizzleProject: DrizzleProject
+  drizzleProject: DrizzleProject & {
+    owner_username?: string | null;
+    owner_email?: string | null;
+    owner_profile_image_url?: string | null;
+  }
 ): Project {
   return {
     ...drizzleProject,
     category: (drizzleProject.category || "web") as ProjectCategory,
+    // Map to profile object
+    profile: {
+      username: drizzleProject.owner_username || null,
+      email_address: drizzleProject.owner_email || null,
+      profile_image_url: drizzleProject.owner_profile_image_url || null
+    }
   };
 }
 
@@ -40,6 +57,6 @@ export function mapDrizzleProjectToProject(
 export function mapProjectToDrizzle(
   project: Project
 ): Omit<DrizzleProject, "id" | "created_at" | "updated_at" | "deleted_at"> {
-  const { formattedDate, isBookmarked, displayBadge, readableSlug, owner_username, owner_email, owner_profile_image_url, ...dbFields } = project;
+  const { formattedDate, isFavorite, displayBadge, readableSlug, owner_username, owner_email, owner_profile_image_url, ...dbFields } = project;
   return dbFields;
 }

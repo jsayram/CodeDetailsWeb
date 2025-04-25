@@ -27,7 +27,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 
 //used for the pagination height
 //imperative that this is used as this is tied to pagination height
@@ -132,7 +131,7 @@ export function ProjectList({
     if (showUserProjectsOnly && userId) {
       filtered = filtered.filter((project) => project.user_id === userId);
     } else if (showFavoritesOnly) {
-      filtered = filtered.filter((project) => project.isBookmarked);
+      filtered = filtered.filter((project) => project.isFavorite);
     } else if (filters.showMyProjects && userId) {
       filtered = filtered.filter((project) => project.user_id === userId);
     } else if (filter?.userId) {

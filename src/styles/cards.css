@@ -200,54 +200,130 @@
   min-width: 100%;
 }
 
-.mobile-card-view thead {
-  display: none;
+/* Mobile view styles (default for small screens) */
+@media (max-width: 767px) {
+  .mobile-card-view thead {
+    display: none;
+  }
+
+  .mobile-card-view tbody tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.5rem;
+    background-color: var(--card);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .mobile-card-view tbody td {
+    display: grid;
+    grid-template-columns: 40% 60%;
+    padding: 0.5rem;
+    border: none;
+    text-align: left;
+    border-bottom: 1px solid var(--muted);
+  }
+
+  .mobile-card-view tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .mobile-card-view tbody td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--muted-foreground);
+    padding-right: 0.5rem;
+  }
+
+  .mobile-card-view td[data-label="Actions"] {
+    padding-top: 0.75rem;
+  }
+
+  .mobile-card-view td[data-label="Tags"] .badge {
+    margin-top: 0.25rem;
+  }
+
+  .mobile-card-view td[data-label="Title"] span {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--foreground);
+  }
+
+  .mobile-card-view td[data-label="Description"] p {
+    margin-top: 0.25rem;
+  }
 }
 
-.mobile-card-view tbody tr {
-  display: block;
-  margin-bottom: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.5rem;
-  background-color: var(--card);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+/* Desktop view styles */
+@media (min-width: 768px) {
+  .mobile-card-view {
+    overflow-x: auto;
+  }
 
-.mobile-card-view tbody td {
-  display: grid;
-  grid-template-columns: 40% 60%;
-  padding: 0.5rem;
-  border: none;
-  text-align: left;
-  border-bottom: 1px solid var(--muted);
-}
+  .mobile-card-view thead {
+    display: table-header-group;
+  }
 
-.mobile-card-view tbody td:last-child {
-  border-bottom: none;
-}
+  .mobile-card-view tbody tr {
+    display: table-row;
+  }
 
-.mobile-card-view tbody td:before {
-  content: attr(data-label);
-  font-weight: 600;
-  color: var(--muted-foreground);
-  padding-right: 0.5rem;
-}
+  .mobile-card-view tbody td {
+    display: table-cell;
+    padding: 1rem;
+    text-align: left;
+    vertical-align: middle;
+  }
 
-.mobile-card-view td[data-label="Actions"] {
-  padding-top: 0.75rem;
-}
+  .mobile-card-view tbody td:before {
+    display: none;
+  }
 
-.mobile-card-view td[data-label="Tags"] .badge {
-  margin-top: 0.25rem;
-}
+  .mobile-card-view td[data-label] {
+    padding: 1rem;
+  }
 
-.mobile-card-view td[data-label="Title"] span {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--foreground);
-}
+  .mobile-card-view table {
+    border-collapse: collapse;
+    width: 100%;
+  }
 
-.mobile-card-view td[data-label="Description"] p {
-  margin-top: 0.25rem;
+  .mobile-card-view thead tr {
+    background-color: var(--muted);
+    border-bottom: 2px solid var(--border);
+  }
+
+  .mobile-card-view th {
+    font-weight: 600;
+    text-align: left;
+    padding: 1rem;
+  }
+
+  .mobile-card-view tbody tr {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    background: none;
+    box-shadow: none;
+  }
+
+  .mobile-card-view tbody tr:hover {
+    background-color: var(--muted);
+  }
+
+  .mobile-card-view td[data-label="Actions"] {
+    width: 200px;
+  }
+
+  .mobile-card-view td[data-label="Tags"] {
+    width: 150px;
+  }
+
+  .mobile-card-view td[data-label="Category"] {
+    width: 120px;
+  }
+
+  .mobile-card-view td[data-label="Created"] {
+    width: 120px;
+  }
 }

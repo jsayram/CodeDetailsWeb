@@ -128,8 +128,8 @@ export const ProjectCard = React.memo(
       if (isCurrentUserProject) {
         return "Your Project";
       }
-      return project.owner_username || "Unknown user";
-    }, [isCurrentUserProject, project.owner_username]);
+      return project.profile?.username || project.profile?.email_address || "Unknown user";
+    }, [isCurrentUserProject, project.profile]);
 
     return (
       <>
@@ -289,9 +289,9 @@ export const ProjectCard = React.memo(
           <div className="card-footer h-auto sm:h-[50px] bg-secondary/10 p-2 sm:p-3 flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <Avatar className="h-7 w-7">
-                {project.owner_profile_image_url ? (
+                {project.profile?.profile_image_url ? (
                   <AvatarImage
-                    src={project.owner_profile_image_url}
+                    src={project.profile.profile_image_url}
                     alt={displayUsername}
                   />
                 ) : (
