@@ -8,6 +8,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const resolvedParams = await params; // Await params to resolve it
+    const projectId = resolvedParams.id; // Access id after resolving params
+
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "pending";
     const submitterEmail = searchParams.get("email");
@@ -25,7 +28,7 @@ export async function GET(
         .from(tag_submissions)
         .where(
           and(
-            eq(tag_submissions.project_id, params.id),
+            eq(tag_submissions.project_id, projectId),
             eq(tag_submissions.status, status),
             eq(tag_submissions.submitter_email, submitterEmail)
           )
