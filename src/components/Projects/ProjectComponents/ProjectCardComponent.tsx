@@ -167,18 +167,14 @@ export const ProjectCard = React.memo(
     return (
       <>
         <Card
-          className={`project-card card-container overflow-hidden w-full transition-all duration-200 hover:shadow-md relative cursor-pointer group
-            ${
-              project.deleted_at
-                ? "bg-gray-950/80 border-red-900/30 hover:border-red-800/50 shadow-red-900/5"
-                : ""
-            }`}
+          className={`group relative overflow-hidden w-full transition-all duration-200 project-card
+            ${project.deleted_at ? "bg-gray-950/80 border-red-900/30" : ""}`}
           onClick={() => onViewDetails?.(project.id)}
         >
           {/* Only show favorite button for non-deleted projects */}
           {!project.deleted_at && (
             <button
-              className="absolute top-2 right-2 p-3 sm:p-2 rounded-full bg-background/80 backdrop-blur-sm
+              className="absolute top-4 right-4 p-3 sm:p-2 rounded-full bg-background/80 backdrop-blur-sm
                       hover:bg-background text-muted-foreground hover:text-accent transition-colors 
                       opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 z-10"
               onClick={(e) => {
@@ -198,12 +194,11 @@ export const ProjectCard = React.memo(
 
           {/* Show different action buttons based on deleted status */}
           {project.deleted_at ? (
-            // Deleted project actions
             <>
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 rounded-full bg-green-950/80 hover:bg-green-900 text-green-500 hover:text-green-400
+                className="absolute top-4 right-4 rounded-full bg-green-950/80 hover:bg-green-900 text-green-500 hover:text-green-400
                         opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                 onClick={handleRestore}
                 aria-label="Restore project"
@@ -213,7 +208,7 @@ export const ProjectCard = React.memo(
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-14 rounded-full bg-red-950/80 hover:bg-red-900 text-red-500 hover:text-red-400
+                className="absolute top-4 right-16 rounded-full bg-red-950/80 hover:bg-red-900 text-red-500 hover:text-red-400
                         opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                 onClick={handlePermanentDelete}
                 aria-label="Permanently delete project"
@@ -222,13 +217,12 @@ export const ProjectCard = React.memo(
               </Button>
             </>
           ) : (
-            // Non-deleted project actions
             <>
               {onDeleteProject && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-14 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-red-500
+                  className="absolute top-4 right-16 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-red-500
                           opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                   onClick={handleDeleteClick}
                   aria-label="Delete project"
@@ -241,7 +235,7 @@ export const ProjectCard = React.memo(
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-2 right-26 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-blue-500
+                  className="absolute top-4 right-28 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-blue-500
                           opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -256,10 +250,10 @@ export const ProjectCard = React.memo(
           )}
 
           {/* Content area */}
-          <div className="card-content p-3 mt-5 sm:p-5 flex flex-col flex-grow">
+          <div className="card-content">
             {/* Project title and description */}
             <h3
-              className={`card-title text-base sm:text-lg font-semibold mb-2 line-clamp-2 ${
+              className={`text-base sm:text-lg font-semibold mb-2 line-clamp-2 ${
                 project.deleted_at ? "text-red-200/70" : ""
               }`}
             >
@@ -271,7 +265,7 @@ export const ProjectCard = React.memo(
               )}
             </h3>
             <p
-              className={`card-description line-clamp-2 text-xs sm:text-sm text-muted-foreground flex-grow mb-3 ${
+              className={`card-description text-xs sm:text-sm text-muted-foreground ${
                 project.deleted_at ? "text-red-400/40" : ""
               }`}
             >
@@ -280,16 +274,16 @@ export const ProjectCard = React.memo(
                 : project.description || "No description provided"}
             </p>
 
-            {/* Tags (show if available) */}
+            {/* Tags section */}
             {tags.length > 0 && (
-              <div className="mt-auto mb-2">
-                <div className="flex flex-wrap gap-1">
+              <div className="mt-3 mb-2">
+                <div className="flex flex-wrap gap-1.5">
                   {tags.slice(0, 3).map((tag, index) => (
                     <Badge
                       key={index}
                       variant={project.deleted_at ? "destructive" : "outline"}
                       onClick={handleChildClick}
-                      className={`badge text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] ${
+                      className={`text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] ${
                         project.deleted_at
                           ? "bg-red-950/40 text-red-200/70 hover:bg-red-900/30"
                           : ""
@@ -302,7 +296,7 @@ export const ProjectCard = React.memo(
                     <Badge
                       variant={project.deleted_at ? "destructive" : "outline"}
                       onClick={handleChildClick}
-                      className={`badge text-xs ${
+                      className={`text-xs ${
                         project.deleted_at
                           ? "bg-red-950/40 text-red-200/70 hover:bg-red-900/30"
                           : ""
@@ -316,10 +310,10 @@ export const ProjectCard = React.memo(
             )}
 
             {/* Project metadata */}
-            <div className="mt-auto flex items-center justify-between">
+            <div className="mt-auto pt-2 flex items-center justify-between">
               <Badge
                 variant={project.deleted_at ? "destructive" : "secondary"}
-                className={`badge capitalize bg-gray-100 text-gray-800 ${
+                className={`capitalize ${
                   project.deleted_at ? "bg-red-950/40 text-red-200/70" : ""
                 }`}
                 onClick={handleChildClick}
@@ -338,17 +332,17 @@ export const ProjectCard = React.memo(
                   }`}
                   onClick={handleChildClick}
                 >
-                  <ExternalLink size={14} className="mr-1" />
+                  <ExternalLink size={14} className="mr-1.5" />
                   Source
                 </a>
               )}
             </div>
           </div>
 
-          {/* Fixed height footer */}
-          <div className="card-footer h-auto sm:h-[50px] bg-secondary/10 p-2 sm:p-3 flex justify-between items-center">
+          {/* Card footer */}
+          <div className="card-footer">
             <div className="flex items-center space-x-2">
-              <Avatar className="h-7 w-7">
+              <Avatar className="h-8 w-8">
                 {project.profile?.profile_image_url ? (
                   <AvatarImage
                     src={project.profile.profile_image_url}
@@ -356,7 +350,7 @@ export const ProjectCard = React.memo(
                   />
                 ) : (
                   <AvatarFallback className="bg-muted text-xs font-medium">
-                    {userInitials || <User className="h-3.5 w-3.5" />}
+                    {userInitials || <User className="h-4 w-4" />}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -374,7 +368,7 @@ export const ProjectCard = React.memo(
               variant="default"
               size="sm"
               onClick={handleChildClick}
-              className="card-button text-xs sm:text-sm px-2 sm:px-3 h-8"
+              className="card-button"
             >
               View Details
             </Button>

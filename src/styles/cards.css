@@ -1,17 +1,13 @@
 /* Project Cards and Grid Layout */
 
-/* Fixed dimensions for project cards to prevent layout shifts */
+/* Fixed dimensions for project cards */
 .project-card {
-  height: auto;
-  min-height: 400px;
+  height: 400px;
+  width: 100%;
   max-width: 400px;
-  min-width: 300px;
-  justify-content: space-around;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  aspect-ratio: 16 / 13;
-  margin: 0 auto; /* Center the card within its grid cell */
-  width: 100%; /* Take full width up to max-width */
 }
 
 /* Card inner elements */
@@ -19,311 +15,79 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-/* Card title */
-.card-title {
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
+  height: calc(100% - 60px); /* Increased space for footer */
+  padding: 1.5rem;
   overflow: hidden;
 }
 
 /* Card description */
 .card-description {
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: 0.5rem 0;
 }
 
 /* Card footer */
 .card-footer {
+  height: 60px; /* Increased height */
+  width: 100%;
+  padding: 0.75rem 1.5rem;
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--card);
 }
 
 /* Button standardization */
 .card-button {
-  height: 32px !important;
-  min-width: 32px !important;
-  padding: 0 12px !important;
-  font-size: 0.875rem !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  height: 32px;
+  min-width: 32px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Action buttons in cards */
-.project-card button[aria-label] {
-  width: 32px !important;
-  height: 32px !important;
-  padding: 6px !important;
-}
-
-/* Project grid styling for clean snapping and responsive layout */
+/* Project grid styling */
 .project-grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
   width: 100%;
-  grid-auto-rows: 2fr;
-  justify-items: center; /* Center items horizontally */
-  align-items: center; /* Center items vertically */
+  gap: 2rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  justify-items: stretch;
+  align-items: stretch;
 }
 
-/* Table card view on mobile */
-.mobile-card-view tbody td {
-  grid-template-columns: 100%;
-  padding: 0.25rem 0.5rem;
+/* Mobile and Responsive breakpoints */
+@media (max-width: 767px) {
+  .project-card {
+    height: 400px;
+  }
+  
+  .card-content {
+    padding: 1.25rem;
+  }
+
+  .card-footer {
+    padding: 0.75rem 1.25rem;
+  }
 }
 
-.mobile-card-view tbody td:before {
-  margin-bottom: 0.25rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px dashed var(--border);
-}
-
-.mobile-card-view td[data-label="Description"] {
-  padding-bottom: 0.75rem;
-}
-
-.mobile-card-view td[data-label="Actions"] > div {
-  justify-content: center;
-  margin-top: 0.25rem;
-}
-
-/* Grid breakpoints */
-@media (min-width: 640px) {
+/* Tablet - Adjusted to snap to 2 columns sooner */
+@media (min-width: 768px) and (max-width: 1279px) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1024px) {
+/* Desktop - Only use 3 columns on larger screens */
+@media (min-width: 1280px) {
   .project-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-/* ----- RESPONSIVE BREAKPOINTS ----- */
-
-/* Extra small devices (phones, 480px and down) */
-@media (max-width: 480px) {
-  .project-card {
-    min-height: 260px;
-    aspect-ratio: auto;
-  }
-
-  .card-content {
-    padding: 0.75rem !important;
-  }
-
-  .card-title {
-    font-size: 1rem !important;
-    line-height: 1.3 !important;
-  }
-
-  .card-description {
-    font-size: 0.75rem !important;
-    line-height: 1.2 !important;
-  }
-
-  .card-button {
-    font-size: 0.75rem !important;
-    padding-left: 0.5rem !important;
-    padding-right: 0.5rem !important;
-    height: 1.75rem !important;
-  }
-
-  /* Mobile card view specific styles */
-  .mobile-card-view tbody td {
-    grid-template-columns: 100%;
-    padding: 0.25rem 0.5rem;
-  }
-
-  .mobile-card-view td[data-label="Description"] {
-    padding-bottom: 0.75rem;
-  }
-
-  .mobile-card-view td[data-label="Actions"] > div {
-    justify-content: center;
-    margin-top: 0.25rem;
-  }
-}
-
-/* Extra small screens (360px and below) */
-@media (max-width: 360px) {
-  .project-filters {
-    margin-bottom: 3rem;  /* Increased bottom margin to prevent overlap */
-    padding-bottom: 1rem;
-  }
-  
-  .view-toggle-container {
-    margin-top: 0.5rem; /* Add some spacing above the view toggle buttons */
-  }
-}
-
-/* Small devices (phones, 481px - 640px) */
-@media (min-width: 481px) and (max-width: 640px) {
-  .project-card {
-    min-height: 280px;
-  }
-
-  .card-title {
-    font-size: 1.1rem !important;
-  }
-
-  .card-description {
-    font-size: 0.8rem !important;
-  }
-}
-
-/* Medium devices (tablets, 641px - 1024px) */
-@media (min-width: 641px) and (max-width: 1024px) {
-  .project-card {
-    min-height: 320px;
-  }
-
-  .project-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-}
-
-/* Table & Mobile View Styles */
-.mobile-card-view {
-  overflow-x: visible;
-}
-
-.mobile-card-view table {
-  min-width: 100%;
-}
-
-/* Mobile view styles (default for small screens) */
-@media (max-width: 767px) {
-  .mobile-card-view thead {
-    display: none;
-  }
-
-  .mobile-card-view tbody tr {
-    display: block;
-    margin-bottom: 1rem;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.5rem;
-    background-color: var(--card);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  .mobile-card-view tbody td {
-    display: grid;
-    grid-template-columns: 40% 60%;
-    padding: 0.5rem;
-    border: none;
-    text-align: left;
-    border-bottom: 1px solid var(--muted);
-  }
-
-  .mobile-card-view tbody td:last-child {
-    border-bottom: none;
-  }
-
-  .mobile-card-view tbody td:before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--muted-foreground);
-    padding-right: 0.5rem;
-  }
-
-  .mobile-card-view td[data-label="Actions"] {
-    padding-top: 0.75rem;
-  }
-
-  .mobile-card-view td[data-label="Tags"] .badge {
-    margin-top: 0.25rem;
-  }
-
-  .mobile-card-view td[data-label="Title"] span {
-    font-weight: 600;
-    font-size: 1.1rem;
-    color: var(--foreground);
-  }
-
-  .mobile-card-view td[data-label="Description"] p {
-    margin-top: 0.25rem;
-  }
-}
-
-/* Desktop view styles */
-@media (min-width: 768px) {
-  .mobile-card-view {
-    overflow-x: auto;
-  }
-
-  .mobile-card-view thead {
-    display: table-header-group;
-  }
-
-  .mobile-card-view tbody tr {
-    display: table-row;
-  }
-
-  .mobile-card-view tbody td {
-    display: table-cell;
-    padding: 1rem;
-    text-align: left;
-    vertical-align: middle;
-  }
-
-  .mobile-card-view tbody td:before {
-    display: none;
-  }
-
-  .mobile-card-view td[data-label] {
-    padding: 1rem;
-  }
-
-  .mobile-card-view table {
-    border-collapse: collapse;
-    width: 100%;
-  }
-
-  .mobile-card-view thead tr {
-    background-color: var(--muted);
-    border-bottom: 2px solid var(--border);
-  }
-
-  .mobile-card-view th {
-    font-weight: 600;
-    text-align: left;
-    padding: 1rem;
-  }
-
-  .mobile-card-view tbody tr {
-    border: none;
-    border-bottom: 1px solid var(--border);
-    background: none;
-    box-shadow: none;
-  }
-
-  .mobile-card-view tbody tr:hover {
-    background-color: var(--muted);
-  }
-
-  .mobile-card-view td[data-label="Actions"] {
-    width: 200px;
-  }
-
-  .mobile-card-view td[data-label="Tags"] {
-    width: 150px;
-  }
-
-  .mobile-card-view td[data-label="Category"] {
-    width: 120px;
-  }
-
-  .mobile-card-view td[data-label="Created"] {
-    width: 120px;
   }
 }

@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useIsBrowser } from "@/lib/ClientSideUtils";
 
-const MOBILE_BREAKPOINT = 960;
+// Match Tailwind's md breakpoint (768px)
+const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
   const isBrowser = useIsBrowser();
