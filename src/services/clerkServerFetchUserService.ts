@@ -38,7 +38,18 @@ export async function fetchClerkUser(
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Clerk API error (${response.status}): ${errorText}`);
+      // Handle 404 specifically
+      if (response.status === 404) {
+        return {
+          data: null,
+          error: new Error(`User not found: ${userId}`),
+        };
+      }
+      // Handle other error cases
+      return {
+        data: null,
+        error: new Error(`Clerk API error (${response.status}): ${errorText}`),
+      };
     }
 
     const user = await response.json();

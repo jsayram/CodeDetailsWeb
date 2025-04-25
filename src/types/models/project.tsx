@@ -22,13 +22,10 @@ export interface Project extends DrizzleProject {
     username: string | null;
     email_address: string | null;
     profile_image_url: string | null;
+    full_name: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
   };
-  
-  // Legacy owner information (kept for backwards compatibility)
-  owner_username?: string | null; // Username of project owner
-  owner_email?: string | null; // Email of project owner
-  owner_profile_image_url?: string | null; // Avatar URL of project owner
-  
   // Category information
   category: ProjectCategory;
 }
@@ -39,6 +36,9 @@ export function mapDrizzleProjectToProject(
     owner_username?: string | null;
     owner_email?: string | null;
     owner_profile_image_url?: string | null;
+    owner_full_name?: string | null;
+    owner_first_name?: string | null;
+    owner_last_name?: string | null;
   }
 ): Project {
   return {
@@ -48,7 +48,10 @@ export function mapDrizzleProjectToProject(
     profile: {
       username: drizzleProject.owner_username || null,
       email_address: drizzleProject.owner_email || null,
-      profile_image_url: drizzleProject.owner_profile_image_url || null
+      profile_image_url: drizzleProject.owner_profile_image_url || null,
+      full_name: drizzleProject.owner_full_name || null,
+      first_name: drizzleProject.owner_first_name || null,
+      last_name: drizzleProject.owner_last_name || null,
     }
   };
 }
@@ -57,6 +60,6 @@ export function mapDrizzleProjectToProject(
 export function mapProjectToDrizzle(
   project: Project
 ): Omit<DrizzleProject, "id" | "created_at" | "updated_at" | "deleted_at"> {
-  const { formattedDate, isFavorite, displayBadge, readableSlug, owner_username, owner_email, owner_profile_image_url, ...dbFields } = project;
+  const { formattedDate, isFavorite, displayBadge, readableSlug, ...dbFields } = project;
   return dbFields;
 }

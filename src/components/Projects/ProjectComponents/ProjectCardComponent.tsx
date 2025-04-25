@@ -8,22 +8,15 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Heart, Trash2, Edit, User, Undo2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { permanentlyDeleteProject, restoreProject } from "@/app/actions/projects";
+import {
+  permanentlyDeleteProject,
+  restoreProject,
+} from "@/app/actions/projects";
 import { toast } from "sonner";
 import { PermanentDeleteConfirmationModal } from "./PermanentDeleteConfirmationModal";
 import { RestoreProjectConfirmationModal } from "./RestoreProjectConfirmationModal";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
-
-// Get initials for avatar fallback
-const getInitials = (name: string) => {
-  if (!name) return "";
-  return name
-    .split(" ")
-    .map((part) => part?.[0] || "")
-    .join("")
-    .toUpperCase()
-    .substring(0, 2);
-};
+import { getInitials } from "@/utils/stringUtils";
 
 interface ProjectCardProps {
   project: Project;
@@ -47,7 +40,8 @@ export const ProjectCard = React.memo(
     const { userId } = useAuth();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
-    const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
+    const [showPermanentDeleteModal, setShowPermanentDeleteModal] =
+      useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
 
     // Prevent event bubbling for interactive elements inside the card
@@ -64,22 +58,22 @@ export const ProjectCard = React.memo(
     const handlePermanentDeleteConfirm = async () => {
       if (!userId) return;
       setIsDeleting(true);
-      
+
       try {
         const result = await permanentlyDeleteProject(project.id, userId);
         setShowPermanentDeleteModal(false);
-        
+
         if (result.success) {
-          toast.success('Project permanently deleted');
+          toast.success("Project permanently deleted");
           if (onDeleteProject) {
             onDeleteProject(project.id, true); // Pass true to indicate permanent deletion
           }
         } else {
-          toast.error(result.error || 'Failed to delete project permanently');
+          toast.error(result.error || "Failed to delete project permanently");
         }
       } catch (error) {
-        console.error('Error permanently deleting project:', error);
-        toast.error('An error occurred while deleting the project');
+        console.error("Error permanently deleting project:", error);
+        toast.error("An error occurred while deleting the project");
       } finally {
         setIsDeleting(false);
       }
@@ -94,22 +88,22 @@ export const ProjectCard = React.memo(
     const handleRestoreConfirm = async () => {
       if (!userId) return;
       setIsRestoring(true);
-      
+
       try {
         const result = await restoreProject(project.id, userId);
         setShowRestoreModal(false);
-        
+
         if (result.success) {
-          toast.success('Project restored successfully');
+          toast.success("Project restored successfully");
           if (onDeleteProject) {
             onDeleteProject(project.id, true); // Pass true to skip the graveyard dialog
           }
         } else {
-          toast.error(result.error || 'Failed to restore project');
+          toast.error(result.error || "Failed to restore project");
         }
       } catch (error) {
-        console.error('Error restoring project:', error);
-        toast.error('An error occurred while restoring the project');
+        console.error("Error restoring project:", error);
+        toast.error("An error occurred while restoring the project");
       } finally {
         setIsRestoring(false);
       }
@@ -139,13 +133,34 @@ export const ProjectCard = React.memo(
       if (isCurrentUserProject) {
         return "Your Project";
       }
-      return project.profile?.username || project.profile?.email_address || "Unknown user";
+      
+      // First try full name
+      if (project.profile?.full_name) {
+        return project.profile.full_name;
+      }
+      
+      // Then try to combine first and last name if either exists
+      if (project.profile?.first_name || project.profile?.last_name) {
+        return [project.profile.first_name, project.profile.last_name]
+          .filter(Boolean)  // Remove null/undefined values
+          .join(" ")
+          .trim();
+      }
+      
+      // Fall back to username or email
+      return project.profile?.username?.split("@")[0] ||
+             project.profile?.email_address?.split("@")[0] ||
+             "Unknown user";
     }, [isCurrentUserProject, project.profile]);
 
     // Get initials for the avatar fallback
     const userInitials = useMemo(() => {
-      // Try to get initials from username first, then email
-      const nameForInitials = project.profile?.username || project.profile?.email_address?.split("@")[0] || "??";
+      // Try to get initials from full name first, then username, then email
+      const nameForInitials =
+      project.profile?.full_name ||
+      project.profile?.username?.split("@")[0] ||
+      project.profile?.email_address?.split("@")[0] ||
+        "??";
       return getInitials(nameForInitials);
     }, [project.profile]);
 
@@ -153,7 +168,11 @@ export const ProjectCard = React.memo(
       <>
         <Card
           className={`project-card card-container overflow-hidden w-full transition-all duration-200 hover:shadow-md relative cursor-pointer group
-            ${project.deleted_at ? 'bg-gray-950/80 border-red-900/30 hover:border-red-800/50 shadow-red-900/5' : ''}`}
+            ${
+              project.deleted_at
+                ? "bg-gray-950/80 border-red-900/30 hover:border-red-800/50 shadow-red-900/5"
+                : ""
+            }`}
           onClick={() => onViewDetails?.(project.id)}
         >
           {/* Only show favorite button for non-deleted projects */}
@@ -166,7 +185,9 @@ export const ProjectCard = React.memo(
                 e.stopPropagation();
                 onToggleFavorite?.(project.id, !isFavorite);
               }}
-              aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              aria-label={
+                isFavorite ? "Remove from favorites" : "Add to favorites"
+              }
             >
               <Heart
                 size={18}
@@ -237,7 +258,11 @@ export const ProjectCard = React.memo(
           {/* Content area */}
           <div className="card-content p-3 mt-5 sm:p-5 flex flex-col flex-grow">
             {/* Project title and description */}
-            <h3 className={`card-title text-base sm:text-lg font-semibold mb-2 line-clamp-2 ${project.deleted_at ? 'text-red-200/70' : ''}`}>
+            <h3
+              className={`card-title text-base sm:text-lg font-semibold mb-2 line-clamp-2 ${
+                project.deleted_at ? "text-red-200/70" : ""
+              }`}
+            >
               {project.title}
               {project.deleted_at && (
                 <span className="ml-2 inline-flex items-center text-xs font-normal text-red-500/70">
@@ -245,9 +270,13 @@ export const ProjectCard = React.memo(
                 </span>
               )}
             </h3>
-            <p className={`card-description line-clamp-2 text-xs sm:text-sm text-muted-foreground flex-grow mb-3 ${project.deleted_at ? 'text-red-400/40' : ''}`}>
-              {project.description && project.description.length > 120 
-                ? `${project.description.substring(0, 120)}...` 
+            <p
+              className={`card-description line-clamp-2 text-xs sm:text-sm text-muted-foreground flex-grow mb-3 ${
+                project.deleted_at ? "text-red-400/40" : ""
+              }`}
+            >
+              {project.description && project.description.length > 120
+                ? `${project.description.substring(0, 120)}...`
                 : project.description || "No description provided"}
             </p>
 
@@ -260,7 +289,11 @@ export const ProjectCard = React.memo(
                       key={index}
                       variant={project.deleted_at ? "destructive" : "outline"}
                       onClick={handleChildClick}
-                      className={`badge text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] ${project.deleted_at ? 'bg-red-950/40 text-red-200/70 hover:bg-red-900/30' : ''}`}
+                      className={`badge text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[100px] ${
+                        project.deleted_at
+                          ? "bg-red-950/40 text-red-200/70 hover:bg-red-900/30"
+                          : ""
+                      }`}
                     >
                       #{tag}
                     </Badge>
@@ -269,7 +302,11 @@ export const ProjectCard = React.memo(
                     <Badge
                       variant={project.deleted_at ? "destructive" : "outline"}
                       onClick={handleChildClick}
-                      className={`badge text-xs ${project.deleted_at ? 'bg-red-950/40 text-red-200/70 hover:bg-red-900/30' : ''}`}
+                      className={`badge text-xs ${
+                        project.deleted_at
+                          ? "bg-red-950/40 text-red-200/70 hover:bg-red-900/30"
+                          : ""
+                      }`}
                     >
                       +{tags.length - 3}
                     </Badge>
@@ -282,10 +319,13 @@ export const ProjectCard = React.memo(
             <div className="mt-auto flex items-center justify-between">
               <Badge
                 variant={project.deleted_at ? "destructive" : "secondary"}
-                className={`badge capitalize bg-gray-100 text-gray-800 ${project.deleted_at ? 'bg-red-950/40 text-red-200/70' : ''}`}
+                className={`badge capitalize bg-gray-100 text-gray-800 ${
+                  project.deleted_at ? "bg-red-950/40 text-red-200/70" : ""
+                }`}
                 onClick={handleChildClick}
               >
-                {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                {PROJECT_CATEGORIES[project.category]?.label ||
+                  project.category}
               </Badge>
 
               {project.slug && (
@@ -293,7 +333,9 @@ export const ProjectCard = React.memo(
                   href={project.slug}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center text-xs sm:text-sm text-muted-foreground hover:text-foreground ${project.deleted_at ? 'text-red-400/50' : ''}`}
+                  className={`inline-flex items-center text-xs sm:text-sm text-muted-foreground hover:text-foreground ${
+                    project.deleted_at ? "text-red-400/50" : ""
+                  }`}
                   onClick={handleChildClick}
                 >
                   <ExternalLink size={14} className="mr-1" />
@@ -319,7 +361,9 @@ export const ProjectCard = React.memo(
                 )}
               </Avatar>
               <span
-                className={`text-xs truncate max-w-[120px] ${project.deleted_at ? 'text-red-400/50' : ''}`}
+                className={`text-xs truncate max-w-[120px] ${
+                  project.deleted_at ? "text-red-400/50" : ""
+                }`}
                 title={displayUsername}
               >
                 {displayUsername}

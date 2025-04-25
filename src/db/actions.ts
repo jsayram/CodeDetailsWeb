@@ -196,7 +196,7 @@ export async function updateProjectServer(
  */
 export async function getAccessibleProjectsServer(
   userId: string,
-  userTier?: string // Kept for backward compatibility but not used for filtering
+  userTier?: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
     console.log(`Finding projects for user ID: ${userId}`);
@@ -206,9 +206,15 @@ export async function getAccessibleProjectsServer(
       .select({
         project: projects,
         profile: {
+          id: profiles.id,
+          user_id: profiles.user_id,
           username: profiles.username,
+          full_name: profiles.full_name,
+          profile_image_url: profiles.profile_image_url,
+          tier: profiles.tier,
           email_address: profiles.email_address,
-          profile_image_url: profiles.profile_image_url
+          created_at: profiles.created_at,
+          updated_at: profiles.updated_at,
         },
         tags: sql<string[]>`array_agg(${tags.name})`
       })
@@ -216,16 +222,24 @@ export async function getAccessibleProjectsServer(
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
       .leftJoin(tags, eq(tags.id, project_tags.tag_id))
-      .groupBy(projects.id, profiles.username, profiles.email_address, profiles.profile_image_url)
+      .groupBy(projects.id, profiles.id, profiles.user_id, profiles.username, profiles.full_name, 
+               profiles.profile_image_url, profiles.tier, profiles.email_address, 
+               profiles.created_at, profiles.updated_at)
       .orderBy(desc(projects.created_at));
 
     // Map the results to the expected format
     return projectsData.map(({ project, profile, tags }) => ({
       ...project,
       tags: tags?.filter(Boolean) || [], // Filter out null values and provide empty array fallback
+      owner_id: profile?.id || null,
+      owner_user_id: profile?.user_id || null,
       owner_username: profile?.username || null,
-      owner_email: profile?.email_address || null,
-      owner_profile_image_url: profile?.profile_image_url || null
+      owner_full_name: profile?.full_name || null,
+      owner_profile_image_url: profile?.profile_image_url || null,
+      owner_tier: profile?.tier || null,
+      owner_email_address: profile?.email_address || null,
+      owner_created_at: profile?.created_at || null,
+      owner_updated_at: profile?.updated_at || null
     }));
   });
 }
@@ -242,9 +256,15 @@ export async function getUserProjectsServer(
       .select({
         project: projects,
         profile: {
+          id: profiles.id,
+          user_id: profiles.user_id,
           username: profiles.username,
+          full_name: profiles.full_name,
+          profile_image_url: profiles.profile_image_url,
+          tier: profiles.tier,
           email_address: profiles.email_address,
-          profile_image_url: profiles.profile_image_url
+          created_at: profiles.created_at,
+          updated_at: profiles.updated_at,
         },
         tags: sql<string[]>`array_agg(${tags.name})`
       })
@@ -253,16 +273,24 @@ export async function getUserProjectsServer(
       .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
       .leftJoin(tags, eq(tags.id, project_tags.tag_id))
       .where(eq(projects.user_id, userId))
-      .groupBy(projects.id, profiles.username, profiles.email_address, profiles.profile_image_url)
+      .groupBy(projects.id, profiles.id, profiles.user_id, profiles.username, profiles.full_name,
+               profiles.profile_image_url, profiles.tier, profiles.email_address,
+               profiles.created_at, profiles.updated_at)
       .orderBy(desc(projects.created_at));
 
     // Map the results to the expected format
     return projectsData.map(({ project, profile, tags }) => ({
       ...project,
       tags: tags?.filter(Boolean) || [], // Filter out null values and provide empty array fallback
+      owner_id: profile?.id || null,
+      owner_user_id: profile?.user_id || null,
       owner_username: profile?.username || null,
-      owner_email: profile?.email_address || null,
-      owner_profile_image_url: profile?.profile_image_url || null
+      owner_full_name: profile?.full_name || null,
+      owner_profile_image_url: profile?.profile_image_url || null,
+      owner_tier: profile?.tier || null,
+      owner_email_address: profile?.email_address || null,
+      owner_created_at: profile?.created_at || null,
+      owner_updated_at: profile?.updated_at || null
     }));
   });
 }
