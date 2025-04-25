@@ -301,9 +301,6 @@ export default function DarkModeTestPage() {
                           backgroundColor: `var(--chart-${(index % 5) + 1})`,
                         }}
                       ></div>
-                      <span className="text-xs text-muted-foreground">
-                        Category {index + 1}: {value}%
-                      </span>
                     </div>
                   ))}
                 </div>

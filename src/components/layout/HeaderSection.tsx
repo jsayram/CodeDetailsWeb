@@ -137,7 +137,7 @@ export function HeaderSection({
               {/* Hamburger menu button - only visible on small screens if enabled */}
               {showMobileMenu && (
                 <button
-                  className="p-2 rounded-md hover:bg-muted/10 transition-colors h-10 w-10 flex items-center justify-center sm:hidden"
+                  className="p-2 rounded-md hover:bg-muted/10 transition-colors h-10 w-10 flex items-center justify-center xs:hidden"
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   aria-label="Toggle menu"
                 >

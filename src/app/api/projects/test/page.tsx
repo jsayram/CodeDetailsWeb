@@ -21,16 +21,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { DebugJwt } from "@/components/debug/page";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import {
-  getAllFreeProjects,
-  getAllProProjects,
-  getAllDiamondProjects,
-  getProjectsByTier,
-} from "@/app/actions/projects";
+import { API_ROUTES } from "@/constants/api-routes";
 import { Project } from "@/types/models/project";
-import { canAccessTier } from "@/services/tierServiceServer";
 import { toast } from "sonner";
 import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
+import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 
 export default function ProjectApiTest() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -39,21 +34,17 @@ export default function ProjectApiTest() {
   const [isLoading, setIsLoading] = useState(false);
   const { token } = useSupabaseToken();
 
-  // User tier state
-  const [userTier, setUserTier] = useState<string>("free");
-
   // Form states
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState("");
   const [tier, setTier] = useState("free");
-  const [difficulty, setDifficulty] = useState("beginner");
+  const [category, setCategory] = useState<ProjectCategory>("web");
 
-  // Load initial projects and fetch user tier
+  // Load initial projects
   useEffect(() => {
     fetchProjects();
-    fetchUserTier();
   }, []);
 
   // Helper to format responses for display
@@ -61,113 +52,25 @@ export default function ProjectApiTest() {
     return JSON.stringify(data, null, 2);
   };
 
-  // Fetch the user's current tier
-  const fetchUserTier = async () => {
-    try {
-      // In a real application, you would get this from your authentication system
-      // Here we're making a call to the API to get the user's tier
-      const response = await fetch("/api/tiers/user-tier");
-      const data = await response.json();
-
-      if (data.success && data.tier) {
-        console.log(`User tier fetched: ${data.tier}`);
-        setUserTier(data.tier);
-      } else {
-        // Default to 'free' if there's an issue
-        console.log("Using default free tier");
-        setUserTier("free");
-      }
-    } catch (error) {
-      console.error("Error fetching user tier:", error);
-      setUserTier("free"); // Default to free tier on error
-    }
-  };
-
-  // Helper to check if user has access to a specific tier
-  const checkTierAccess = (contentTier: string): boolean => {
-    // Use the canAccessTier function to determine if the user can access this tier
-    const hasAccess = canAccessTier(userTier, contentTier);
-
-    if (!hasAccess) {
-      setApiResponse(
-        formatResponse({
-          success: false,
-          error: `Access denied: Your tier (${userTier}) doesn't have access to ${contentTier} tier projects`,
-        })
-      );
-    }
-
-    return hasAccess;
-  };
-
-  // Fetch projects using the appropriate server action based on tier and difficulty
+  // Fetch projects using the appropriate server action based on category and tier
   const fetchProjects = async (
     filterTier?: string,
-    filterDifficulty?: string
+    filterCategory?: ProjectCategory
   ) => {
     setIsLoading(true);
     try {
-      let fetchedProjects: Project[] = [];
+      const url = API_ROUTES.PROJECTS.WITH_FILTERS({
+        showAll: true,
+        category: filterCategory,
+      });
 
-      // If we have a tier filter, use the appropriate tier-specific server action
-      if (filterTier) {
-        console.log(`Fetching projects with tier: ${filterTier}`);
+      const response = await fetch(url);
+      const data = await response.json();
+      setApiResponse(formatResponse(data));
 
-        // Use the tier-specific server actions for better performance
-        switch (filterTier) {
-          case "free":
-            fetchedProjects = await getAllFreeProjects();
-            break;
-          case "pro":
-            fetchedProjects = await getAllProProjects();
-            break;
-          case "diamond":
-            fetchedProjects = await getAllDiamondProjects();
-            break;
-          default:
-            // Use the generic function for any other tier
-            fetchedProjects = await getProjectsByTier(filterTier);
-        }
-
-        // Format the response for the API response display
-        setApiResponse(
-          formatResponse({
-            success: true,
-            data: fetchedProjects,
-            message: `Projects fetched with tier: ${filterTier}`,
-          })
-        );
-      } else {
-        // If no tier filter, fetch all projects through the API
-        console.log("Fetching all projects");
-        const response = await fetch("/api/projects");
-        const data = await response.json();
-        setApiResponse(formatResponse(data));
-
-        if (data.success && data.data) {
-          fetchedProjects = data.data;
-        }
+      if (data.success && data.data) {
+        setProjects(data.data);
       }
-
-      // Apply difficulty filter if specified (client-side filtering)
-      if (filterDifficulty && fetchedProjects.length > 0) {
-        console.log(`Filtering by difficulty: ${filterDifficulty}`);
-        fetchedProjects = fetchedProjects.filter(
-          (p) => p.difficulty === filterDifficulty
-        );
-
-        setApiResponse(
-          formatResponse({
-            success: true,
-            data: fetchedProjects,
-            message: `Projects filtered by tier: ${
-              filterTier || "all"
-            } and difficulty: ${filterDifficulty}`,
-          })
-        );
-      }
-
-      setProjects(fetchedProjects);
     } catch (error) {
       console.error("Error fetching projects:", error);
       setApiResponse(
@@ -188,9 +91,7 @@ export default function ProjectApiTest() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/projects?slug=${encodeURIComponent(slug)}`
-      );
+      const response = await fetch(API_ROUTES.PROJECTS.BY_SLUG(slug));
       const data = await response.json();
       setApiResponse(formatResponse(data));
       if (data.success && data.data) {
@@ -213,12 +114,6 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to create a project with this tier
-    if (!checkTierAccess(tier)) {
-      toast.error(`You don't have permission to create ${tier} tier projects`);
-      return;
-    }
-
     setIsLoading(true);
     try {
       const projectData = {
@@ -227,10 +122,10 @@ export default function ProjectApiTest() {
         description,
         tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
         tier,
-        difficulty,
+        category,
       };
 
-      const response = await fetch("/api/projects", {
+      const response = await fetch(API_ROUTES.PROJECTS.BASE, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -243,7 +138,6 @@ export default function ProjectApiTest() {
 
       if (data.success) {
         toast.success("Project created successfully!");
-        // Clear form and refresh projects
         clearForm();
         fetchProjects();
       }
@@ -271,20 +165,6 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to the tier they're trying to set
-    if (!checkTierAccess(tier)) {
-      toast.error(`You don't have permission to set projects to ${tier} tier`);
-      return;
-    }
-
-    // Check if user has access to the selected project's tier
-    if (!checkTierAccess(selectedProject.tier)) {
-      toast.error(
-        `You don't have permission to modify ${selectedProject.tier} tier projects`
-      );
-      return;
-    }
-
     setIsLoading(true);
     try {
       const projectData = {
@@ -293,16 +173,19 @@ export default function ProjectApiTest() {
         description,
         tags: tags ? tags.split(",").map((tag) => tag.trim()) : [],
         tier,
-        difficulty,
+        category,
       };
 
-      const response = await fetch(`/api/projects?id=${selectedProject.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(projectData),
-      });
+      const response = await fetch(
+        API_ROUTES.PROJECTS.BY_ID(selectedProject.id),
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(projectData),
+        }
+      );
 
       const data = await response.json();
       setApiResponse(formatResponse(data));
@@ -330,33 +213,13 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to the selected project's tier
-    if (!checkTierAccess(selectedProject.tier)) {
-      toast.error(
-        `You don't have permission to modify ${selectedProject.tier} tier projects`
-      );
-      return;
-    }
-
     // Build an object with only the fields that have values
     const updateData: Partial<Project> = {};
     if (title) updateData.title = title;
     if (slug) updateData.slug = slug;
     if (description) updateData.description = description;
     if (tags) updateData.tags = tags.split(",").map((tag) => tag.trim());
-
-    // Check tier access if trying to change tier
-    if (tier && tier !== selectedProject.tier) {
-      if (!checkTierAccess(tier)) {
-        toast.error(
-          `You don't have permission to set projects to ${tier} tier`
-        );
-        return;
-      }
-      updateData.tier = tier;
-    }
-
-    if (difficulty) updateData.difficulty = difficulty;
+    if (category) updateData.category = category;
 
     if (Object.keys(updateData).length === 0) {
       setApiResponse(
@@ -367,13 +230,16 @@ export default function ProjectApiTest() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/projects?id=${selectedProject.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
-      });
+      const response = await fetch(
+        API_ROUTES.PROJECTS.BY_ID(selectedProject.id),
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updateData),
+        }
+      );
 
       const data = await response.json();
       setApiResponse(formatResponse(data));
@@ -401,14 +267,6 @@ export default function ProjectApiTest() {
       return;
     }
 
-    // Check if user has access to the selected project's tier
-    if (!checkTierAccess(selectedProject.tier)) {
-      toast.error(
-        `You don't have permission to delete ${selectedProject.tier} tier projects`
-      );
-      return;
-    }
-
     if (
       !confirm(`Are you sure you want to delete "${selectedProject.title}"?`)
     ) {
@@ -417,9 +275,12 @@ export default function ProjectApiTest() {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/projects?id=${selectedProject.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        API_ROUTES.PROJECTS.BY_ID(selectedProject.id),
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
       setApiResponse(formatResponse(data));
@@ -445,8 +306,7 @@ export default function ProjectApiTest() {
     setSlug(project.slug);
     setDescription(project.description || "");
     setTags(project.tags ? project.tags.join(", ") : "");
-    setTier(project.tier);
-    setDifficulty(project.difficulty);
+    setCategory(project.category);
   };
 
   // Clear the form
@@ -456,7 +316,7 @@ export default function ProjectApiTest() {
     setDescription("");
     setTags("");
     setTier("free");
-    setDifficulty("beginner");
+    setCategory("web");
   };
 
   // Generate a slug from title
@@ -491,7 +351,7 @@ export default function ProjectApiTest() {
               <CardHeader>
                 <CardTitle>Filter Projects</CardTitle>
                 <CardDescription>
-                  Filter projects by tier and difficulty
+                  Filter projects by tier and category
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -510,28 +370,31 @@ export default function ProjectApiTest() {
                   </div>
 
                   <div className="flex-1">
-                    <Select value={difficulty} onValueChange={setDifficulty}>
+                    <Select 
+                      value={category} 
+                      onValueChange={(value: ProjectCategory) => setCategory(value)}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select Difficulty" />
+                        <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">
-                          Intermediate
-                        </SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
+                        {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                          <SelectItem key={value} value={value as ProjectCategory}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <Button onClick={() => fetchProjects(tier, difficulty)}>
+                  <Button onClick={() => fetchProjects(tier, category)}>
                     Apply Filters
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setTier("free");
-                      setDifficulty("beginner");
+                      setCategory("web");
                       fetchProjects();
                     }}
                   >
@@ -573,16 +436,15 @@ export default function ProjectApiTest() {
                         <div className="flex gap-1 mt-1">
                           <Badge
                             variant={
-                              project.tier === "free"
+                              project.category === "web"
                                 ? "outline"
-                                : project.tier === "pro"
+                                : project.category === "mobile"
                                 ? "secondary"
                                 : "default"
                             }
                           >
-                            {project.tier}
+                            {PROJECT_CATEGORIES[project.category]?.label || project.category}
                           </Badge>
-                          <Badge variant="outline">{project.difficulty}</Badge>
                         </div>
                       </div>
                     ))
@@ -696,19 +558,22 @@ export default function ProjectApiTest() {
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="difficulty" className="font-medium">
-                      Difficulty Level
+                    <label htmlFor="category" className="font-medium">
+                      Category
                     </label>
-                    <Select value={difficulty} onValueChange={setDifficulty}>
-                      <SelectTrigger id="difficulty">
-                        <SelectValue placeholder="Select Difficulty" />
+                    <Select 
+                      value={category} 
+                      onValueChange={(value: ProjectCategory) => setCategory(value)}
+                    >
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">
-                          Intermediate
-                        </SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
+                        {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                          <SelectItem key={value} value={value as ProjectCategory}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

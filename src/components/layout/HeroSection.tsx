@@ -63,7 +63,7 @@ export const HeroSection = () => {
               <div className="absolute z-10">
                 {/* The actual image - responsive sizing but large on desktop */}
                 <Image
-                  className="transition-all duration-300 max-w-[200px] mt-[750px] ml-[50%] pt-20
+                  className="transition-all duration-300 max-w-[200px] mt-[750px] ml-[50%] pt-30
                      sm:ml-[70%] sm:max-w-[250px] sm:pt-40
                      md:pt-80 md:ml-[75%] md:w-[350px] md:max-w-[300px]
                      lg:max-w-md lg:pt-100 lg:mr-10
@@ -203,6 +203,13 @@ export const HeroSection = () => {
                 className: "text-xl font-medium cursor-text text-gray-400",
               },
               // Learn section - CLICKABLE
+              // Projects section - CLICKABLE
+              {
+                href: "/projects",
+                label: "Community-Projects",
+                clickable: true,
+                visibleOn: "all", // Default if not specified
+              },
               {
                 href: "/learn",
                 label: "Learn",
@@ -213,13 +220,6 @@ export const HeroSection = () => {
               {
                 href: "/implement",
                 label: "Implement",
-                clickable: true,
-                visibleOn: "all", // Default if not specified
-              },
-              // Projects section - CLICKABLE
-              {
-                href: "/projects",
-                label: "Projects",
                 clickable: true,
                 visibleOn: "all", // Default if not specified
               },

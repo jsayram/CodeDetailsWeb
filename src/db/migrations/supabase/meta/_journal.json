@@ -8,6 +8,34 @@
       "when": 1744480229874,
       "tag": "0000_nice_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1744818520175,
+      "tag": "0001_many_justice",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1744830138544,
+      "tag": "0002_living_oracle",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1744910000000,
+      "tag": "0003_assign_default_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1744837154897,
+      "tag": "0004_ambitious_big_bertha",
+      "breakpoints": true
     }
   ]
 }

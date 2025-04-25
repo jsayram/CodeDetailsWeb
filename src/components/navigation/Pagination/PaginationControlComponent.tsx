@@ -1,45 +1,39 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { useProjects } from "@/providers/projects-provider";
-import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
-import { useEffect, useState } from "react";
 
-interface PaginatedControlsProps {
+interface PaginationControlsProps {
   currentPage: number;
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
-  projectType: "free" | "authenticated";
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
 
-export function PaginatedControls({
+export function PaginationControls({
   currentPage,
-  setCurrentPage,
-  projectType,
-}: PaginatedControlsProps) {
-  const { projects, freeProjects } = useProjects();
+  totalPages,
+  onPageChange,
+}: PaginationControlsProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isVerySmallScreen, setIsVerySmallScreen] = useState(false);
 
-  // Check screen sizes
   useEffect(() => {
     const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768); // typical mobile breakpoint
-      setIsVerySmallScreen(window.innerWidth < 640); // very small screens
+      setIsMobile(window.innerWidth < 768);
+      setIsVerySmallScreen(window.innerWidth < 640);
     };
 
     checkScreenSize();
     let resizeTimeout: NodeJS.Timeout;
     const debouncedCheckScreenSize = () => {
       clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(checkScreenSize, 100); // Adjust debounce delay as needed
+      resizeTimeout = setTimeout(checkScreenSize, 100);
     };
 
     window.addEventListener("resize", debouncedCheckScreenSize);
@@ -50,160 +44,88 @@ export function PaginatedControls({
     };
   }, []);
 
-  const displayProjects = projectType === "free" ? freeProjects : projects;
-  const totalPages = Math.ceil(displayProjects.length / PROJECTS_PER_PAGE);
-
-  // Don't render pagination if there's only one page or no pages
   if (totalPages <= 1) return null;
 
-  const getVisiblePages = () => {
-    // Show at least 3 pages on mobile and 5 on desktop
-    const pagesAroundCurrent = isMobile ? 2 : 3;
-
-    // For small numbers of pages, show all of them
-    if (totalPages <= 5) {
-      const allPages = [];
-      for (let i = 1; i <= totalPages; i++) {
-        allPages.push(i);
-      }
-      return allPages;
-    }
-
-    // For larger numbers of pages, be strategic about which ones to show
-    // Always include at least the current page
-    let startPage = Math.max(2, currentPage - pagesAroundCurrent);
-    let endPage = Math.min(totalPages - 1, currentPage + pagesAroundCurrent);
-
-    // Ensure we always show at least 3 pages on mobile
-    if (isMobile) {
-      // If at the beginning, show pages 1-3
-      if (currentPage <= 2) {
-        startPage = 2;
-        endPage = Math.min(3, totalPages - 1);
-      }
-      // If at the end, show the last 3 pages
-      else if (currentPage >= totalPages - 1) {
-        startPage = Math.max(2, totalPages - 2);
-        endPage = totalPages - 1;
-      }
-    }
-
-    // Initialize with first page (always shown)
-    const pages: (number | string)[] = [1];
-
-    // Add ellipsis if there's a gap after page 1
-    if (startPage > 2) {
-      pages.push("ellipsis1");
-    }
-
-    // Add all pages in the calculated range
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    // Add ellipsis if there's a gap before the last page
-    if (endPage < totalPages - 1) {
-      pages.push("ellipsis2");
-    }
-
-    // Add last page (if more than one page exists)
-    if (totalPages > 1) {
-      pages.push(totalPages);
-    }
-
-    return pages;
-  };
-
-  const visiblePages = getVisiblePages();
-
   return (
-    <Pagination className="mt-4 mb-4 pagination-container text-base md:text-lg">
-      <PaginationContent className="gap-1 md:gap-2">
-        <PaginationItem>
+    <div className="mt-4">
+      <Pagination className="mb-5 pagination-container text-base md:text-lg">
+        <PaginationContent className="gap-1 md:gap-2">
+          <PaginationItem>
+            {isVerySmallScreen ? (
+              <button
+                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                className={`${
+                  currentPage === 1
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer"
+                } px-2 py-1 text-md font-medium rounded border border-gray-300`}
+                disabled={currentPage === 1}
+              >
+                Prev
+              </button>
+            ) : (
+              <PaginationPrevious
+                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                className={`${
+                  currentPage === 1
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer"
+                } px-3 md:px-4 py-2`}
+                aria-disabled={currentPage === 1}
+              />
+            )}
+          </PaginationItem>
+
           {isVerySmallScreen ? (
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className={`${
-                currentPage === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer"
-              } px-2 py-1 text-sm font-medium rounded border border-gray-300`}
-              disabled={currentPage === 1}
-            >
-              Prev
-            </button>
+            <span className="px-2 py-1 text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
           ) : (
-            <PaginationPrevious
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              className={`${
-                currentPage === 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer"
-              } px-3 md:px-4 py-2`}
-              aria-disabled={currentPage === 1}
-            />
-          )}
-        </PaginationItem>
-
-        {isVerySmallScreen ? (
-          <span className="px-2 py-1 text-sm">
-            Page {currentPage} of {totalPages}
-          </span>
-        ) : (
-          visiblePages.map((page, index) => {
-            if (page === "ellipsis1" || page === "ellipsis2") {
-              return (
-                <PaginationItem key={`ellipsis-${index}`}>
-                  <PaginationEllipsis className="pagination-ellipsis text-xl" />
-                </PaginationItem>
-              );
-            }
-
-            return (
-              <PaginationItem key={`page-${page}`}>
+            Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <PaginationItem key={page}>
                 <PaginationLink
                   isActive={currentPage === page}
-                  onClick={() =>
-                    typeof page === "number" ? setCurrentPage(page) : null
-                  }
+                  onClick={() => onPageChange(page)}
                   aria-current={currentPage === page ? "page" : undefined}
-                  className={`pagination-item-text flex items-center justify-center ${
-                    isMobile ? "h-10 w-10" : "h-10 w-10"
-                  }`}
+                  className="pagination-item-text flex items-center justify-center h-10 w-10"
                 >
                   {page}
                 </PaginationLink>
               </PaginationItem>
-            );
-          })
-        )}
-
-        <PaginationItem>
-          {isVerySmallScreen ? (
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className={`${
-                currentPage === totalPages
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer"
-              } px-2 py-1 text-sm font-medium rounded border border-gray-300`}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
-          ) : (
-            <PaginationNext
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              className={`${
-                currentPage === totalPages
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer"
-              } px-3 md:px-4 py-2`}
-              aria-disabled={currentPage === totalPages}
-            />
+            ))
           )}
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
+
+          <PaginationItem>
+            {isVerySmallScreen ? (
+              <button
+                onClick={() =>
+                  onPageChange(Math.min(totalPages, currentPage + 1))
+                }
+                className={`${
+                  currentPage === totalPages
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer"
+                } px-2 py-1 text-md font-medium rounded border border-gray-300`}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            ) : (
+              <PaginationNext
+                onClick={() =>
+                  onPageChange(Math.min(totalPages, currentPage + 1))
+                }
+                className={`${
+                  currentPage === totalPages
+                    ? "opacity-50 cursor-not-allowed"
+                    : "cursor-pointer"
+                } px-3 md:px-4 py-2`}
+                aria-disabled={currentPage === totalPages}
+              />
+            )}
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+    </div>
   );
 }

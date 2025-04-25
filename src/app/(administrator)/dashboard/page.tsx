@@ -1,11 +1,9 @@
-"use client";
-
 import React from "react";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { SignedIn, useUser } from "@clerk/nextjs";
+import { SignedIn } from "@clerk/nextjs";
 import { SidebarLoadingState } from "@/components/LoadingState/SidebarLoadingState";
 import {
   Card,
@@ -23,15 +21,86 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
+import { getPendingTagSubmissions } from "@/app/actions/tag-submissions";
+import { TagList } from "@/components/TagList";
 
-export default function DashboardPage() {
-  const { isLoaded } = useUser();
+// Type definitions for the component props
+interface StatsCardProps {
+  title: string;
+  value: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+interface ActivityItemProps {
+  title: string;
+  description: string;
+  timestamp: string;
+}
+
+interface ProjectItemProps {
+  title: string;
+  description: string;
+  progress: number;
+}
+
+// Simple stats card component
+function StatsCard({ title, value, description, icon }: StatsCardProps) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Activity item component
+function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
+  return (
+    <div className="flex flex-col space-y-1">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{timestamp}</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+// Project item with progress bar
+function ProjectItem({ title, description, progress }: ProjectItemProps) {
+  return (
+    <div className="flex flex-col space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{progress}%</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+      <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default async function DashboardPage() {
+  const submissions = await getPendingTagSubmissions();
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SidebarProvider>
         <SignedIn>
-          {!isLoaded ? <SidebarLoadingState /> : <AppSidebar />}
+          <AppSidebar />
         </SignedIn>
         <SidebarInset>
           <HeaderSection
@@ -65,9 +134,9 @@ export default function DashboardPage() {
                 icon={<Users className="h-4 w-4 text-primary" />}
               />
               <StatsCard
-                title="Code Reviews"
-                value="24"
-                description="7 awaiting review"
+                title="Pending Tags"
+                value={submissions.length.toString()}
+                description="Tag submissions awaiting review"
                 icon={<FileText className="h-4 w-4 text-primary" />}
               />
               <StatsCard
@@ -168,79 +237,33 @@ export default function DashboardPage() {
                 </CardFooter>
               </Card>
             </div>
+
+            {/* Tag Submissions Management Section */}
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Tag Submissions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TagSubmissionManagement initialSubmissions={submissions} />
+                </CardContent>
+              </Card>
+            </div>
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Tag List</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TagList />
+                </CardContent>
+              </Card>
+            </div>
           </main>
 
           <FooterSection />
         </SidebarInset>
       </SidebarProvider>
-    </div>
-  );
-}
-
-// Type definitions for the component props
-interface StatsCardProps {
-  title: string;
-  value: string;
-  description: string;
-  icon: React.ReactNode;
-}
-
-interface ActivityItemProps {
-  title: string;
-  description: string;
-  timestamp: string;
-}
-
-interface ProjectItemProps {
-  title: string;
-  description: string;
-  progress: number;
-}
-
-// Simple stats card component
-function StatsCard({ title, value, description, icon }: StatsCardProps) {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Activity item component
-function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
-  return (
-    <div className="flex flex-col space-y-1">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{timestamp}</p>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
-  );
-}
-
-// Project item with progress bar
-function ProjectItem({ title, description, progress }: ProjectItemProps) {
-  return (
-    <div className="flex flex-col space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{progress}%</p>
-      </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary rounded-full"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
     </div>
   );
 }

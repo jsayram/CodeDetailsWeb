@@ -42,9 +42,7 @@ export function NavProjects({
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>
-        <NextLink href="/projects">Projects</NextLink>
-      </SidebarGroupLabel>
+      <SidebarGroupLabel>Projects</SidebarGroupLabel>
       <SignedOut>
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">

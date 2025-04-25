@@ -1,31 +1,65 @@
 "use server";
 
+import { eq, sql } from "drizzle-orm";
 import {
   createProjectServer,
-  getProjectBySlugServer,
   getAccessibleProjectsServer,
-  getFreeProjectsServer,
   deleteProjectServer,
   updateProjectServer,
-  getProProjectsServer,
-  getDiamondProjectsServer,
-  getProjectsByTierServer,
+  getUserProjectsServer,
+  isProjectOwner,
+  getProjectTagNames,
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
+import { projects } from "@/db/schema/projects";
 import { revalidatePath } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
-import { type ValidTier } from "@/services/tierServiceServer";
+import { executeQuery } from "@/db/server";
 
-const pathToRevalidate = "/projects"; //TODO: Make this dynamic
+const pathToRevalidate = "/projects";
+
+export async function getProjectById(projectId: string) {
+  return executeQuery(async (db) => {
+    const results = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+
+    return results[0] || null;
+  });
+}
+
+// Get a single project by slug
+export async function getProjectBySlugServer(slug: string) {
+  return executeQuery(async (db) => {
+    const results = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.slug, slug))
+      .limit(1);
+
+    return results[0] || null;
+  });
+}
 
 // Server action to create a new project
-export async function createProject(project: InsertProject) {
+export async function createProject(project: InsertProject, userId: string) {
   try {
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to create a project",
+      };
+    }
+
     // Trim title and slug to ensure no leading/trailing spaces
     const trimmedProject = {
       ...project,
       title: project.title.trim(),
       slug: project.slug.trim(),
+      user_id: userId, // Always assign the user ID to the project
     };
 
     // Basic validation
@@ -76,8 +110,25 @@ export async function getProject(slug: string) {
 }
 
 // Server action to delete a project
-export async function removeProject(id: string) {
+export async function removeProject(id: string, userId: string) {
   try {
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to delete a project",
+      };
+    }
+
+    // First check if the user is the owner of this project
+    const isOwner = await isProjectOwner(id, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: "You don't have permission to delete this project",
+      };
+    }
+
     const deletedProject = await deleteProjectServer(id);
     revalidatePath(pathToRevalidate);
     return {
@@ -96,9 +147,27 @@ export async function removeProject(id: string) {
 // Server action to update a project
 export async function updateProject(
   id: string,
-  project: Partial<InsertProject>
+  project: Partial<InsertProject>,
+  userId: string
 ) {
   try {
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to update a project",
+      };
+    }
+
+    // First check if the user is the owner of this project
+    const isOwner = await isProjectOwner(id, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: "You don't have permission to update this project",
+      };
+    }
+
     // Create a new project object with trimmed values
     const trimmedProject = { ...project };
 
@@ -145,24 +214,20 @@ export async function updateProject(
   }
 }
 
-// Server action to get all projects accessible to a user based on their tier
-export async function getUserProjects(
-  userTier: ValidTier | string,
-  userId: string
-) {
-  console.log(
-    `Inside getUserProjects - Fetching projects for user with tier: ${userTier} befor try`
-  );
+// Server action to get all projects accessible to a user
+export async function getUserProjects(userId: string) {
   try {
-    console.log(`Fetching projects for user ${userId} with tier ${userTier}`);
+    console.log(`Fetching all projects for user ${userId}`);
 
     try {
-      // Pass both userId and userTier to get appropriate projects
-      const projects = await getAccessibleProjectsServer(userId, userTier);
+      // Pass userId to get all available projects (no tier filtering)
+      const projects = await getAccessibleProjectsServer(userId);
 
-      // Map the data to our Project typ
+      // Map the data to our Project type
       const mappedProjects = projects.map(mapDrizzleProjectToProject);
-      console.log(`Successfully fetched ${mappedProjects.length} projects`);
+      console.log(
+        `Successfully fetched ${mappedProjects.length} projects for user ${userId}`
+      );
       return mappedProjects;
     } catch (dbError) {
       console.error("Database error when getting projects:", dbError);
@@ -176,51 +241,154 @@ export async function getUserProjects(
   }
 }
 
-// Server action to get all free projects
-export async function getAllFreeProjects() {
+// Server action to get all projects (previously free tier only)
+export async function getAllProjects() {
   try {
-    const projects = await getFreeProjectsServer();
+    // Get all projects without tier filtering
+    const projects = await getAccessibleProjectsServer("anonymous");
 
     // Return the projects directly as an array, not wrapped in an object
     return projects.map(mapDrizzleProjectToProject);
   } catch (error) {
-    console.error("Failed to get free projects:", error);
+    console.error("Failed to get projects:", error);
     return [];
   }
 }
 
-// Server action to get all pro tier projects
-export async function getAllProProjects() {
+// Server action to get projects created by the current user
+export async function getUserOwnProjects(userId: string) {
   try {
-    const projects = await getProProjectsServer();
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required",
+      };
+    }
 
-    return projects.map(mapDrizzleProjectToProject);
+    console.log(`Fetching projects owned by user ${userId}`);
+    const projects = await getUserProjectsServer(userId);
+
+    // Map the data to our Project type
+    const mappedProjects = projects.map(mapDrizzleProjectToProject);
+    console.log(`Successfully fetched ${mappedProjects.length} user projects`);
+
+    return {
+      success: true,
+      data: mappedProjects,
+    };
   } catch (error) {
-    console.error("Failed to get pro tier projects:", error);
-    return [];
+    console.error("Failed to get user's own projects:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
   }
 }
 
-// Server action to get all diamond tier projects
-export async function getAllDiamondProjects() {
+// Server action to permanently delete a project
+export async function permanentlyDeleteProject(id: string, userId: string) {
   try {
-    const projects = await getDiamondProjectsServer();
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to delete a project",
+      };
+    }
 
-    return projects.map(mapDrizzleProjectToProject);
+    // First check if the user is the owner of this project
+    const isOwner = await isProjectOwner(id, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: "You don't have permission to delete this project",
+      };
+    }
+
+    // Permanently delete the project
+    await executeQuery(async (db) => {
+      // First verify the project exists and is deleted
+      const [project] = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.id, id))
+        .limit(1);
+
+      if (!project) {
+        throw new Error("Project not found");
+      }
+
+      if (!project.deleted_at) {
+        throw new Error("Project must be in the graveyard before permanent deletion");
+      }
+
+      // If checks pass, perform the permanent deletion
+      await db.delete(projects).where(eq(projects.id, id));
+    });
+
+    revalidatePath(pathToRevalidate);
+    return {
+      success: true,
+      data: null,
+    };
   } catch (error) {
-    console.error("Failed to get diamond tier projects:", error);
-    return [];
+    console.error("Failed to permanently delete project:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
   }
 }
 
-// Server action to get projects by specific tier
-export async function getProjectsByTier(tier: string) {
+// Server action to restore a deleted project
+export async function restoreProject(id: string, userId: string) {
   try {
-    const projects = await getProjectsByTierServer(tier);
+    // Ensure there is a user ID
+    if (!userId) {
+      return {
+        success: false,
+        error: "User ID is required to restore a project",
+      };
+    }
 
-    return projects.map(mapDrizzleProjectToProject);
+    // First check if the user is the owner of this project
+    const isOwner = await isProjectOwner(id, userId);
+    if (!isOwner) {
+      return {
+        success: false,
+        error: "You don't have permission to restore this project",
+      };
+    }
+
+    // Restore the project by clearing deleted_at
+    const restoredProject = await executeQuery(async (db) => {
+      const [updated] = await db
+        .update(projects)
+        .set({ 
+          deleted_at: null,
+          updated_at: new Date()
+        })
+        .where(eq(projects.id, id))
+        .returning();
+      
+      if (!updated) {
+        throw new Error("Project not found");
+      }
+
+      const tags = await getProjectTagNames(id);
+      return { ...updated, tags };
+    });
+
+    revalidatePath(pathToRevalidate);
+    return {
+      success: true,
+      data: mapDrizzleProjectToProject(restoredProject),
+    };
   } catch (error) {
-    console.error(`Failed to get ${tier} tier projects:`, error);
-    return [];
+    console.error("Failed to restore project:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
   }
 }

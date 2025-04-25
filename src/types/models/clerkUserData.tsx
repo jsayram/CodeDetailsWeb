@@ -10,6 +10,7 @@ export interface ClerkUserData {
   last_name?: string;
   full_name?: string;
   username?: string;
+  profile_image_url?: string;
   public_metadata?: {
     role?: string;
     tier?: string;

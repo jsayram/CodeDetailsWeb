@@ -4,7 +4,7 @@ import {
   checkForAuthDataUpdates,
   BACKGROUND_REFRESH_INTERVAL,
 } from "@/lib/ProjectsCacheUtils";
-import { getAllFreeProjects, getUserProjects } from "@/app/actions/projects";
+import { getAllProjects, getUserProjects } from "@/app/actions/projects";
 
 /**
  * Custom hook to manage background data updates
@@ -17,16 +17,15 @@ export function useBackgroundUpdates(
   hasFetchedFreeProjects: boolean,
   hasFetchedProjects: boolean,
   isBrowser: boolean,
-  userTier: string,
   setHasFetchedFreeProjects: React.Dispatch<React.SetStateAction<boolean>>,
   setHasFetchedProjects: React.Dispatch<React.SetStateAction<boolean>>
 ) {
-  // Set up background checks for free projects data updates
+  // Set up background checks for non-authenticated users' projects data updates
   useEffect(() => {
     // Skip if user is authenticated or in process of authenticating
     if (userId || isAuthenticating || isLoading) return;
 
-    // Skip if we haven't fetched free projects yet
+    // Skip if we haven't fetched projects yet
     if (!hasFetchedFreeProjects) return;
 
     // Do an initial check for updates
@@ -34,7 +33,7 @@ export function useBackgroundUpdates(
       await checkForDataUpdates(
         isBrowser,
         setHasFetchedFreeProjects,
-        getAllFreeProjects
+        getAllProjects
       );
     };
 
@@ -55,7 +54,7 @@ export function useBackgroundUpdates(
     setHasFetchedFreeProjects,
   ]);
 
-  // Set up background checks for authenticated projects data updates
+  // Set up background checks for authenticated users' projects data updates
   useEffect(() => {
     // Skip if not authenticated
     if (!userId || !isAuthenticated || isLoading) return;
@@ -69,8 +68,7 @@ export function useBackgroundUpdates(
         isBrowser,
         userId,
         setHasFetchedProjects,
-        getUserProjects,
-        userTier
+        getUserProjects
       );
     };
 
@@ -88,7 +86,6 @@ export function useBackgroundUpdates(
     isLoading,
     hasFetchedProjects,
     isBrowser,
-    userTier,
     setHasFetchedProjects,
   ]);
 }

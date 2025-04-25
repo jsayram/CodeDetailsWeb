@@ -12,9 +12,14 @@ setEnv();
 // This will run migrations on the database, creating tables if they don't exist
 // and updating them if they do, based on the content in the 'migrations' folder
 const runMigration = async () => {
+  console.log("Starting migration process...");
+  
   if (!process.env.DATABASE_URL) {
+    console.error("Missing DATABASE_URL environment variable");
     throw new Error("DATABASE_URL environment variable is not defined");
   }
+
+  console.log("Database URL found, connecting to database...");
 
   // Connect directly to PostgreSQL for migrations
   const connection = postgres(process.env.DATABASE_URL, { max: 1 });
@@ -24,7 +29,7 @@ const runMigration = async () => {
 
   try {
     await migrate(db, {
-      migrationsFolder: "./supabase/migrations",
+      migrationsFolder: "./src/db/migrations/supabase", // Fixed path to the migrations folder
       migrationsTable: "drizzle_migrations", // Track applied migrations in this table
     });
     console.log("✅ Migrations completed successfully!");
@@ -34,9 +39,11 @@ const runMigration = async () => {
   }
 
   await connection.end();
+  console.log("Database connection closed.");
   process.exit(0);
 };
 
+console.log("Migration script started");
 runMigration().catch((err) => {
   console.error("❌ Migration script error:", err);
   process.exit(1);

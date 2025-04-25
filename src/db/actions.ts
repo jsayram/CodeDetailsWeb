@@ -1,80 +1,81 @@
 "use server";
 
 import { executeQuery } from "./server";
-import { projects } from "./schema";
+import { projects } from "./schema/projects";
+import { profiles } from "./schema/profiles";
+import { project_tags } from "./schema/project_tags";
+import { tags } from "./schema/tags";
+import { favorites } from "./schema/favorites";
 import { InsertProject, SelectProject } from "./schema/projects";
-import { eq, sql, or, not, and } from "drizzle-orm";
+import { eq, and, isNull, or, desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 /**
- * Helper function to check if a project with the given slug already exists
- */
-export async function checkSlugExists(
-  slug: string,
-  excludeId?: string
-): Promise<boolean> {
-  return await executeQuery(async (db) => {
-    const query = db
-      .select({ count: sql<number>`count(*)` })
-      .from(projects)
-      .where(
-        excludeId
-          ? and(eq(projects.slug, slug), not(eq(projects.id, excludeId)))
-          : eq(projects.slug, slug)
-      );
-
-    const result = await query;
-    return result[0].count > 0;
-  });
-}
-
-/**
- * Helper function to check if a project with the given title already exists
- */
-export async function checkTitleExists(
-  title: string,
-  excludeId?: string
-): Promise<boolean> {
-  return await executeQuery(async (db) => {
-    const query = db
-      .select({ count: sql<number>`count(*)` })
-      .from(projects)
-      .where(
-        excludeId
-          ? and(eq(projects.title, title), not(eq(projects.id, excludeId)))
-          : eq(projects.title, title)
-      );
-
-    const result = await query;
-    return result[0].count > 0;
-  });
-}
-
-/**
- * Server-side function to add a new project to the database
+ * Server-side function to create a new project
  */
 export async function createProjectServer(
   project: InsertProject
 ): Promise<SelectProject> {
-  // Check for duplicate slug
-  const slugExists = await checkSlugExists(project.slug);
-  if (slugExists) {
-    throw new Error(`A project with slug "${project.slug}" already exists`);
-  }
-
-  // Check for duplicate title
-  const titleExists = await checkTitleExists(project.title);
-  if (titleExists) {
-    throw new Error(`A project with title "${project.title}" already exists`);
-  }
-
   return await executeQuery(async (db) => {
-    const result = await db.insert(projects).values(project).returning();
+    // Create the project
+    const [createdProject] = await db
+      .insert(projects)
+      .values(project)
+      .returning();
 
-    if (!result || result.length === 0) {
-      throw new Error("Failed to create project");
+    // If there are tags, associate them with the project
+    if (project.tags && project.tags.length > 0) {
+      // For each tag, either get it or create it if it doesn't exist
+      for (const tagName of project.tags) {
+        // Check if tag exists
+        let tagId = null;
+        const existingTags = await db
+          .select({ id: tags.id })
+          .from(tags)
+          .where(eq(tags.name, tagName.trim()));
+
+        if (existingTags.length > 0) {
+          tagId = existingTags[0].id;
+        } else {
+          // Create the tag
+          const [createdTag] = await db
+            .insert(tags)
+            .values({ name: tagName.trim() })
+            .returning({ id: tags.id });
+          tagId = createdTag.id;
+        }
+
+        // Create a relation between project and tag
+        await db.insert(project_tags).values({
+          project_id: createdProject.id,
+          project_slug: createdProject.slug,
+          tag_id: tagId,
+        });
+      }
     }
 
-    return result[0];
+    // Return the created project with tags
+    const projectWithTags = {
+      ...createdProject,
+      tags: project.tags || [],
+    };
+
+    return projectWithTags;
+  });
+}
+
+/**
+ * Helper function to get tag names for a project
+ */
+export async function getProjectTagNames(projectId: string): Promise<string[]> {
+  return await executeQuery(async (db) => {
+    return (
+      await db
+        .select({ tagName: tags.name })
+        .from(project_tags)
+        .innerJoin(tags, eq(project_tags.tag_id, tags.id))
+        .where(eq(project_tags.project_id, projectId))
+    ).map((tag) => tag.tagName);
   });
 }
 
@@ -85,31 +86,49 @@ export async function getProjectBySlugServer(
   slug: string
 ): Promise<SelectProject | null> {
   return await executeQuery(async (db) => {
-    const result = await db
+    const projectData = await db
       .select()
       .from(projects)
-      .where(eq(projects.slug, slug))
-      .limit(1);
+      .where(and(eq(projects.slug, slug), isNull(projects.deleted_at)));
 
-    return result.length > 0 ? result[0] : null;
+    if (!projectData.length) {
+      return null;
+    }
+
+    const tags = await getProjectTagNames(projectData[0].id);
+    return { ...projectData[0], tags };
   });
 }
 
 /**
- * Server-side function to delete a project
+ * Server-side function to soft delete a project
  */
 export async function deleteProjectServer(id: string): Promise<SelectProject> {
   return await executeQuery(async (db) => {
-    const result = await db
-      .delete(projects)
+    // Update the project to set deleted_at timestamp
+    const [updatedProject] = await db
+      .update(projects)
+      .set({ 
+        deleted_at: new Date(),
+        updated_at: new Date()
+      })
       .where(eq(projects.id, id))
       .returning();
 
-    if (!result || result.length === 0) {
-      throw new Error("Project not found or could not be deleted");
+    if (!updatedProject) {
+      throw new Error(`Project with ID ${id} not found`);
     }
 
-    return result[0];
+    // Remove all favorites for this project since it's being sent to graveyard
+    await db
+      .delete(favorites)
+      .where(eq(favorites.project_id, id));
+
+    // Get the tags associated with the project
+    const tags = await getProjectTagNames(id);
+
+    // Return the soft-deleted project with its tags
+    return { ...updatedProject, tags };
   });
 }
 
@@ -120,139 +139,163 @@ export async function updateProjectServer(
   id: string,
   project: Partial<InsertProject>
 ): Promise<SelectProject> {
-  // Check for duplicate slug if slug is being updated
-  if (project.slug) {
-    const slugExists = await checkSlugExists(project.slug, id);
-    if (slugExists) {
-      throw new Error(`A project with slug "${project.slug}" already exists`);
-    }
-  }
-
-  // Check for duplicate title if title is being updated
-  if (project.title) {
-    const titleExists = await checkTitleExists(project.title, id);
-    if (titleExists) {
-      throw new Error(`A project with title "${project.title}" already exists`);
-    }
-  }
-
   return await executeQuery(async (db) => {
-    const result = await db
+    // Update the project
+    const [updatedProject] = await db
       .update(projects)
-      .set(project)
+      .set({
+        ...project,
+        updated_at: new Date(), // Set updated_at to current time
+      })
       .where(eq(projects.id, id))
       .returning();
 
-    if (!result || result.length === 0) {
-      throw new Error("Project not found or could not be updated");
+    // If tags are provided, update the project_tags
+    if (project.tags !== undefined) {
+      // Remove all existing project_tags
+      await db.delete(project_tags).where(eq(project_tags.project_id, id));
+
+      // Add new project_tags
+      for (const tagName of project.tags) {
+        // Check if tag exists
+        let tagId = null;
+        const existingTags = await db
+          .select({ id: tags.id })
+          .from(tags)
+          .where(eq(tags.name, tagName.trim()));
+
+        if (existingTags.length > 0) {
+          tagId = existingTags[0].id;
+        } else {
+          // Create the tag
+          const [createdTag] = await db
+            .insert(tags)
+            .values({ name: tagName.trim() })
+            .returning({ id: tags.id });
+          tagId = createdTag.id;
+        }
+
+        // Create a relation between project and tag
+        await db.insert(project_tags).values({
+          project_id: updatedProject.id,
+          project_slug: updatedProject.slug,
+          tag_id: tagId,
+        });
+      }
     }
 
-    return result[0];
+    // Get the current tags for the project
+    const currentTags = await getProjectTagNames(id);
+
+    // Return the updated project with tags
+    return { ...updatedProject, tags: currentTags };
   });
 }
 
 /**
- * Server-side function to get all projects accessible to a user based on their tier
- * This implements the same logic as the RPC function but using Drizzle ORM
+ * Server-side function to get all projects accessible to a user
+ * Updated to include deleted projects
  */
 export async function getAccessibleProjectsServer(
   userId: string,
-  providedTier?: string
+  userTier?: string // Kept for backward compatibility but not used for filtering
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
     console.log(`Finding projects for user ID: ${userId}`);
 
-    let userTier = "free"; // Default tier
-
-    // If a tier was explicitly provided (from getUserProjects), use it
-    if (providedTier) {
-      userTier = providedTier;
-      console.log(`Using provided tier: ${userTier}`);
-    } else {
-      // Otherwise try to fetch it from the profiles table
-      try {
-        // Try to get the user's tier using a parameterized query for better safety
-        const userProfiles = await db.execute<{ tier: string }>(
-          sql`SELECT tier FROM profiles WHERE user_id = ${userId}`
-        );
-
-        // If we found a profile and it has a tier, use it
-        if (userProfiles && userProfiles.length > 0 && userProfiles[0].tier) {
-          userTier = userProfiles[0].tier;
-        }
-
-        console.log(`User ${userId} has tier: ${userTier} (from database)`);
-      } catch (error) {
-        console.error("Error getting user tier, defaulting to free:", error);
-        // Continue with default 'free' tier
-      }
-    }
-
-    // Build the WHERE condition based on the user's tier
-    let whereCondition;
-
-    if (userTier === "diamond") {
-      // Diamond tier users can access all tiers
-      whereCondition = or(
-        eq(projects.tier, "free"),
-        eq(projects.tier, "pro"),
-        eq(projects.tier, "diamond")
-      );
-    } else if (userTier === "pro") {
-      // Pro tier users can access free and pro content
-      whereCondition = or(eq(projects.tier, "free"), eq(projects.tier, "pro"));
-    } else {
-      // Free tier users can only access free content
-      whereCondition = eq(projects.tier, "free");
-    }
-
-    // Return projects based on the tier hierarchy
-    const accessibleProjects = await db
+    // Get all projects, including deleted ones, ordered by creation date desc
+    const allProjects = await db
       .select()
       .from(projects)
-      .where(whereCondition);
+      .orderBy(desc(projects.created_at)); // Get all projects, including deleted ones
 
-    console.log(
-      `Found ${accessibleProjects.length} accessible projects for tier ${userTier}`
+    // Fetch tags and owner info for each project and map to the final structure
+    const projectsWithTagsAndOwner = await Promise.all(
+      allProjects.map(async (projectData) => {
+        const tags = await getProjectTagNames(projectData.id);
+
+        // Get profile information for the project's creator
+        let ownerProfile = null;
+        if (projectData.user_id) {
+          const ownerProfiles = await db
+            .select()
+            .from(profiles)
+            .where(eq(profiles.user_id, projectData.user_id));
+
+          ownerProfile = ownerProfiles.length > 0 ? ownerProfiles[0] : null;
+        }
+
+        return {
+          ...projectData,
+          tags,
+          owner_username: ownerProfile?.username || null,
+          owner_email: ownerProfile?.email_address || null,
+          owner_profile_image_url: ownerProfile?.profile_image_url || null,
+        };
+      })
     );
-    return accessibleProjects;
+
+    console.log(`Found ${projectsWithTagsAndOwner.length} projects`);
+    return projectsWithTagsAndOwner;
   });
 }
 
 /**
- * Server-side function to get all free projects
+ * Server-side function to get projects created by a specific user
  */
-export async function getFreeProjectsServer(): Promise<SelectProject[]> {
-  return await executeQuery(async (db) => {
-    return db.select().from(projects).where(eq(projects.tier, "free"));
-  });
-}
-
-/**
- * Server-side function to get all pro tier projects
- */
-export async function getProProjectsServer(): Promise<SelectProject[]> {
-  return await executeQuery(async (db) => {
-    return db.select().from(projects).where(eq(projects.tier, "pro"));
-  });
-}
-
-/**
- * Server-side function to get all diamond tier projects
- */
-export async function getDiamondProjectsServer(): Promise<SelectProject[]> {
-  return await executeQuery(async (db) => {
-    return db.select().from(projects).where(eq(projects.tier, "diamond"));
-  });
-}
-
-/**
- * Server-side function to get projects by specific tier
- */
-export async function getProjectsByTierServer(
-  tier: string
+export async function getUserProjectsServer(
+  userId: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
-    return db.select().from(projects).where(eq(projects.tier, tier));
+    const userProjects = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.user_id, userId))  // Removed the isNull check for deleted_at
+      .orderBy(desc(projects.created_at));
+
+    // Fetch tags and owner profile info for each project
+    const projectsWithTagsAndOwner = await Promise.all(
+      userProjects.map(async (projectData) => {
+        const tags = await getProjectTagNames(projectData.id);
+
+        // Get profile information for the project's creator
+        let ownerProfile = null;
+        if (projectData.user_id) {
+          const ownerProfiles = await db
+            .select()
+            .from(profiles)
+            .where(eq(profiles.user_id, projectData.user_id));
+
+          ownerProfile = ownerProfiles.length > 0 ? ownerProfiles[0] : null;
+        }
+
+        return {
+          ...projectData,
+          tags,
+          owner_username: ownerProfile?.username || null,
+          owner_email: ownerProfile?.email_address || null,
+          owner_profile_image_url: ownerProfile?.profile_image_url || null,
+        };
+      })
+    );
+
+    return projectsWithTagsAndOwner;
+  });
+}
+
+/**
+ * Server-side function to check if a user owns a project
+ */
+export async function isProjectOwner(
+  projectId: string,
+  userId: string
+): Promise<boolean> {
+  return await executeQuery(async (db) => {
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)));
+
+    return result[0]?.count > 0;
   });
 }
