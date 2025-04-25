@@ -5,6 +5,7 @@ import { getUserProjects, getProject } from "@/app/actions/projects";
 import { projects } from "@/db/schema/projects";
 import { tags } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
+import { profiles } from "@/db/schema/profiles";
 import { ProjectCategory } from "@/constants/project-categories";
 
 // GET handler for retrieving projects
@@ -46,24 +47,32 @@ export async function GET(request: NextRequest) {
     const projectsWithTags = await executeQuery(async (db) => {
       const projectsQuery = db
         .select({
-          id: projects.id,
-          title: projects.title,
-          slug: projects.slug,
-          description: projects.description,
-          category: projects.category,
-          created_at: projects.created_at,
-          updated_at: projects.updated_at,
-          user_id: projects.user_id,
-          deleted_at: projects.deleted_at,
+          project: {
+            id: projects.id,
+            title: projects.title,
+            slug: projects.slug,
+            description: projects.description,
+            category: projects.category,
+            created_at: projects.created_at,
+            updated_at: projects.updated_at,
+            user_id: projects.user_id,
+            deleted_at: projects.deleted_at,
+          },
+          profile: {
+            username: profiles.username,
+            email_address: profiles.email_address,
+            profile_image_url: profiles.profile_image_url
+          }
         })
-        .from(projects);
+        .from(projects)
+        .leftJoin(profiles, eq(profiles.user_id, projects.user_id));
 
       const conditions: SQL[] = [];
 
       if (!showAll && userId) {
         conditions.push(eq(projects.user_id, userId));
       }
-
+      
       if (category) {
         conditions.push(eq(projects.category, category));
       }
@@ -82,7 +91,10 @@ export async function GET(request: NextRequest) {
         .from(project_tags)
         .innerJoin(tags, eq(project_tags.tag_id, tags.id))
         .where(
-          inArray(project_tags.project_id, filteredProjects.map(p => p.id))
+          inArray(
+            project_tags.project_id, 
+            filteredProjects.map(p => p.project.id)
+          )
         );
 
       // Group tags by project
@@ -94,10 +106,15 @@ export async function GET(request: NextRequest) {
         return acc;
       }, {} as Record<string, string[]>);
 
-      // Combine projects with their tags
-      return filteredProjects.map(project => ({
+      // Combine projects with their tags and profile data
+      return filteredProjects.map(({ project, profile }) => ({
         ...project,
         tags: tagsByProject[project.id] || [],
+        profile: {
+          username: profile?.username || null,
+          email_address: profile?.email_address || null,
+          profile_image_url: profile?.profile_image_url || null
+        }
       }));
     });
 

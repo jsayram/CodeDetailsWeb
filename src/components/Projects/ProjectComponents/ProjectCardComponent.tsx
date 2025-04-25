@@ -14,6 +14,17 @@ import { PermanentDeleteConfirmationModal } from "./PermanentDeleteConfirmationM
 import { RestoreProjectConfirmationModal } from "./RestoreProjectConfirmationModal";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 
+// Get initials for avatar fallback
+const getInitials = (name: string) => {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((part) => part?.[0] || "")
+    .join("")
+    .toUpperCase()
+    .substring(0, 2);
+};
+
 interface ProjectCardProps {
   project: Project;
   onViewDetails?: (id: string) => void;
@@ -130,6 +141,13 @@ export const ProjectCard = React.memo(
       }
       return project.profile?.username || project.profile?.email_address || "Unknown user";
     }, [isCurrentUserProject, project.profile]);
+
+    // Get initials for the avatar fallback
+    const userInitials = useMemo(() => {
+      // Try to get initials from username first, then email
+      const nameForInitials = project.profile?.username || project.profile?.email_address?.split("@")[0] || "??";
+      return getInitials(nameForInitials);
+    }, [project.profile]);
 
     return (
       <>
@@ -285,7 +303,7 @@ export const ProjectCard = React.memo(
             </div>
           </div>
 
-          {/* Fixed height footer //TODO: PROFILE IMAGE URL RERENDER CLEARING OUT THE IMAGE ON THE PROJECT */}
+          {/* Fixed height footer */}
           <div className="card-footer h-auto sm:h-[50px] bg-secondary/10 p-2 sm:p-3 flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <Avatar className="h-7 w-7">
@@ -295,8 +313,8 @@ export const ProjectCard = React.memo(
                     alt={displayUsername}
                   />
                 ) : (
-                  <AvatarFallback>
-                    <User size={12} />
+                  <AvatarFallback className="bg-muted text-xs font-medium">
+                    {userInitials || <User className="h-3.5 w-3.5" />}
                   </AvatarFallback>
                 )}
               </Avatar>
