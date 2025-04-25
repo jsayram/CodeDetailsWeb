@@ -5,6 +5,7 @@
   height: auto;
   min-height: 400px;
   max-width: 400px;
+  min-width: 300px;
   justify-content: space-around;
   display: flex;
   flex-direction: column;
@@ -67,7 +68,7 @@
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
   width: 100%;
-  grid-auto-rows: 1fr;
+  grid-auto-rows: 2fr;
   justify-items: center; /* Center items horizontally */
   align-items: center; /* Center items vertically */
 }
@@ -149,6 +150,18 @@
   .mobile-card-view td[data-label="Actions"] > div {
     justify-content: center;
     margin-top: 0.25rem;
+  }
+}
+
+/* Extra small screens (360px and below) */
+@media (max-width: 360px) {
+  .project-filters {
+    margin-bottom: 3rem;  /* Increased bottom margin to prevent overlap */
+    padding-bottom: 1rem;
+  }
+  
+  .view-toggle-container {
+    margin-top: 0.5rem; /* Add some spacing above the view toggle buttons */
   }
 }
 

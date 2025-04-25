@@ -6,8 +6,6 @@
 @import "./toast.css";
 @import "./cards.css";
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --radius: 0.625rem; /* Base border radius value for UI consistency */
   
