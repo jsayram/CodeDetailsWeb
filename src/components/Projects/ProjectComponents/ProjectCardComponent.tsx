@@ -227,8 +227,10 @@ export const ProjectCard = React.memo(
                 </span>
               )}
             </h3>
-            <p className={`card-description line-clamp-3 text-xs sm:text-sm text-muted-foreground flex-grow mb-3 ${project.deleted_at ? 'text-red-400/40' : ''}`}>
-              {project.description || "No description provided"}
+            <p className={`card-description line-clamp-2 text-xs sm:text-sm text-muted-foreground flex-grow mb-3 ${project.deleted_at ? 'text-red-400/40' : ''}`}>
+              {project.description && project.description.length > 120 
+                ? `${project.description.substring(0, 120)}...` 
+                : project.description || "No description provided"}
             </p>
 
             {/* Tags (show if available) */}
