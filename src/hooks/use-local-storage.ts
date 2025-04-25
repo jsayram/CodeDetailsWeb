@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useIsBrowser } from "./use-is-browser";
 
 /**
@@ -11,25 +11,38 @@ export function useLocalStorage<T>(
   key: string,
   initialValue: T
 ): [T, (value: T | ((val: T) => T)) => void] {
+  // Keep initial value in a ref to avoid it triggering effects
+  const initialValueRef = useRef(initialValue);
+  
   // State to store our value
-  const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : initialValue;
+    } catch (error) {
+      console.error(`Error reading localStorage key "${key}":`, error);
+      return initialValue;
+    }
+  });
 
   // Check if we're in the browser environment
   const isBrowser = useIsBrowser();
 
-  // Initialize on mount or when key changes
+  // Sync with localStorage when key changes
   useEffect(() => {
     if (isBrowser) {
       try {
         const item = localStorage.getItem(key);
-        const value = item ? JSON.parse(item) : initialValue;
-        setStoredValue(value);
+        setStoredValue(item ? JSON.parse(item) : initialValueRef.current);
       } catch (error) {
         console.error(`Error reading localStorage key "${key}":`, error);
-        setStoredValue(initialValue);
+        setStoredValue(initialValueRef.current);
       }
     }
-  }, [isBrowser, key, initialValue]);
+  }, [isBrowser, key]); // Remove initialValue from dependencies
 
   // Return a wrapped version of useState's setter function that
   // persists the new value to localStorage

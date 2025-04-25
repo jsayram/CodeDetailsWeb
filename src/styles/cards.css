@@ -2,12 +2,212 @@
 
 /* Fixed dimensions for project cards */
 .project-card {
-  height: 400px;
+  height: auto;
+  min-height: 400px;
+  max-height: 500px;
   width: 100%;
   max-width: 400px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
+  border-radius: calc(var(--radius) + 4px); /* Making cards more rounded */
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, background 0.2s ease-out;
+  box-shadow: 0 2px 8px -2px oklch(0.3 0.1 280 / 0.1);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.99 0.01 290),
+    oklch(0.98 0.01 290)
+  );
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Deleted projects styling */
+.project-card.deleted {
+  background-color: oklch(0.2 0.05 280); /* Dark purple background */
+  border: 1px solid oklch(0.55 0.15 25); /* Muted red border */
+  border-radius: calc(var(--radius) + 6px);
+  opacity: 0.95;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 8px -2px oklch(0.55 0.15 25 / 0.15); /* Softer red shadow */
+}
+
+.project-card.deleted .card-content {
+  color: oklch(0.9 0.02 280); /* Light text for dark background */
+}
+
+.project-card.deleted:hover {
+  opacity: 1;
+  transform: translateY(-2px);
+  background-color: oklch(0.22 0.06 280); /* Slightly lighter purple on hover */
+  border-color: oklch(0.55 0.15 25); /* Keep muted red border */
+  box-shadow: 0 6px 12px -2px oklch(0.55 0.15 25 / 0.2); /* Enhanced but still soft shadow */
+}
+
+.project-card.deleted .card-title {
+  color: oklch(0.95 0.02 280); /* Light text for better contrast */
+  text-decoration: line-through;
+  text-decoration-color: oklch(0.55 0.15 25 / 0.4); /* Subtle strikethrough */
+  text-decoration-thickness: 1px;
+  font-family: var(--font-mono);
+  letter-spacing: -0.01em;
+}
+
+.project-card.deleted .project-metadata {
+  color: oklch(0.85 0.02 280);
+  background-color: transparent;
+  border-top: 1px solid oklch(0.55 0.15 25 / 0.15);
+}
+
+.project-card.deleted .card-description {
+  color: oklch(0.85 0.02 280 / 0.9); /* Light text with slight transparency */
+  font-style: italic;
+}
+
+/* Footer and tags section */
+.project-card.deleted .card-footer {
+  background-color: oklch(0.25 0.05 280); /* Slightly lighter than main background */
+  border-color: oklch(0.3 0.05 280);
+  color: oklch(0.9 0.02 280); /* Light text */
+}
+
+.project-card.deleted .project-tags {
+  background-color: oklch(0.22 0.05 280); /* Dark background for tags section */
+  border-color: oklch(0.3 0.05 280);
+}
+
+.project-card.deleted .tag-badge-deleted {
+  background-color: oklch(0.3 0.05 280); /* Slightly lighter than background */
+  color: oklch(0.85 0.02 280); /* Light text */
+  border: 1px solid oklch(0.35 0.05 280);
+}
+
+.project-card.deleted .muted-tag {
+  color: oklch(0.85 0.02 280); /* Light text for dark background */
+}
+
+/* Tags section for deleted cards */
+.project-card.deleted .bg-muted\/5 {
+  background-color: oklch(0.25 0.05 280); /* Dark background for better contrast */
+}
+
+.project-card.deleted span.text-xs.text-muted-foreground {
+  color: oklch(0.85 0.02 280); /* Light text for "No tags added" text */
+}
+
+/* External link styling for deleted cards */
+.project-card.deleted a.text-muted-foreground {
+  color: oklch(0.85 0.02 280);
+}
+
+.project-card.deleted a.text-muted-foreground:hover {
+  color: oklch(0.95 0.02 280);
+}
+
+/* Make category badge border-only when in deleted state */
+.project-card.deleted .category-badge [data-variant="destructive"] {
+  background-color: transparent;
+  border: 2px solid oklch(0.55 0.25 25); /* Muted red border */
+  color: var(--foreground); /* Use theme text color */
+  font-weight: 500;
+}
+
+.project-card.deleted .category-badge [data-variant="destructive"]:hover {
+  background-color: oklch(0.55 0.15 25 / 0.1); /* Subtle hover effect */
+  border-color: oklch(0.55 0.15 25);
+}
+
+/* Softer deleted indicator */
+.project-card.deleted::before {
+  content: "DELETED";
+  position: absolute;
+  top: 1rem;
+  left: 1rem; /* Changed from right to left */
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background-color: oklch(0.55 0.15 25 / 0.9); /* Muted red */
+  color: oklch(0.3 0.02 280); /* Dark gray */
+  opacity: 0.9;
+  box-shadow: 0 2px 4px -1px oklch(0.55 0.15 25 / 0.2);
+}
+
+.dark .project-card.deleted {
+  background-color: oklch(0.15 0.04 280); /* Even darker purple in dark mode */
+  border-color: oklch(0.6 0.15 20); /* Muted red border in dark mode */
+  opacity: 0.9;
+}
+
+.dark .project-card.deleted:hover {
+  opacity: 0.95;
+  background-color: oklch(0.17 0.05 280);
+  border-color: oklch(0.6 0.15 20);
+}
+
+.dark .project-card.deleted .card-title {
+  color: oklch(0.7 0.1 25 / 0.9);
+  text-decoration-color: oklch(0.6 0.15 25 / 0.5);
+}
+
+.dark .project-card.deleted .project-metadata {
+  color: oklch(0.65 0.1 25 / 0.8);
+  background-color: oklch(0.6 0.15 25 / 0.05);
+}
+
+.dark .project-card.deleted .card-description {
+  color: oklch(0.6 0.1 25 / 0.7);
+}
+
+.dark .project-card.deleted .card-footer {
+  background-color: oklch(0.18 0.04 280);
+  border-color: oklch(0.25 0.04 280);
+}
+
+.dark .project-card.deleted .project-tags {
+  background-color: oklch(0.16 0.04 280);
+  border-color: oklch(0.25 0.04 280);
+}
+
+.dark .project-card.deleted .tag-badge-deleted {
+  background-color: oklch(0.2 0.04 280);
+  color: oklch(0.8 0.02 280);
+  border-color: oklch(0.25 0.04 280);
+}
+
+/* Card hover effects */
+.project-card:hover {
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: 
+    0 12px 20px -8px oklch(0.3 0.1 280 / 0.15),
+    0 4px 10px -4px oklch(0.3 0.1 280 / 0.1);
+  background: linear-gradient(
+    to bottom,
+    oklch(1 0.02 290),
+    oklch(0.99 0.02 290)
+  );
+}
+
+/* Dark mode card styling */
+.dark .project-card {
+  box-shadow: 0 2px 8px -2px oklch(0 0 0 / 0.3);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.22 0.06 280),
+    oklch(0.2 0.06 280)
+  );
+}
+
+.dark .project-card:hover {
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: 
+    0 12px 20px -8px oklch(0 0 0 / 0.4),
+    0 4px 10px -4px oklch(0.3 0.1 280 / 0.2);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.25 0.07 280),
+    oklch(0.23 0.07 280)
+  );
 }
 
 /* Card inner elements */
@@ -15,31 +215,89 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: calc(100% - 60px); /* Increased space for footer */
   padding: 1.5rem;
+  padding-top: 3.5rem; /* Increased top padding to prevent title overlap with buttons */
   overflow: hidden;
 }
 
 /* Card description */
 .card-description {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   margin: 0.5rem 0;
+  min-height: 5rem; /* Increased from 2.5rem */
+}
+
+/* Project metadata section */
+.project-metadata {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+/* Category and source wrapper */
+.category-source-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 /* Card footer */
 .card-footer {
-  height: 60px; /* Increased height */
-  width: 100%;
+  height: 4rem;
   padding: 0.75rem 1.5rem;
-  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   background-color: var(--card);
+  border-top: 1px solid var(--border);
+}
+
+/* Tags section */
+.project-tags {
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+/* Tag styling */
+.project-card .tag-badge {
+  cursor: pointer;
+  font-size: 0.875rem; /* Slightly larger than default */
+  padding: 0.375rem 0.75rem;
+  transition: transform 0.1s ease-out;
+}
+
+.project-card .tag-badge:hover {
+  transform: translateY(-1px);
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* Dark mode tag styling */
+.dark .project-card .tag-badge {
+  background-color: oklch(0.25 0.06 280);
+  color: oklch(0.9 0.02 280);
+}
+
+.dark .project-card .tag-badge:hover {
+  background-color: oklch(0.3 0.08 280);
+  color: oklch(0.95 0.02 280);
+}
+
+/* Ensure tags are more visible on mobile */
+@media (max-width: 767px) {
+  .project-card .tag-badge {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.9375rem;
+  }
 }
 
 /* Button standardization */
@@ -66,15 +324,47 @@
 /* Mobile and Responsive breakpoints */
 @media (max-width: 767px) {
   .project-card {
-    height: 400px;
+    min-height: 380px;
+    max-height: none; /* Allow cards to expand on mobile */
   }
   
   .card-content {
-    padding: 1.25rem;
+    padding: 1rem;
+    padding-top: 4rem; /* More space for action buttons on mobile */
   }
 
   .card-footer {
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 1rem;
+    min-height: 4rem; /* Ensure consistent height */
+    height: auto; /* Allow expansion if needed */
+  }
+
+  .project-metadata {
+    gap: 0.5rem; /* Reduce gap on mobile */
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .category-source-wrapper {
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  /* Adjust action buttons spacing on mobile */
+  [data-slot="card"] .absolute {
+    opacity: 1 !important; /* Always show action buttons on mobile */
+  }
+
+  /* Ensure tags section is readable on mobile */
+  .project-tags {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Ensure buttons don't get too small on mobile */
+  .card-button {
+    min-width: 40px;
+    height: 36px;
+    padding: 0 0.75rem;
   }
 }
 
@@ -85,7 +375,7 @@
   }
 }
 
-/* Desktop - Only use 3 columns on larger screens */
+/* Desktop */
 @media (min-width: 1280px) {
   .project-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));

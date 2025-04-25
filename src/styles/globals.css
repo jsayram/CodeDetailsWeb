@@ -1,10 +1,12 @@
-/* Code Details Custome Theme Below */
+/* Code Details Custom Theme Below */
 
 @tailwind utilities;
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "./toast.css";
 @import "./cards.css";
+@import "./category-styles.css";
+@import "./table.css";
 
 :root {
   --radius: 0.625rem; /* Base border radius value for UI consistency */
@@ -179,22 +181,6 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Table & Mobile View Base Styles */
-.responsive-table {
-  display: block;
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* View toggle buttons styling */
-.view-toggle-button {
-  height: 2rem;
-  display: flex;
-  align-items: center;
-  padding: 0 0.75rem;
 }
 
 /* ------- ANIMATIONS ------- */

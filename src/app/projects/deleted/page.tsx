@@ -41,52 +41,44 @@ export default function DeletedProjects() {
         >
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="bg-gray-950">
+            <SidebarInset className="bg-background">
               <HeaderSection />
               <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
                 <div className="flex justify-center w-full mb-20">
                   <div className="w-full max-w-7xl px-4">
                     <div className="flex flex-col gap-4">
-                      <Alert className="flex items-center mb-6 outline-1 py-3 bg-red-950/20 border-red-900">
-                        <AlertOctagon className="h-5 w-5 text-red-500 mr-2" />
-                        <AlertDescription className="text-sm text-red-200">
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              Project Graveyard 🪦 - Where deleted projects rest in peace
-                              <Skull className="h-4 w-4 text-red-400" />
+                      {/* Updated alert styling */}
+                      <Alert className="flex items-center mb-6 py-3 bg-destructive/5 border-destructive/30 rounded-xl">
+                        <div className="flex flex-col w-full">
+                          <div className="flex flex-col md:flex-row items-center gap-4 w-full">
+                            <div className="relative flex items-center gap-3">
+                              <span className="text-4xl">⚰️</span>
+                              <Skull className="h-6 w-6 text-destructive absolute -top-2 -right-2" />
                             </div>
-                            <div className="flex flex-wrap gap-1 mt-2 sm:mt-0">
-                              <Badge variant="destructive" className="text-sm bg-red-950">
-                                {userTier}
-                              </Badge>
+                            <div className="flex flex-col items-center md:items-start text-center md:text-left flex-grow">
+                              <span className="text-lg font-mono text-destructive/90 tracking-wider flex items-center gap-2">
+                                Digital Graveyard <Skull className="h-4 w-4" />
+                              </span>
+                              <h2 className="text-3xl font-extrabold text-destructive/80 font-serif">
+                                {user?.fullName}&apos;s Deleted Projects
+                              </h2>
+                            </div>
+                            <div className="ml-0 md:ml-auto mt-2 md:mt-0">
+                              <div className="inline-flex items-center px-3 py-1 rounded-lg bg-destructive/10 border border-destructive/30">
+                                <Badge variant="destructive" className="bg-destructive/20">
+                                  Graveyard
+                                </Badge>
+                              </div>
                             </div>
                           </div>
-                        </AlertDescription>
+                          <div className="w-full h-px bg-gradient-to-r from-transparent via-destructive/20 to-transparent my-4" />
+                          <p className="text-center text-destructive-foreground/60 font-mono text-sm">
+                            Where code commits go to rest... but not forever. Projects can be restored or permanently deleted.
+                          </p>
+                        </div>
                       </Alert>
 
                       <div className="mb-8">
-                        <div className="flex justify-between items-center mb-4">
-                          <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-gray-900 via-red-950 to-gray-900 rounded-2xl shadow-lg px-6 py-4 w-full border border-red-900/40">
-                            <div className="relative">
-                              <span className="w-100 h-100 text-red-500 text-5xl">🗑️</span>
-                              </div>
-                              <div className="absolute -top-2 -right-2">
-                            </div>
-                            <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                              <span className="text-lg font-semibold text-red-200/70 tracking-wide drop-shadow-sm flex items-center gap-2">
-                                Deleted Projects <Skull className="h-4 w-4" />
-                              </span>
-                              <h2 className="text-3xl font-extrabold text-gray-400 drop-shadow-lg flex flex-col md:flex-row items-center gap-2">
-                                {user?.fullName}&apos;s <span className="bg-gradient-to-r from-red-700 via-gray-600 to-red-900 bg-clip-text text-transparent">Digital Graveyard</span>
-                              </h2>
-                            </div>
-                            <div className="ml-0 md:ml-auto mt-2 md:mt-0 w-full md:w-auto flex justify-center md:block">
-                              <span className="inline-block px-4 py-2 rounded-xl bg-red-950/60 text-red-200 font-mono text-xs tracking-widest shadow border border-red-900/30">
-                                ⚠️ DELETED ZONE
-                              </span>
-                            </div>
-                          </div>
-                        </div>
                         <ProjectList
                           currentPage={currentPage}
                           itemsPerPage={PROJECTS_PER_PAGE}

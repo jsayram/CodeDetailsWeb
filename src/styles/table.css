@@ -1,0 +1,243 @@
+/* Table & Mobile View Base Styles */
+.responsive-table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  @apply w-full border-collapse bg-transparent;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+.responsive-table th,
+.responsive-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.responsive-table th {
+  @apply bg-muted/30 text-left font-medium p-3 text-sm;
+  font-weight: 600;
+  background-color: var(--muted);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.responsive-table td {
+  @apply p-3 align-top border-t border-border/30;
+  vertical-align: top;
+}
+
+.responsive-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Row hover effects */
+.responsive-table tbody tr {
+  @apply transition-all duration-200 hover:bg-muted/10;
+}
+
+.responsive-table tbody tr:hover .action-button {
+  @apply opacity-100;
+}
+
+/* Table Description Cell */
+.table-description-cell {
+  position: relative;
+  min-width: 200px;
+  max-width: 400px;
+  vertical-align: top;
+}
+
+.table-description-content {
+  position: relative;
+  height: 80px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 0.75rem;
+  padding-bottom: 1.5rem;
+}
+
+/* Scroll styling for both description and tags */
+.table-description-content,
+td .flex.flex-wrap {
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-foreground/30) transparent;
+}
+
+/* Webkit scrollbar styling */
+.table-description-content::-webkit-scrollbar,
+td .flex.flex-wrap::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-description-content::-webkit-scrollbar-track,
+td .flex.flex-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-description-content::-webkit-scrollbar-thumb,
+td .flex.flex-wrap::-webkit-scrollbar-thumb {
+  background-color: var(--muted-foreground/30);
+  border-radius: 4px;
+}
+
+.table-description-content::-webkit-scrollbar-thumb:hover,
+td .flex.flex-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground/50);
+}
+
+/* Tags container styles */
+td .flex.flex-wrap {
+  padding-right: 0.5rem;
+  gap: 0.25rem;
+  align-content: flex-start;
+}
+
+/* Resize Handle */
+.resize-handle {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  background: linear-gradient(to bottom, transparent, var(--primary/10));
+}
+
+.table-description-cell:hover .resize-handle {
+  opacity: 1;
+}
+
+.resize-handle.resizing,
+.resize-handle:hover {
+  opacity: 1;
+  background-color: var(--primary/20);
+}
+
+/* Copy button styles */
+.copy-button {
+  @apply opacity-0 transition-opacity duration-200;
+}
+
+tr:hover .copy-button {
+  @apply opacity-100;
+}
+
+/* Column header hover effects */
+.responsive-table th[role="button"] {
+  @apply cursor-pointer transition-colors duration-200;
+}
+
+.responsive-table th[role="button"]:hover {
+  @apply bg-muted/70;
+}
+
+/* Selected row styling */
+.responsive-table tr.selected {
+  @apply bg-muted/20;
+}
+
+/* Compact view styles */
+.table-compact td,
+.table-compact th {
+  @apply py-1 px-3;
+}
+
+.table-compact .badge {
+  @apply py-0 px-1.5 text-xs;
+}
+
+.table-compact button {
+  @apply h-6 min-h-6 px-2 text-xs;
+}
+
+.table-compact .table-description-content {
+  max-height: 80px;
+}
+
+/* Comfortable view styles */
+.table-comfortable td,
+.table-comfortable th {
+  @apply py-3 px-4;
+}
+
+/* Mobile view styles */
+@media (max-width: 768px) {
+  .mobile-card-view {
+    @apply border-0;
+    padding: 0 1rem;
+    margin: 0 -1rem;
+    width: 100vw;
+  }
+
+  .mobile-card-view tbody tr {
+    @apply block mb-4 rounded-lg border bg-card overflow-hidden mx-auto;
+    width: calc(100% - 2rem);
+  }
+
+  .mobile-card-view td {
+    @apply block relative py-3 px-4 border-b last:border-b-0 w-full;
+  }
+
+  .mobile-card-view td::before {
+    content: attr(data-label);
+    @apply text-sm font-medium text-muted-foreground mb-2 block;
+  }
+
+  .mobile-card-view .table-description-cell {
+    @apply p-4;
+  }
+
+  .mobile-card-view .table-description-content {
+    @apply max-h-[200px] pr-2;
+  }
+
+  .mobile-card-view td[data-label="Actions"] {
+    @apply p-4;
+  }
+
+  .mobile-card-view td[data-label="Actions"] > div {
+    @apply grid grid-cols-2 gap-2 w-full;
+  }
+
+  .mobile-card-view td[data-label="Tags"] {
+    @apply p-4;
+  }
+
+  .mobile-card-view td[data-label="Tags"] .flex {
+    @apply flex-wrap gap-1;
+  }
+
+  .mobile-card-view thead {
+    @apply hidden;
+  }
+
+  .mobile-card-view td > div {
+    @apply w-full;
+  }
+
+  .mobile-card-view button {
+    @apply text-sm py-1 px-2 h-8 w-full justify-center;
+  }
+
+  .mobile-card-view .opacity-0 {
+    @apply opacity-100;
+  }
+}
+
+/* Column settings styles */
+.column-settings {
+  @apply z-50 fixed md:absolute;
+}
+
+.column-settings-dropdown {
+  @apply fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto;
+}
