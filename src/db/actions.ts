@@ -48,7 +48,6 @@ export async function createProjectServer(
         // Create a relation between project and tag
         await db.insert(project_tags).values({
           project_id: createdProject.id,
-          project_slug: createdProject.slug,
           tag_id: tagId,
         });
       }
@@ -178,7 +177,6 @@ export async function updateProjectServer(
         // Create a relation between project and tag
         await db.insert(project_tags).values({
           project_id: updatedProject.id,
-          project_slug: updatedProject.slug,
           tag_id: tagId,
         });
       }
