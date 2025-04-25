@@ -70,7 +70,7 @@ const data = {
       items: [
         {
           title: "My Showcase",
-          url: "/projects/projecta-showcase",
+          url: "/projects/projects-showcase",
         },
         {
           title: "Favorites",
