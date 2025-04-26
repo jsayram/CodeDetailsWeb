@@ -162,6 +162,12 @@
   }
 }
 
+/* Pagination cursor styles */
+.pagination-item,
+[role="navigation"] button {
+  cursor: pointer;
+}
+
 /* Fixing CLS issues */
 
 /* Set fixed heights for alert containers */
