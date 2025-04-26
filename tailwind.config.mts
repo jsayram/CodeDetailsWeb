@@ -14,6 +14,15 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      keyframes: {
+        heartPop: {
+          '0%, 100%': { transform: 'scale(1)' },
+          '50%': { transform: 'scale(1.2)' },
+        },
+      },
+      animation: {
+        heartPop: 'heartPop 0.3s ease-in-out',
+      },
     },
   },
   plugins: [

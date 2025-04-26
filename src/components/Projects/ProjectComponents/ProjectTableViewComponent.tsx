@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Project } from "@/types/models/project";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Settings2, ChevronUp, Star } from "lucide-react";
+import { Edit, Trash2, Settings2, ChevronUp, Heart } from "lucide-react";
 import { FormattedDate } from "@/lib/FormattedDate";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -345,17 +345,17 @@ export function ProjectTableView({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 transition-colors flex items-center gap-1.5 px-2 w-auto"
+                      className="h-8 transition-colors flex items-center gap-1.5 px-2 w-auto group"
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleFavorite?.(project.id, !project.isFavorite);
                       }}
                     >
-                      <Star 
-                        className={`h-4 w-4 ${
+                      <Heart 
+                        className={`h-4 w-4 transition-all duration-300 ${
                           project.isFavorite 
-                            ? "fill-yellow-400 text-yellow-400" 
-                            : "text-muted-foreground hover:text-accent"
+                            ? "fill-red-500 text-red-500 scale-110 animate-heartPop" 
+                            : "text-muted-foreground group-hover:text-red-500"
                         }`}
                       />
                       <span className="text-xs font-medium">{project.total_favorites || 0}</span>

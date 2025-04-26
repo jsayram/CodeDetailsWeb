@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { Project } from "@/types/models/project";
 import { UpdateProjectModal } from "./UpdateProjectModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
+import { UnfavoriteConfirmationModal } from "./UnfavoriteConfirmationModal";
 import { useAuth } from "@clerk/nextjs";
 import { FilterControls } from "@/components/navigation/Filter/FilterControlsComponent";
 import { PaginationControls } from "@/components/navigation/Pagination/PaginationControlComponent";
@@ -75,6 +76,9 @@ export function ProjectList({
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showUnfavoriteModal, setShowUnfavoriteModal] = useState(false);
+  const [unfavoritingProject, setUnfavoritingProject] = useState<{ id: string; title: string } | null>(null);
+  const [isUnfavoriting, setIsUnfavoriting] = useState(false);
   const { userId } = useAuth();
 
   // Check screen size for responsive design
@@ -148,19 +152,30 @@ export function ProjectList({
     if (!userId) return;
     
     try {
-      // If we're in favorites view and trying to unfavorite, show confirmation
-      if (showFavoritesOnly && !isFavorite) {
-        const shouldUnfavorite = window.confirm("Are you sure you want to remove this project from your favorites?");
-        if (!shouldUnfavorite) {
+      // If trying to unfavorite, show confirmation dialog
+      if (!isFavorite) {
+        const project = projects.find(p => p.id === id);
+        if (project) {
+          setUnfavoritingProject({ id, title: project.title });
+          setShowUnfavoriteModal(true);
           return;
         }
       }
 
+      await handleFavoriteAction(id, isFavorite);
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Failed to update favorite status");
+    }
+  }, [userId, setProjects, showFavoritesOnly, projects]);
+
+  const handleFavoriteAction = async (id: string, isFavorite: boolean) => {
+    try {
       // Make API call first
       if (isFavorite) {
-        await addProjectFavorite(id, userId);
+        await addProjectFavorite(id, userId!);
       } else {
-        await removeProjectFavorite(id, userId);
+        await removeProjectFavorite(id, userId!);
       }
 
       // After successful API call, update UI
@@ -188,11 +203,18 @@ export function ProjectList({
       }));
 
       toast.success(isFavorite ? "Added to favorites" : "Removed from favorites");
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      toast.error("Failed to update favorite status");
+    } finally {
+      setIsUnfavoriting(false);
+      setUnfavoritingProject(null);
+      setShowUnfavoriteModal(false);
     }
-  }, [userId, setProjects, showFavoritesOnly]);
+  };
+
+  const handleUnfavoriteConfirm = async () => {
+    if (!unfavoritingProject) return;
+    setIsUnfavoriting(true);
+    await handleFavoriteAction(unfavoritingProject.id, false);
+  };
 
   const handleProjectDeletion = useCallback((projectId: string, isPermanent: boolean = false) => {
     if (!isPermanent) {
@@ -436,6 +458,17 @@ export function ProjectList({
         projectTitle={projectToDelete?.title || ""}
         projectCategory={projectToDelete?.category}
         isDeleting={deletingProjectId !== null}
+      />
+
+      <UnfavoriteConfirmationModal
+        isOpen={showUnfavoriteModal}
+        onClose={() => {
+          setShowUnfavoriteModal(false);
+          setUnfavoritingProject(null);
+        }}
+        onConfirm={handleUnfavoriteConfirm}
+        projectTitle={unfavoritingProject?.title || ""}
+        isUnfavoriting={isUnfavoriting}
       />
     </div>
   );

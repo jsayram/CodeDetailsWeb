@@ -21,6 +21,72 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Card actions container */
+.project-card .card-actions {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem; /* Increased gap between button groups */
+}
+
+/* Action buttons group */
+.project-card .action-buttons-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-right: 0.5rem; /* Add margin to separate from favorite button */
+}
+
+/* Common button styles */
+.project-card .action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
+  padding: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--background);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+  position: relative;
+}
+
+/* Favorite button specific styles */
+.project-card .favorite-button {
+  position: relative;
+}
+
+/* Counter styles */
+.project-card .favorite-count {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  background-color: var(--background);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  min-width: 1.5rem;
+  text-align: center;
+  border: 2px solid var(--background);
+  box-shadow: 0 0 0 2px var(--card);
+}
+
+@media (min-width: 640px) {
+  .project-card .action-button {
+    opacity: 0;
+  }
+  
+  .project-card:hover .action-button,
+  .project-card:focus-within .action-button {
+    opacity: 1;
+  }
+}
+
 /* Deleted projects styling */
 .project-card.deleted {
   background-color: oklch(0.2 0.05 280); /* Dark purple background */

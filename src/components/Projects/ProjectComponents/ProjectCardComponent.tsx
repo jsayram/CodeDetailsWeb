@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Star, Trash2, Edit, User, Undo2 } from "lucide-react";
+import { ExternalLink, Heart, Trash2, Edit, User, Undo2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
 import {
@@ -206,102 +206,103 @@ export const ProjectCard = React.memo(
             ${project.deleted_at ? "deleted" : ""}`}
           onClick={() => onViewDetails?.(project.id)}
         >
-          {/* Only show favorite button for non-deleted projects */}
-          {!project.deleted_at && (
-            <button
-              className="absolute top-4 right-4 p-3 sm:p-2 rounded-full bg-background/80 backdrop-blur-sm
-                      hover:bg-background text-muted-foreground hover:text-accent transition-colors
-                      flex items-center gap-1.5"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite?.(project.id, !isFavorite);
-              }}
-              aria-label={
-                isFavorite ? "Remove from favorites" : "Add to favorites"
-              }
-            >
-              <Star
-                size={18}
-                className={`${
-                  isFavorite 
-                    ? "fill-yellow-400 text-yellow-400" 
-                    : "text-muted-foreground hover:text-accent"
-                }`}
-              />
-              <span className="text-xs font-medium">{project.total_favorites || 0}</span>
-            </button>
-          )}
+          <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
+            {/* Category Badge */}
+            <div className={`category-badge category-${project.category}`}>
+              <Badge
+                variant={project.deleted_at ? "destructive" : "secondary"}
+                className="capitalize text-sm cursor-pointer hover:bg-accent"
+                onClick={handleCategoryClick}
+              >
+                {PROJECT_CATEGORIES[project.category]?.label || project.category}
+              </Badge>
+            </div>
 
-          {/* Show different action buttons based on deleted status */}
-          {project.deleted_at ? (
-            <>
-              {isOwner && (
+            {/* Action buttons */}
+            <div className="flex items-center ">
+              {!project.deleted_at ? (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-4 right-4 rounded-full bg-green-950/80 hover:bg-green-900 text-green-500 hover:text-green-400
-                            opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                    onClick={handleRestore}
-                    aria-label="Restore project"
+                  {isOwner && (
+                    <div className="action-buttons-group">
+                      {onUpdateProject && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="action-button hover:text-blue-500"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateProject?.(project);
+                          }}
+                          aria-label="Update project"
+                        >
+                          <Edit size={20} />
+                        </Button>
+                      )}
+                      {onDeleteProject && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="action-button hover:text-red-500"
+                          onClick={handleDeleteClick}
+                          aria-label="Delete project"
+                        >
+                          <Trash2 size={20} />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    className="action-button favorite-button group"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleFavorite?.(project.id, !isFavorite);
+                    }}
+                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
                   >
-                    <Undo2 size={18} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-4 right-16 rounded-full bg-red-950/80 hover:bg-red-900 text-red-500 hover:text-red-400
-                            opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                    onClick={handlePermanentDelete}
-                    aria-label="Permanently delete project"
-                  >
-                    <Trash2 size={18} />
-                  </Button>
+                    <Heart
+                      size={20}
+                      className={`transition-all duration-300 ${
+                        isFavorite 
+                          ? "fill-red-500 text-red-500 scale-110 animate-heartPop" 
+                          : "text-muted-foreground group-hover:text-red-500"
+                      }`}
+                    />
+                    <span className="favorite-count">{project.total_favorites || 0}</span>
+                  </button>
                 </>
-              )}
-            </>
-          ) : (
-            <>
-              {isOwner && (
-                <>
-                  {onDeleteProject && (
+              ) : (
+                isOwner && (
+                  <div className="action-buttons-group">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute top-4 right-16 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-red-500
-                              opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                      onClick={handleDeleteClick}
-                      aria-label="Delete project"
+                      className="action-button hover:text-green-500"
+                      onClick={handleRestore}
+                      aria-label="Restore project"
+                    >
+                      <Undo2 size={18} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="action-button hover:text-red-500"
+                      onClick={handlePermanentDelete}
+                      aria-label="Permanently delete project"
                     >
                       <Trash2 size={18} />
                     </Button>
-                  )}
-
-                  {onUpdateProject && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-4 right-28 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-blue-500
-                              opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onUpdateProject?.(project);
-                      }}
-                      aria-label="Update project"
-                    >
-                      <Edit size={18} />
-                    </Button>
-                  )}
-                </>
+                  </div>
+                )
               )}
-            </>
-          )}
+            </div>
+          </div>
 
           {/* Content area */}
-          <div className="card-content">
+          <div className="card-content mx-2">
             {/* Project title and description */}
             <h3
-              className={`text-base sm:text-lg font-semibold mb-2 line-clamp-2 ${
+              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${
                 project.deleted_at ? "text-white/90" : ""
               }`}
             >
@@ -316,36 +317,6 @@ export const ProjectCard = React.memo(
               >
                 {project.description || "No description provided"}
               </p>
-            </div>
-
-            {/* Project metadata */}
-            <div className="project-metadata">
-              <div className="category-source-wrapper">
-                <div className={`category-badge category-${project.category}`}>
-                  <Badge
-                    variant={project.deleted_at ? "destructive" : "secondary"}
-                    className="capitalize text-sm cursor-pointer hover:bg-accent"
-                    onClick={handleCategoryClick}
-                  >
-                    {PROJECT_CATEGORIES[project.category]?.label || project.category}
-                  </Badge>
-                </div>
-
-                {project.slug && (
-                  <a
-                    href={project.slug}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`inline-flex items-center text-xs sm:text-sm text-muted-foreground hover:text-foreground ${
-                      project.deleted_at ? "text-red-400/50" : ""
-                    }`}
-                    onClick={handleChildClick}
-                  >
-                    <ExternalLink size={14} className="mr-1.5" />
-                    Source
-                  </a>
-                )}
-              </div>
             </div>
           </div>
 
