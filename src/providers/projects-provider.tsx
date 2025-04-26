@@ -35,6 +35,7 @@ interface ProjectsContextType {
   isAuthenticated: boolean;
   filters: ProjectFilters;
   setFilters: (filters: Partial<ProjectFilters>) => void;
+  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(
@@ -124,11 +125,34 @@ export function ProjectsProvider({
         throw new Error(result.error || "Failed to fetch projects");
       }
 
+      // Load favorites for the current user if authenticated
+      if (userId) {
+        try {
+          const favoritesResponse = await fetch(API_ROUTES.PROJECTS.WITH_FILTERS({ userId, showFavorites: true }));
+          if (favoritesResponse.ok) {
+            const favoritesResult = await favoritesResponse.json();
+            const favoriteIds = new Set(favoritesResult.data.map((p: any) => p.id));
+            
+            // Mark favorite projects
+            result.data = result.data.map((project: Project) => ({
+              ...project,
+              isFavorite: favoriteIds.has(project.id)
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to fetch favorites:", error);
+          // Keep existing favorite states if favorites fetch fails
+          const existingFavorites = new Map(projects.map(p => [p.id, p.isFavorite]));
+          result.data = result.data.map((project: Project) => ({
+            ...project,
+            isFavorite: existingFavorites.get(project.id) || false
+          }));
+        }
+      }
+
       setProjects(result.data || []);
       lastFetchRef.current.timestamp = now;
-      console.log(
-        `✅ Successfully fetched ${result.data?.length || 0} projects`
-      );
+      console.log(`✅ Successfully fetched ${result.data?.length || 0} projects`);
     } catch (error) {
       console.error("❌ Error fetching projects:", error);
       // Don't clear projects on error, keep existing state
@@ -139,7 +163,7 @@ export function ProjectsProvider({
       setLoading(false);
       lastFetchRef.current.inProgress = false;
     }
-  }, [projects.length]);
+  }, [projects.length, userId, projects]);
 
   useEffect(() => {
     if (!authReady || parentIsLoading) return;
@@ -183,9 +207,37 @@ export function ProjectsProvider({
     await fetchProjects();
   };
 
+  // Add sorting logic
+  const sortedProjects = useMemo(() => {
+    let result = [...projects];
+
+    switch (filters.sortBy) {
+      case "newest":
+        return result.sort((a, b) => {
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateB - dateA; // Newest first
+        });
+      case "oldest":
+        return result.sort((a, b) => {
+          const dateA = new Date(a.created_at || 0).getTime();
+          const dateB = new Date(b.created_at || 0).getTime();
+          return dateA - dateB; // Oldest first
+        });
+      case "popular":
+        return result.sort((a, b) => {
+          const aFavorites = Number(a.total_favorites || 0);
+          const bFavorites = Number(b.total_favorites || 0);
+          return bFavorites - aFavorites; // Most favorited first
+        });
+      default:
+        return result;
+    }
+  }, [projects, filters.sortBy]);
+
   const value = useMemo(
     () => ({
-      projects,
+      projects: sortedProjects, // Use sorted projects instead of raw projects
       loading,
       handleProjectAdded,
       handleProjectDeleted,
@@ -194,8 +246,9 @@ export function ProjectsProvider({
       isAuthenticated,
       filters,
       setFilters: updateFilters,
+      setProjects,
     }),
-    [projects, loading, isAuthenticated, filters, updateFilters]
+    [sortedProjects, loading, isAuthenticated, filters, updateFilters, setProjects] // Update dependencies
   );
 
   return (

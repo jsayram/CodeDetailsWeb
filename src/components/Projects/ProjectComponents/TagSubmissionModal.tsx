@@ -21,6 +21,7 @@ import { useProjects } from "@/providers/projects-provider";
 import { ClientOnly } from "@/components/ClientOnly";
 import { searchTagsAction } from "@/app/actions/tags";
 import { useTagCache } from "@/hooks/use-tag-cache";
+import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 
 interface TagSubmissionModalProps {
   projectId: string;
@@ -64,11 +65,13 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
   const [description, setDescription] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [processedTags, setProcessedTags] = useState<Array<{ name: string; isValid: boolean; message?: string }>>([]);
+  const [processedTags, setProcessedTags] = useState<Array<{ name: string; isValid: boolean; message?: string; willBeSubmitted?: boolean }>>([]);
 
   // Get project details
   const project = projects?.find(p => p.id === projectId);
   const isOwner = project?.user_id === user?.id;
+  const currentTagCount = project?.tags?.length || 0;
+  const remainingTagSlots = MAX_PROJECT_TAGS - currentTagCount;
 
   useEffect(() => {
     setMounted(true);
@@ -88,7 +91,6 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
       setDescription("");
       setProcessedTags([]);
       setTagError(null);
-      // Don't reset email as it comes from the user's profile
     }
   };
 
@@ -114,21 +116,52 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
         seenNormalizedTags.add(normalized);
         return true;
       })
-      .map(async ({ normalized }) => {
+      .map(async ({ normalized }, index) => {
         const validation = await validateTagName(normalized);
+        
+        // Mark which tags will be submitted based on remaining slots
+        const willBeSubmitted = index < remainingTagSlots;
+        
+        // If valid but exceeds limit, add a note about submission status
+        if (validation.isValid) {
+          if (!willBeSubmitted) {
+            return {
+              name: normalized,
+              isValid: true,
+              willBeSubmitted: false,
+              message: `Will not be submitted - exceeds the limit of ${MAX_PROJECT_TAGS} tags`
+            };
+          }
+          return {
+            name: normalized,
+            isValid: true,
+            willBeSubmitted: true
+          };
+        }
+        
         return {
           name: normalized,
-          isValid: validation.isValid,
-          message: validation.message
+          isValid: false,
+          message: validation.message,
+          willBeSubmitted: false
         };
       });
 
     const processedResults = await Promise.all(tagPromises);
-    setProcessedTags(processedResults);
     
-    const hasInvalid = processedResults.some(tag => !tag.isValid);
-    setTagError(hasInvalid ? "Please fix invalid tags" : null);
-    return !hasInvalid;
+    // Add a warning if some valid tags won't be submitted
+    const validTags = processedResults.filter(tag => tag.isValid);
+    const willBeSubmitted = validTags.filter(tag => tag.willBeSubmitted);
+    const willNotBeSubmitted = validTags.filter(tag => !tag.willBeSubmitted);
+    
+    if (willNotBeSubmitted.length > 0) {
+      setTagError(`Only ${willBeSubmitted.length} tag(s) will be submitted to stay within the ${MAX_PROJECT_TAGS} tag limit`);
+    } else {
+      setTagError(processedResults.some(tag => !tag.isValid) ? "Please fix invalid tags" : null);
+    }
+    
+    setProcessedTags(processedResults);
+    return !processedResults.some(tag => !tag.isValid);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,8 +177,8 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
     setIsSubmitting(true);
 
     try {
-      // Submit each valid tag as a separate submission
-      const validTags = processedTags.filter(tag => tag.isValid);
+      // Submit each valid tag that's within the limit
+      const validTags = processedTags.filter(tag => tag.isValid && tag.willBeSubmitted);
       const results = [];
       const errors = [];
       const autoApproved = [];
@@ -232,19 +265,37 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <DialogTitle>Submit New Tag</DialogTitle>
-              <DialogDescription className="space-y-2">
-                Propose new tags for this project.
-                <ClientOnly>
-                  {project && (
-                    <span className="block bg-muted/50 p-2 rounded-md text-sm">
-                      <Badge variant="outline" className="mb-1">{project.title}</Badge>
+              <DialogDescription asChild>
+                <div className="space-y-2">
+                  <p>
+                    Propose new tags for this project.{' '}
+                    <span className="font-medium">
+                      ({currentTagCount}/{MAX_PROJECT_TAGS} tags used)
                     </span>
+                  </p>
+                  {remainingTagSlots > 0 ? (
+                    <p className="text-sm bg-muted/50 p-2 rounded-md">
+                      You can request up to <span className="font-medium">{remainingTagSlots}</span> more tag{remainingTagSlots !== 1 ? 's' : ''}.
+                      {remainingTagSlots < MAX_PROJECT_TAGS && ` Any additional tag requests will be automatically rejected.`}
+                    </p>
+                  ) : (
+                    <p className="text-sm bg-destructive/10 text-destructive p-2 rounded-md">
+                      This project has reached the maximum limit of {MAX_PROJECT_TAGS} tags.
+                      Remove some existing tags before requesting new ones.
+                    </p>
                   )}
-                </ClientOnly>
-                <span className="block text-xs text-muted-foreground">
-                  You can submit multiple tags by separating them with commas.
-                  Tags must be lowercase, no spaces, URL-safe, and contain only letters, numbers, and hyphens.
-                </span>
+                  <ClientOnly>
+                    {project && (
+                      <p className="bg-muted/50 p-2 rounded-md text-sm">
+                        <Badge variant="outline" className="mb-1">{project.title}</Badge>
+                      </p>
+                    )}
+                  </ClientOnly>
+                  <p className="text-xs text-muted-foreground">
+                    You can submit multiple tags by separating them with commas.
+                    Tags must be lowercase, no spaces, URL-safe, and contain only letters, numbers, and hyphens.
+                  </p>
+                </div>
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">

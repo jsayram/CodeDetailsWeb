@@ -45,6 +45,7 @@ export function TagSubmissionManagement({
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState<Record<string, boolean>>({});
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
+  const [projectTagCounts, setProjectTagCounts] = useState<Record<string, number>>({});
   const { refreshCache } = useTagCache();
 
   const handleApprove = async (groupedTag: GroupedTagSubmission) => {
@@ -59,16 +60,47 @@ export function TagSubmissionManagement({
     setIsProcessing((prev) => ({ ...prev, ...newProcessingState }));
 
     try {
-      await Promise.all(
+      const results = await Promise.allSettled(
         groupedTag.submissions.map((submission) =>
           approveTagSubmission(submission.id, adminNotes[submission.id])
         )
       );
-      toast.success(
-        `All submissions for tag "${groupedTag.tag_name}" approved successfully`
-      );
+
+      // Process results
+      const errors: string[] = [];
+      let successCount = 0;
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          errors.push(`Failed to approve tag for ${projectNames[groupedTag.submissions[index].project_id]}: ${result.reason?.message || 'Unknown error'}`);
+        } else {
+          successCount++;
+        }
+      });
+
+      if (errors.length > 0) {
+        if (successCount > 0) {
+          toast.success(`Successfully approved ${successCount} tag submission(s)`);
+        }
+        toast.error(
+          <div>
+            <p>Some tags could not be approved:</p>
+            <ul className="list-disc pl-4 mt-2">
+              {errors.map((error, i) => (
+                <li key={i}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        );
+      } else {
+        toast.success(
+          `All submissions for tag "${groupedTag.tag_name}" approved successfully`
+        );
+      }
+
       await refreshCache();
 
+      // Remove all submissions that were handled (either approved or rejected)
       setSubmissions((prevSubmissions) =>
         prevSubmissions.filter((group) => group.tag_name !== groupedTag.tag_name)
       );
@@ -86,6 +118,7 @@ export function TagSubmissionManagement({
 
   const handleIndividualApprove = async (submissionId: string, tagName: string) => {
     if (isProcessing[submissionId]) return;
+    
     setIsProcessing((prev) => ({ ...prev, [submissionId]: true }));
 
     try {
@@ -104,7 +137,7 @@ export function TagSubmissionManagement({
       });
     } catch (error) {
       console.error("Error approving tag:", error);
-      toast.error("Failed to approve tag");
+      toast.error(error instanceof Error ? error.message : "Failed to approve tag");
     } finally {
       setIsProcessing((prev) => ({ ...prev, [submissionId]: false }));
     }

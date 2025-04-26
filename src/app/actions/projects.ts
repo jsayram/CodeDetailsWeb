@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 import {
   createProjectServer,
   getAccessibleProjectsServer,
@@ -15,6 +15,8 @@ import { projects } from "@/db/schema/projects";
 import { revalidatePath } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
+import { favorites } from "@/db/schema/favorites";
+import { getProfileByUserId } from "@/db/operations";
 
 const pathToRevalidate = "/projects";
 
@@ -386,6 +388,132 @@ export async function restoreProject(id: string, userId: string) {
     };
   } catch (error) {
     console.error("Failed to restore project:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+// Server action to add a favorite to a project
+export async function addProjectFavorite(
+  projectId: string,
+  userId: string
+) {
+  try {
+    if (!userId || !projectId) {
+      return {
+        success: false,
+        error: "Both user ID and project ID are required",
+      };
+    }
+
+    // First get the profile ID for the user
+    const profile = await getProfileByUserId(userId);
+    if (!profile) {
+      return {
+        success: false,
+        error: "User profile not found",
+      };
+    }
+
+    await executeQuery(async (db) => {
+      // Check if favorite already exists
+      const existingFavorite = await db
+        .select()
+        .from(favorites)
+        .where(
+          and(
+            eq(favorites.project_id, projectId),
+            eq(favorites.profile_id, profile.id)
+          )
+        )
+        .limit(1);
+
+      if (existingFavorite.length === 0) {
+        // Create new favorite and increment total_favorites in a transaction
+        await db.transaction(async (tx) => {
+          // Add the favorite
+          await tx
+            .insert(favorites)
+            .values({
+              project_id: projectId,
+              profile_id: profile.id,
+            });
+
+          // Increment total_favorites
+          await tx
+            .update(projects)
+            .set({ 
+              total_favorites: sql`total_favorites + 1`,
+              updated_at: new Date()
+            })
+            .where(eq(projects.id, projectId));
+        });
+      }
+    });
+
+    revalidatePath(pathToRevalidate);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to add favorite:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+// Server action to remove a favorite from a project
+export async function removeProjectFavorite(
+  projectId: string,
+  userId: string
+) {
+  try {
+    if (!userId || !projectId) {
+      return {
+        success: false,
+        error: "Both user ID and project ID are required",
+      };
+    }
+
+    // First get the profile ID for the user
+    const profile = await getProfileByUserId(userId);
+    if (!profile) {
+      return {
+        success: false,
+        error: "User profile not found",
+      };
+    }
+
+    await executeQuery(async (db) => {
+      // Delete favorite and decrement total_favorites in a transaction
+      await db.transaction(async (tx) => {
+        // Remove the favorite
+        await tx
+          .delete(favorites)
+          .where(
+            and(
+              eq(favorites.project_id, projectId),
+              eq(favorites.profile_id, profile.id)
+            )
+          );
+
+        // Decrement total_favorites, ensuring it doesn't go below 0
+        await tx
+          .update(projects)
+          .set({ 
+            total_favorites: sql`GREATEST(total_favorites - 1, 0)`,
+            updated_at: new Date()
+          })
+          .where(eq(projects.id, projectId));
+      });
+    });
+
+    revalidatePath(pathToRevalidate);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to remove favorite:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",

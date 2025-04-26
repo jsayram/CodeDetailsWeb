@@ -22,9 +22,9 @@ async function extractClerkUserData(data: ClerkUserData) {
   const email_address = data.email_addresses?.[0]?.email_address || "";
   const first_name = data.first_name || "Code";
   const last_name = data.last_name || "Minion";
-  const full_name =
-    data.first_name && data.last_name
-      ? `${data.first_name} ${data.last_name}`
+  const full_name = data.full_name || // Use Clerk-provided full name if available
+    (data.first_name || data.last_name) // If either name part exists
+      ? `${data.first_name || ""} ${data.last_name || ""}`.trim() // Combine available parts
       : `_${
           data.email_addresses?.[0]?.email_address?.split("@")[0] ||
           "FN_user-" + data.id.substring(5, 15)
@@ -349,14 +349,16 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Handle session.created
 async function handleSessionCreated(data: ClerkSessionData) {
-
   // Extract the user ID from the session data
   const userId = data.user_id;
 
   if (!userId) {
     console.error("No user ID found in session data");
     return NextResponse.json(
-      { error: "Invalid session data" },
+      { 
+        error: "Invalid session data",
+        redirect: "/auth/sign-in"
+      },
       { status: 400 }
     );
   }
@@ -376,51 +378,51 @@ async function handleSessionCreated(data: ClerkSessionData) {
     `🔍 Session created for user: ${userId}, checking profile existence`
   );
 
-  // Check if the user already exists in the database
-  const { data: existingProfile, error: fetchError } = await supabaseServer
-    .from("profiles")
-    .select("user_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (fetchError && !fetchError.details?.includes("0 rows")) {
-    console.error("Error checking profile existence:", fetchError);
-    return NextResponse.json(
-      { error: "Error verifying user profile" },
-      { status: 500 }
-    );
-  }
-
-  // User exists in database - update cache and return success
-  if (existingProfile) {
-    console.log(`✅ User ${userId} profile found and verified`);
-    // Update the cache with current timestamp
-    recentlyVerifiedUsers.set(userId, now);
-    // Clean up old cache entries periodically
-    if (recentlyVerifiedUsers.size > 100) {
-      // Arbitrary limit
-      cleanupCache();
-    }
-    return NextResponse.json({
-      message: "User profile verified and in sync",
-      status: "ok",
-    });
-  }
-
-  // User doesn't exist in profiles table, we need to fetch from Clerk and create
-  console.log(
-    `⚠️ User ${userId} not found in profiles during session creation. Syncing from Clerk...`
-  );
-
   try {
+    // Check if the user already exists in the database
+    const { data: existingProfile, error: fetchError } = await supabaseServer
+      .from("profiles")
+      .select("user_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError && !fetchError.details?.includes("0 rows")) {
+      console.error("Error checking profile existence:", fetchError);
+      return NextResponse.json(
+        { error: "Error verifying user profile" },
+        { status: 500 }
+      );
+    }
+
+    // User exists in database - update cache and return success
+    if (existingProfile) {
+      console.log(`✅ User ${userId} profile found and verified`);
+      recentlyVerifiedUsers.set(userId, now);
+      if (recentlyVerifiedUsers.size > 100) {
+        cleanupCache();
+      }
+      return NextResponse.json({
+        message: "User profile verified and in sync",
+        status: "ok",
+      });
+    }
+
+    // User doesn't exist in profiles table, we need to fetch from Clerk and create
+    console.log(
+      `⚠️ User ${userId} not found in profiles during session creation. Syncing from Clerk...`
+    );
+
     // Fetch user data from Clerk API using our implemented service
     const { data: clerkUser, error } = await fetchClerkUser(userId);
 
     if (error || !clerkUser) {
       console.error(`Failed to fetch Clerk user data for ${userId}:`, error);
       return NextResponse.json(
-        { error: "Failed to synchronize user profile" },
-        { status: 500 }
+        { 
+          error: "User not found",
+          redirect: "/auth/sign-in" 
+        },
+        { status: 404 }
       );
     }
 
@@ -431,7 +433,10 @@ async function handleSessionCreated(data: ClerkSessionData) {
   } catch (error) {
     console.error("Error syncing profile from session:", error);
     return NextResponse.json(
-      { error: "Error synchronizing user profile" },
+      { 
+        error: "Error synchronizing user profile",
+        redirect: "/auth/sign-in"
+      },
       { status: 500 }
     );
   }

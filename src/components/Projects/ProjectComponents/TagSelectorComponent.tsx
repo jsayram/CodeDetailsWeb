@@ -8,6 +8,8 @@ import { TagSubmissionModal } from "./TagSubmissionModal";
 import { useAuth, useUser } from "@clerk/nextjs";
 import { useProjects } from "@/providers/projects-provider";
 import { SelectTagSubmission } from "@/db/schema/tag_submissions";
+import { toast } from "sonner";
+import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 
 interface TagSelectorProps {
   projectId?: string;
@@ -24,7 +26,7 @@ export function TagSelector({
 }: TagSelectorProps) {
   const [selectedTags, setSelectedTags] = useState<TagInfo[]>([]);
   const [pendingTags, setPendingTags] = useState<SelectTagSubmission[]>([]);
-  const { tags: cachedTags, isLoading: isTagCacheLoading } = useTagCache();
+  const { tags: cachedTags, isLoading: isTagCacheLoading, refreshCache } = useTagCache();
   const isMounted = useRef(false);
   const initialTagsRef = useRef<string[]>(initialTags);
   const { userId } = useAuth();
@@ -43,12 +45,26 @@ export function TagSelector({
   }, []);
 
   const handleSearchTags = useCallback(async (query: string): Promise<TagInfo[]> => {
+    if (selectedTags.length >= MAX_PROJECT_TAGS) {
+      toast.error(`Projects can have a maximum of ${MAX_PROJECT_TAGS} tags`);
+      return [];
+    }
+    // Force a cache refresh when searching to ensure we have latest tags
+    await refreshCache(true);
     const searchTerm = query.toLowerCase();
-    return cachedTags.filter(tag => tag.name.toLowerCase().includes(searchTerm));
-  }, [cachedTags]);
+    return cachedTags.filter(
+      tag => tag.name.toLowerCase().includes(searchTerm) &&
+        !selectedTags.some(selectedTag => selectedTag.id === tag.id)
+    );
+  }, [selectedTags, cachedTags, refreshCache]);
 
   const handleAddTag = useCallback(async (tagId: string): Promise<void> => {
     if (!isOwner) return;
+
+    if (selectedTags.length >= MAX_PROJECT_TAGS) {
+      toast.error(`Projects can have a maximum of ${MAX_PROJECT_TAGS} tags`);
+      return;
+    }
 
     const tagToAdd = cachedTags.find(tag => tag.id === tagId);
     if (tagToAdd && !selectedTags.some(t => t.id === tagId)) {
@@ -66,14 +82,16 @@ export function TagSelector({
     onTagsChange?.(updatedTags);
   }, [selectedTags, onTagsChange, isOwner]);
 
-  // Process initial tags
+  // Process initial tags and update when they change
   useEffect(() => {
-    if (!isMounted.current || isTagCacheLoading || 
-        JSON.stringify(initialTagsRef.current) === JSON.stringify(initialTags)) {
+    if (!isMounted.current || isTagCacheLoading) {
       return;
     }
 
     const processInitialTags = async () => {
+      // Force a cache refresh to ensure we have the latest tags
+      await refreshCache(true);
+      
       const processedTags: TagInfo[] = [];
       const processedTagNames = new Set<string>();
       
@@ -100,15 +118,19 @@ export function TagSelector({
       }
     };
     
-    processInitialTags();
-  }, [initialTags, cachedTags, isTagCacheLoading, onTagsChange]);
+    if (JSON.stringify(initialTagsRef.current) !== JSON.stringify(initialTags)) {
+      processInitialTags();
+    }
+  }, [initialTags, cachedTags, isTagCacheLoading, onTagsChange, refreshCache]);
 
+  // Load and refresh pending submissions
   const loadPendingSubmissions = useCallback(async () => {
     if (projectId === "new" || !user?.primaryEmailAddress?.emailAddress) return;
 
     try {
       const submissions = await fetch(
-        `/api/projects/${projectId}/tag-submissions?status=pending&email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`
+        `/api/projects/${projectId}/tag-submissions?status=pending&email=${encodeURIComponent(user.primaryEmailAddress.emailAddress)}`,
+        { cache: 'no-store' }
       ).then(res => res.json());
       
       if (Array.isArray(submissions)) {
@@ -126,6 +148,18 @@ export function TagSelector({
   useEffect(() => {
     loadPendingSubmissions();
   }, [loadPendingSubmissions]);
+
+  // Refresh pending submissions periodically
+  useEffect(() => {
+    if (projectId === "new") return;
+    
+    const interval = setInterval(() => {
+      loadPendingSubmissions();
+      refreshCache(true); // Also refresh tag cache periodically
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [projectId, loadPendingSubmissions, refreshCache]);
 
   return (
     <div className={className}>

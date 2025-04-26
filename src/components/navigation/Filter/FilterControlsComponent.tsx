@@ -23,12 +23,12 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
   if (!showControls) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 items-center justify-center lg:justify-start h-9">
+    <div className="flex flex-col sm:flex-row gap-3 w-full">
       <Select
         value={filters.sortBy}
         onValueChange={(value) => setFilters({ sortBy: value })}
       >
-        <SelectTrigger className="w-[150px] h-9">
+        <SelectTrigger className="w-full sm:w-[150px] h-9">
           <SelectValue placeholder="Sort by" />
         </SelectTrigger>
         <SelectContent>
@@ -45,16 +45,20 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
         value={filters.category}
         onValueChange={(value) => setFilters({ category: value as ProjectCategory | "all" })}
       >
-        <SelectTrigger className="w-[180px] h-9">
+        <SelectTrigger className="w-full sm:w-[240px] h-9">
           <SelectValue placeholder="Filter by category" />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             <SelectLabel>Category</SelectLabel>
-            <SelectItem value="all">All Categories</SelectItem>
+            <SelectItem value="all">
+              <span className="text-muted-foreground">All Categories</span>
+            </SelectItem>
             {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
               <SelectItem key={value} value={value}>
-                {label}
+                <div className={`filter-category-pill category-${value}`}>
+                  {label}
+                </div>
               </SelectItem>
             ))}
           </SelectGroup>

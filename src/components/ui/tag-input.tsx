@@ -27,6 +27,7 @@ export function TagInput({
   const [inputValue, setInputValue] = useState("");
   const [suggestions, setSuggestions] = useState<TagInfo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +38,7 @@ export function TagInput({
     const search = async () => {
       if (inputValue.trim().length > 0) {
         setLoading(true);
+        setError(null);
         try {
           const results = await searchTags(inputValue);
           // Filter out tags that are already selected
@@ -47,12 +49,15 @@ export function TagInput({
           setShowSuggestions(true);
         } catch (error) {
           console.error("Error searching tags:", error);
+          setError("Failed to search tags. Please try again.");
+          setSuggestions([]);
         } finally {
           setLoading(false);
         }
       } else {
         setSuggestions([]);
         setShowSuggestions(false);
+        setError(null);
       }
     };
 
@@ -141,7 +146,7 @@ export function TagInput({
               onFocus={() => inputValue.trim() && setShowSuggestions(true)}
               placeholder={placeholder}
               disabled={disabled || loading}
-              className="w-full"
+              className={cn("w-full", error && "border-red-500")}
             />
             {loading && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -150,6 +155,10 @@ export function TagInput({
             )}
           </div>
         </div>
+
+        {error && (
+          <p className="mt-1 text-sm text-red-500">{error}</p>
+        )}
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (

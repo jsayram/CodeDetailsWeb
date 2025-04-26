@@ -48,7 +48,6 @@ export async function createProjectServer(
         // Create a relation between project and tag
         await db.insert(project_tags).values({
           project_id: createdProject.id,
-          project_slug: createdProject.slug,
           tag_id: tagId,
         });
       }
@@ -178,7 +177,6 @@ export async function updateProjectServer(
         // Create a relation between project and tag
         await db.insert(project_tags).values({
           project_id: updatedProject.id,
-          project_slug: updatedProject.slug,
           tag_id: tagId,
         });
       }
@@ -198,45 +196,51 @@ export async function updateProjectServer(
  */
 export async function getAccessibleProjectsServer(
   userId: string,
-  userTier?: string // Kept for backward compatibility but not used for filtering
+  userTier?: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
     console.log(`Finding projects for user ID: ${userId}`);
 
-    // Get all projects, including deleted ones, ordered by creation date desc
-    const allProjects = await db
-      .select()
-      .from(projects)
-      .orderBy(desc(projects.created_at)); // Get all projects, including deleted ones
-
-    // Fetch tags and owner info for each project and map to the final structure
-    const projectsWithTagsAndOwner = await Promise.all(
-      allProjects.map(async (projectData) => {
-        const tags = await getProjectTagNames(projectData.id);
-
-        // Get profile information for the project's creator
-        let ownerProfile = null;
-        if (projectData.user_id) {
-          const ownerProfiles = await db
-            .select()
-            .from(profiles)
-            .where(eq(profiles.user_id, projectData.user_id));
-
-          ownerProfile = ownerProfiles.length > 0 ? ownerProfiles[0] : null;
-        }
-
-        return {
-          ...projectData,
-          tags,
-          owner_username: ownerProfile?.username || null,
-          owner_email: ownerProfile?.email_address || null,
-          owner_profile_image_url: ownerProfile?.profile_image_url || null,
-        };
+    // Get all projects with profile data and tags in a single query
+    const projectsData = await db
+      .select({
+        project: projects,
+        profile: {
+          id: profiles.id,
+          user_id: profiles.user_id,
+          username: profiles.username,
+          full_name: profiles.full_name,
+          profile_image_url: profiles.profile_image_url,
+          tier: profiles.tier,
+          email_address: profiles.email_address,
+          created_at: profiles.created_at,
+          updated_at: profiles.updated_at,
+        },
+        tags: sql<string[]>`array_agg(${tags.name})`
       })
-    );
+      .from(projects)
+      .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
+      .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
+      .leftJoin(tags, eq(tags.id, project_tags.tag_id))
+      .groupBy(projects.id, profiles.id, profiles.user_id, profiles.username, profiles.full_name, 
+               profiles.profile_image_url, profiles.tier, profiles.email_address, 
+               profiles.created_at, profiles.updated_at)
+      .orderBy(desc(projects.created_at));
 
-    console.log(`Found ${projectsWithTagsAndOwner.length} projects`);
-    return projectsWithTagsAndOwner;
+    // Map the results to the expected format
+    return projectsData.map(({ project, profile, tags }) => ({
+      ...project,
+      tags: tags?.filter(Boolean) || [], // Filter out null values and provide empty array fallback
+      owner_id: profile?.id || null,
+      owner_user_id: profile?.user_id || null,
+      owner_username: profile?.username || null,
+      owner_full_name: profile?.full_name || null,
+      owner_profile_image_url: profile?.profile_image_url || null,
+      owner_tier: profile?.tier || null,
+      owner_email_address: profile?.email_address || null,
+      owner_created_at: profile?.created_at || null,
+      owner_updated_at: profile?.updated_at || null
+    }));
   });
 }
 
@@ -247,39 +251,47 @@ export async function getUserProjectsServer(
   userId: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
-    const userProjects = await db
-      .select()
+    // Get projects with profile data and tags in a single query
+    const projectsData = await db
+      .select({
+        project: projects,
+        profile: {
+          id: profiles.id,
+          user_id: profiles.user_id,
+          username: profiles.username,
+          full_name: profiles.full_name,
+          profile_image_url: profiles.profile_image_url,
+          tier: profiles.tier,
+          email_address: profiles.email_address,
+          created_at: profiles.created_at,
+          updated_at: profiles.updated_at,
+        },
+        tags: sql<string[]>`array_agg(${tags.name})`
+      })
       .from(projects)
-      .where(eq(projects.user_id, userId))  // Removed the isNull check for deleted_at
+      .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
+      .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
+      .leftJoin(tags, eq(tags.id, project_tags.tag_id))
+      .where(eq(projects.user_id, userId))
+      .groupBy(projects.id, profiles.id, profiles.user_id, profiles.username, profiles.full_name,
+               profiles.profile_image_url, profiles.tier, profiles.email_address,
+               profiles.created_at, profiles.updated_at)
       .orderBy(desc(projects.created_at));
 
-    // Fetch tags and owner profile info for each project
-    const projectsWithTagsAndOwner = await Promise.all(
-      userProjects.map(async (projectData) => {
-        const tags = await getProjectTagNames(projectData.id);
-
-        // Get profile information for the project's creator
-        let ownerProfile = null;
-        if (projectData.user_id) {
-          const ownerProfiles = await db
-            .select()
-            .from(profiles)
-            .where(eq(profiles.user_id, projectData.user_id));
-
-          ownerProfile = ownerProfiles.length > 0 ? ownerProfiles[0] : null;
-        }
-
-        return {
-          ...projectData,
-          tags,
-          owner_username: ownerProfile?.username || null,
-          owner_email: ownerProfile?.email_address || null,
-          owner_profile_image_url: ownerProfile?.profile_image_url || null,
-        };
-      })
-    );
-
-    return projectsWithTagsAndOwner;
+    // Map the results to the expected format
+    return projectsData.map(({ project, profile, tags }) => ({
+      ...project,
+      tags: tags?.filter(Boolean) || [], // Filter out null values and provide empty array fallback
+      owner_id: profile?.id || null,
+      owner_user_id: profile?.user_id || null,
+      owner_username: profile?.username || null,
+      owner_full_name: profile?.full_name || null,
+      owner_profile_image_url: profile?.profile_image_url || null,
+      owner_tier: profile?.tier || null,
+      owner_email_address: profile?.email_address || null,
+      owner_created_at: profile?.created_at || null,
+      owner_updated_at: profile?.updated_at || null
+    }));
   });
 }
 

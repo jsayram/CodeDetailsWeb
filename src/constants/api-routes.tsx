@@ -10,6 +10,7 @@ interface ProjectFilters {
   userId?: string;
   category?: ProjectCategory;
   tag?: string;
+  showFavorites?: boolean;
 }
 
 export const API_ROUTES = {
@@ -23,6 +24,7 @@ export const API_ROUTES = {
       if (filters.userId) params.append("userId", filters.userId);
       if (filters.category) params.append("category", filters.category);
       if (filters.tag) params.append("tag", filters.tag);
+      if (filters.showFavorites) params.append("showFavorites", "true");
       return `/api/projects?${params.toString()}`;
     },
     TEST_PAGE: "/api/projects/test",

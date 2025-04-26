@@ -1,3 +1,5 @@
+"use client";
+
 import { ReactNode, FC } from "react";
 import { useIsBrowser } from "@/hooks/use-is-browser";
 
