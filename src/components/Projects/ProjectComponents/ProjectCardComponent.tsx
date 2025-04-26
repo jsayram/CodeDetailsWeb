@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Heart, Trash2, Edit, User, Undo2 } from "lucide-react";
+import { ExternalLink, Star, Trash2, Edit, User, Undo2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
 import {
@@ -54,10 +54,12 @@ export const ProjectCard = React.memo(
     const { userId } = useAuth();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
-    const [showPermanentDeleteModal, setShowPermanentDeleteModal] =
-      useState(false);
+    const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
+
+    // Check if current user is the owner
+    const isOwner = project.user_id === userId;
 
     // Prevent event bubbling for interactive elements inside the card
     const handleChildClick = (e: React.MouseEvent) => {
@@ -66,12 +68,13 @@ export const ProjectCard = React.memo(
 
     // Handle permanent deletion
     const handlePermanentDelete = async (e: React.MouseEvent) => {
+      if (!isOwner) return;
       e.stopPropagation();
       setShowPermanentDeleteModal(true);
     };
 
     const handlePermanentDeleteConfirm = async () => {
-      if (!userId) return;
+      if (!userId || !isOwner) return;
       setIsDeleting(true);
 
       try {
@@ -81,7 +84,7 @@ export const ProjectCard = React.memo(
         if (result.success) {
           toast.success("Project permanently deleted");
           if (onDeleteProject) {
-            onDeleteProject(project.id, true); // Pass true to indicate permanent deletion
+            onDeleteProject(project.id, true);
           }
         } else {
           toast.error(result.error || "Failed to delete project permanently");
@@ -96,12 +99,13 @@ export const ProjectCard = React.memo(
 
     // Handle restoration
     const handleRestore = async (e: React.MouseEvent) => {
+      if (!isOwner) return;
       e.stopPropagation();
       setShowRestoreModal(true);
     };
 
     const handleRestoreConfirm = async () => {
-      if (!userId) return;
+      if (!userId || !isOwner) return;
       setIsRestoring(true);
 
       try {
@@ -111,7 +115,7 @@ export const ProjectCard = React.memo(
         if (result.success) {
           toast.success("Project restored successfully");
           if (onDeleteProject) {
-            onDeleteProject(project.id, true); // Pass true to skip the graveyard dialog
+            onDeleteProject(project.id, true);
           }
         } else {
           toast.error(result.error || "Failed to restore project");
@@ -124,11 +128,11 @@ export const ProjectCard = React.memo(
       }
     };
 
-    // Handle delete button click - check if it's a permanent delete
+    // Handle delete button click
     const handleDeleteClick = (e: React.MouseEvent) => {
+      if (!isOwner) return;
       e.stopPropagation();
       if (onDeleteProject) {
-        // Call delete handler without the permanent delete flag
         onDeleteProject(project.id, false);
       }
     };
@@ -189,6 +193,12 @@ export const ProjectCard = React.memo(
       setShowAllTags(true);
     };
 
+    const handleCategoryClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.href = `/category/${encodeURIComponent(project.category)}`;
+    };
+
     return (
       <>
         <Card
@@ -200,8 +210,8 @@ export const ProjectCard = React.memo(
           {!project.deleted_at && (
             <button
               className="absolute top-4 right-4 p-3 sm:p-2 rounded-full bg-background/80 backdrop-blur-sm
-                      hover:bg-background text-muted-foreground hover:text-accent transition-colors 
-                      opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100 z-10"
+                      hover:bg-background text-muted-foreground hover:text-accent transition-colors
+                      flex items-center gap-1.5"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleFavorite?.(project.id, !isFavorite);
@@ -210,66 +220,79 @@ export const ProjectCard = React.memo(
                 isFavorite ? "Remove from favorites" : "Add to favorites"
               }
             >
-              <Heart
+              <Star
                 size={18}
-                className={isFavorite ? "fill-red-500 text-red-500" : ""}
+                className={`${
+                  isFavorite 
+                    ? "fill-yellow-400 text-yellow-400" 
+                    : "text-muted-foreground hover:text-accent"
+                }`}
               />
+              <span className="text-xs font-medium">{project.total_favorites || 0}</span>
             </button>
           )}
 
           {/* Show different action buttons based on deleted status */}
           {project.deleted_at ? (
             <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 rounded-full bg-green-950/80 hover:bg-green-900 text-green-500 hover:text-green-400
-                        opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                onClick={handleRestore}
-                aria-label="Restore project"
-              >
-                <Undo2 size={18} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-16 rounded-full bg-red-950/80 hover:bg-red-900 text-red-500 hover:text-red-400
-                        opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                onClick={handlePermanentDelete}
-                aria-label="Permanently delete project"
-              >
-                <Trash2 size={18} />
-              </Button>
+              {isOwner && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-4 rounded-full bg-green-950/80 hover:bg-green-900 text-green-500 hover:text-green-400
+                            opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                    onClick={handleRestore}
+                    aria-label="Restore project"
+                  >
+                    <Undo2 size={18} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-16 rounded-full bg-red-950/80 hover:bg-red-900 text-red-500 hover:text-red-400
+                            opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                    onClick={handlePermanentDelete}
+                    aria-label="Permanently delete project"
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <>
-              {onDeleteProject && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-4 right-16 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-red-500
-                          opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                  onClick={handleDeleteClick}
-                  aria-label="Delete project"
-                >
-                  <Trash2 size={18} />
-                </Button>
-              )}
+              {isOwner && (
+                <>
+                  {onDeleteProject && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-4 right-16 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-red-500
+                              opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                      onClick={handleDeleteClick}
+                      aria-label="Delete project"
+                    >
+                      <Trash2 size={18} />
+                    </Button>
+                  )}
 
-              {onUpdateProject && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-4 right-28 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-blue-500
-                          opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onUpdateProject?.(project);
-                  }}
-                  aria-label="Update project"
-                >
-                  <Edit size={18} />
-                </Button>
+                  {onUpdateProject && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-4 right-28 rounded-full bg-background/80 hover:bg-background text-muted-foreground hover:text-blue-500
+                              opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onUpdateProject?.(project);
+                      }}
+                      aria-label="Update project"
+                    >
+                      <Edit size={18} />
+                    </Button>
+                  )}
+                </>
               )}
             </>
           )}
@@ -301,8 +324,8 @@ export const ProjectCard = React.memo(
                 <div className={`category-badge category-${project.category}`}>
                   <Badge
                     variant={project.deleted_at ? "destructive" : "secondary"}
-                    className="capitalize text-sm"
-                    onClick={handleChildClick}
+                    className="capitalize text-sm cursor-pointer hover:bg-accent"
+                    onClick={handleCategoryClick}
                   >
                     {PROJECT_CATEGORIES[project.category]?.label || project.category}
                   </Badge>
@@ -363,7 +386,7 @@ export const ProjectCard = React.memo(
             </div>
 
             {/* Tags section below footer with minimum height */}
-            <div className="px-6 py-3 border-t bg-muted/5 min-h-[3rem]">
+            <div className="px-6 py-3 border-t bg-muted/5 min-h-[3rem] relative">
               <div className="flex flex-wrap gap-1.5">
                 {tags.length > 0 ? (
                   <>
@@ -388,6 +411,20 @@ export const ProjectCard = React.memo(
                         onClick={handleTagExpandClick}
                       >
                         +{tags.length - 3}
+                      </Badge>
+                    )}
+                    {showAllTags && tags.length > 3 && (
+                      <Badge
+                        variant="secondary"
+                        className={`${
+                          project.deleted_at ? "tag-badge-deleted" : "tag-badge"
+                        } hover:bg-accent cursor-pointer ml-auto mt-2`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowAllTags(false);
+                        }}
+                      >
+                        close tags
                       </Badge>
                     )}
                   </>

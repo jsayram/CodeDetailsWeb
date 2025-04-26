@@ -12,7 +12,7 @@ import {
   CURRENT_PAGE,
 } from "@/components/navigation/Pagination/paginationConstants";
 
-import { removeProject } from "@/app/actions/projects";
+import { removeProject, addProjectFavorite, removeProjectFavorite } from "@/app/actions/projects";
 import { toast } from "sonner";
 import { Project } from "@/types/models/project";
 import { UpdateProjectModal } from "./UpdateProjectModal";
@@ -64,6 +64,7 @@ export function ProjectList({
     isAuthenticated,
     filters,
     setFilters,
+    setProjects,
   } = useProjects();
   const [viewMode, setViewMode] = useState("card");
   const [internalCurrentPage, setInternalCurrentPage] = useState(externalPage);
@@ -143,9 +144,55 @@ export function ProjectList({
     console.log(`View details for project ${id}`);
   }, []);
 
-  const handleToggleFavorite = useCallback((id: string, isFavorite: boolean) => {
-    console.log(`Toggle favorite for project ${id}: ${isFavorite}`);
-  }, []);
+  const handleToggleFavorite = useCallback(async (id: string, isFavorite: boolean) => {
+    if (!userId) return;
+    
+    try {
+      // If we're in favorites view and trying to unfavorite, show confirmation
+      if (showFavoritesOnly && !isFavorite) {
+        const shouldUnfavorite = window.confirm("Are you sure you want to remove this project from your favorites?");
+        if (!shouldUnfavorite) {
+          return;
+        }
+      }
+
+      // Make API call first
+      if (isFavorite) {
+        await addProjectFavorite(id, userId);
+      } else {
+        await removeProjectFavorite(id, userId);
+      }
+
+      // After successful API call, update UI
+      if (!isFavorite) {
+        if (showFavoritesOnly) {
+          // If we're in favorites view, remove the project from the list immediately
+          setProjects(prev => prev.filter(p => p.id !== id));
+          toast.success("Removed from favorites");
+          return;
+        }
+      }
+
+      // Update the projects state to reflect the new favorite status
+      setProjects(prev => prev.map(project => {
+        if (project.id === id) {
+          const currentFavorites = Number(project.total_favorites || 0);
+          const newFavorites = isFavorite ? currentFavorites + 1 : Math.max(0, currentFavorites - 1);
+          return {
+            ...project,
+            isFavorite,
+            total_favorites: newFavorites.toString()
+          };
+        }
+        return project;
+      }));
+
+      toast.success(isFavorite ? "Added to favorites" : "Removed from favorites");
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Failed to update favorite status");
+    }
+  }, [userId, setProjects, showFavoritesOnly]);
 
   const handleProjectDeletion = useCallback((projectId: string, isPermanent: boolean = false) => {
     if (!isPermanent) {

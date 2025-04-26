@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Project } from "@/types/models/project";
 import { useIsBrowser } from "@/hooks/use-is-browser";
 import { useProjects } from "@/providers/projects-provider";
 import { useTagCache } from "@/hooks/use-tag-cache";
+import { useAuth } from "@clerk/nextjs";
 
 // Component imports
 import { ProjectFormBase } from "./ProjectFormBase";
@@ -13,9 +14,9 @@ import { ProjectFormBase } from "./ProjectFormBase";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 
 interface UpdateProjectModalProps {
@@ -31,63 +32,70 @@ export function UpdateProjectModal({
   onClose,
   onProjectUpdated,
 }: UpdateProjectModalProps) {
-  // Get isBrowser flag for cache operations
   const isBrowser = useIsBrowser();
-  
-  // Access the projects context to ensure global state updates
   const { handleProjectUpdated: contextUpdateProject } = useProjects();
-  
-  // Create a local copy of the project to avoid reference issues
   const [localProject, setLocalProject] = useState<Project | null>(null);
-  
-  // Access tag cache hook
   const { refreshCache } = useTagCache();
+  const { userId } = useAuth();
+
+  // Check if current user is the owner
+  const isOwner = project?.user_id === userId;
 
   // Update local state when project prop changes
   useEffect(() => {
     if (project) {
-      // Create a deep copy to avoid reference issues
       setLocalProject(JSON.parse(JSON.stringify(project)));
     }
   }, [project, isOpen]);
 
-  // Refresh tag cache when modal is opened
+  // Refresh data when modal is opened
   useEffect(() => {
     if (isOpen) {
       refreshCache();
+      if (project) {
+        setLocalProject(JSON.parse(JSON.stringify(project)));
+      }
     }
-  }, [isOpen, refreshCache]);
+  }, [isOpen, refreshCache, project]);
 
-  // Handle successful project update
-  const handleProjectUpdated = (updatedProject: Project) => {
-    // Update the project in the global context
-    contextUpdateProject(updatedProject);
+  // Prevent non-owners from accessing the modal
+  useEffect(() => {
+    if (isOpen && !isOwner) {
+      onClose();
+    }
+  }, [isOpen, isOwner, onClose]);
+
+  const handleSuccess = useCallback(async () => {
+    await refreshCache();
+    onClose();
     
-    // Call the callback if provided
-    if (onProjectUpdated) {
-      onProjectUpdated(updatedProject);
+    if (localProject) {
+      onProjectUpdated?.(localProject);
     }
     
-    // Close the modal
-    onClose();
-  };
+    if (isBrowser && localProject) {
+      contextUpdateProject(localProject);
+    }
+  }, [onClose, onProjectUpdated, isBrowser, localProject, contextUpdateProject, refreshCache]);
+
+  if (!localProject || !isOwner) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[900px]">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Update Project</DialogTitle>
           <DialogDescription>
-            Make changes to the project information below.
+            Make changes to your project details below.
           </DialogDescription>
         </DialogHeader>
-
         <ProjectFormBase
           project={localProject}
           mode="update"
-          onSuccess={handleProjectUpdated}
+          onSuccess={handleSuccess}
           onCancel={onClose}
-          showCancelButton={true}
           submitButtonText="Save Changes"
         />
       </DialogContent>

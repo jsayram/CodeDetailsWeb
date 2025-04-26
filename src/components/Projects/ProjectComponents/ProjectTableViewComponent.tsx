@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Project } from "@/types/models/project";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Settings2, ChevronUp, Star, Heart } from "lucide-react";
+import { Edit, Trash2, Settings2, ChevronUp, Star } from "lucide-react";
 import { FormattedDate } from "@/lib/FormattedDate";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/utils/stringUtils";
+import { useAuth } from "@clerk/nextjs";
 
 interface ProjectTableViewProps {
   projects: Project[];
@@ -31,6 +32,7 @@ export function ProjectTableView({
   onDeleteProject,
   onUpdateProject,
 }: ProjectTableViewProps) {
+  const { userId } = useAuth();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'created_at', direction: 'desc' });
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -142,35 +144,47 @@ export function ProjectTableView({
     }));
   };
 
-  const sortedProjects = [...projects].sort((a, b) => {
-    switch (sortConfig.key) {
-      case 'created_at':
-        const dateA = new Date(a[sortConfig.key] || '').getTime();
-        const dateB = new Date(b[sortConfig.key] || '').getTime();
-        return sortConfig.direction === 'asc' ? dateA - dateB : dateB - dateA;
+  const handleTagClick = (e: React.MouseEvent, tag: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Navigate to tag page
+    window.location.href = `/tags/${encodeURIComponent(tag)}`;
+  };
 
-      case 'tags':
-        const tagsA = (a.tags || []).join(', ').toLowerCase();
-        const tagsB = (b.tags || []).join(', ').toLowerCase();
-        return sortConfig.direction === 'asc' 
-          ? tagsA.localeCompare(tagsB)
-          : tagsB.localeCompare(tagsA);
+  const handleCategoryClick = (e: React.MouseEvent, category: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.location.href = `/category/${encodeURIComponent(category)}`;
+  };
+
+  const sortedProjects = useMemo(() => {
+    const sorted = [...projects];
+    sorted.sort((a, b) => {
+      if (sortConfig.key === "created_at" || sortConfig.key === "updated_at") {
+        const dateA = new Date(a[sortConfig.key] || 0).getTime();
+        const dateB = new Date(b[sortConfig.key] || 0).getTime();
+        return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+      }
       
-      case 'profile':  // Use profile instead of creator
-        const creatorA = getDisplayName(a).toLowerCase();
-        const creatorB = getDisplayName(b).toLowerCase();
-        return sortConfig.direction === 'asc' 
-          ? creatorA.localeCompare(creatorB)
-          : creatorB.localeCompare(creatorA);
-
-      default:
-        const valueA = String(a[sortConfig.key] || '');
-        const valueB = String(b[sortConfig.key] || '');
-        return sortConfig.direction === 'asc' 
-          ? valueA.localeCompare(valueB)
-          : valueB.localeCompare(valueA);
-    }
-  });
+      const valueA = a[sortConfig.key];
+      const valueB = b[sortConfig.key];
+      
+      // Handle null/undefined values
+      if (valueA == null && valueB == null) return 0;
+      if (valueA == null) return sortConfig.direction === "asc" ? -1 : 1;
+      if (valueB == null) return sortConfig.direction === "asc" ? 1 : -1;
+      
+      // Compare non-null values
+      if (valueA < valueB) {
+        return sortConfig.direction === "asc" ? -1 : 1;
+      }
+      if (valueA > valueB) {
+        return sortConfig.direction === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
+    return sorted;
+  }, [projects, sortConfig]);
 
   const toggleColumnVisibility = (columnName: string) => {
     setHiddenColumns(current => 
@@ -241,128 +255,142 @@ export function ProjectTableView({
           </tr>
         </thead>
         <tbody>
-          {sortedProjects.map((project) => (
-            <tr 
-              key={project.id} 
-              onClick={() => onViewDetails?.(project.id)}
-              className="hover:bg-muted/50 transition-colors cursor-pointer"
-            >
-              {!hiddenColumns.includes('title') && (
-                <td>
-                  <div className="font-medium">{project.title}</div>
-                </td>
-              )}
-              {!hiddenColumns.includes('description') && (
-                <td className="table-description-cell">
-                  <div className="table-description-content relative">
-                    {project.description || "No description provided"}
-                    <div 
-                      className="resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize 
-                               hover:bg-primary/10 transition-colors"
-                      title="Drag to resize"
-                    />
-                  </div>
-                </td>
-              )}
-              {!hiddenColumns.includes('category') && (
-                <td>
-                  <Badge variant="secondary" className="capitalize">
-                    {PROJECT_CATEGORIES[project.category as ProjectCategory]?.label || project.category}
-                  </Badge>
-                </td>
-              )}
-              {!hiddenColumns.includes('tags') && (
-                <td>
-                  <div className="flex flex-wrap gap-1">
-                    {project.tags && project.tags.length > 0 ? (
-                      project.tags.map((tag, index) => (
-                        <Badge 
-                          key={index} 
-                          variant="outline" 
-                          className="text-xs"
-                        >
-                          #{tag}
-                        </Badge>
-                      ))
+          {sortedProjects.map((project) => {
+            const isOwner = project.user_id === userId;
+            
+            return (
+              <tr 
+                key={project.id} 
+                onClick={() => onViewDetails?.(project.id)}
+                className="hover:bg-muted/50 transition-colors cursor-pointer"
+              >
+                {!hiddenColumns.includes('title') && (
+                  <td>
+                    <div className="font-medium">{project.title}</div>
+                  </td>
+                )}
+                {!hiddenColumns.includes('description') && (
+                  <td className="table-description-cell">
+                    <div className="table-description-content relative">
+                      {project.description || "No description provided"}
+                      <div 
+                        className="resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize 
+                                 hover:bg-primary/10 transition-colors"
+                        title="Drag to resize"
+                      />
+                    </div>
+                  </td>
+                )}
+                {!hiddenColumns.includes('category') && (
+                  <td>
+                    <Badge 
+                      variant="secondary" 
+                      className="capitalize cursor-pointer hover:bg-accent"
+                      onClick={(e) => handleCategoryClick(e, project.category)}
+                    >
+                      {PROJECT_CATEGORIES[project.category as ProjectCategory]?.label || project.category}
+                    </Badge>
+                  </td>
+                )}
+                {!hiddenColumns.includes('tags') && (
+                  <td>
+                    <div className="flex flex-wrap gap-1">
+                      {project.tags && project.tags.length > 0 ? (
+                        project.tags.map((tag, index) => (
+                          <Badge 
+                            key={index} 
+                            variant="outline" 
+                            className="text-xs cursor-pointer hover:bg-accent"
+                            onClick={(e) => handleTagClick(e, tag)}
+                          >
+                            #{tag}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No tags</span>
+                      )}
+                    </div>
+                  </td>
+                )}
+                {!hiddenColumns.includes('creator') && (
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-6 w-6">
+                        {project.profile?.profile_image_url ? (
+                          <AvatarImage
+                            src={project.profile.profile_image_url}
+                            alt={getDisplayName(project)}
+                          />
+                        ) : (
+                          <AvatarFallback className="text-xs">
+                            {getInitials(getDisplayName(project))}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <span className="text-sm">{getDisplayName(project)}</span>
+                    </div>
+                  </td>
+                )}
+                {!hiddenColumns.includes('created_at') && (
+                  <td>
+                    {project.created_at ? (
+                      <FormattedDate date={project.created_at} />
                     ) : (
-                      <span className="text-muted-foreground text-sm">No tags</span>
+                      <span>—</span>
+                    )}
+                  </td>
+                )}
+                <td>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 transition-colors flex items-center gap-1.5 px-2 w-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite?.(project.id, !project.isFavorite);
+                      }}
+                    >
+                      <Star 
+                        className={`h-4 w-4 ${
+                          project.isFavorite 
+                            ? "fill-yellow-400 text-yellow-400" 
+                            : "text-muted-foreground hover:text-accent"
+                        }`}
+                      />
+                      <span className="text-xs font-medium">{project.total_favorites || 0}</span>
+                    </Button>
+                    {isOwner && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdateProject?.(project);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteProject?.(project.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </td>
-              )}
-              {!hiddenColumns.includes('creator') && (
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      {project.profile?.profile_image_url ? (
-                        <AvatarImage
-                          src={project.profile.profile_image_url}
-                          alt={getDisplayName(project)}
-                        />
-                      ) : (
-                        <AvatarFallback className="text-xs">
-                          {getInitials(getDisplayName(project))}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <span className="text-sm">{getDisplayName(project)}</span>
-                  </div>
-                </td>
-              )}
-              {!hiddenColumns.includes('created_at') && (
-                <td>
-                  {project.created_at ? (
-                    <FormattedDate date={project.created_at} />
-                  ) : (
-                    <span>—</span>
-                  )}
-                </td>
-              )}
-              <td>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite?.(project.id, !project.isFavorite);
-                    }}
-                  >
-                    <Heart 
-                      className={`h-4 w-4 ${
-                        project.isFavorite 
-                          ? "fill-red-400 text-red-400" 
-                          : "text-muted-foreground"
-                      }`}
-                    />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onUpdateProject?.(project);
-                    }}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 hover:text-destructive"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteProject?.(project.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

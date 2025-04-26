@@ -1,6 +1,7 @@
 import { FormEvent } from "react";
 import { PROJECT_CATEGORIES, ProjectCategory as BaseProjectCategory } from "@/constants/project-categories";
 import { TagInfo } from "@/db/operations/tag-operations";
+import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 
 export type ProjectCategory = BaseProjectCategory;
 
@@ -63,6 +64,11 @@ export const validateProjectForm = (
   // Description length validation
   if (data.description && data.description.length > 1000) {
     errors.description = "Description must be less than 1000 characters";
+  }
+
+  // Tag limit validation
+  if (tags && tags.length > MAX_PROJECT_TAGS) {
+    errors.server = `Projects can have a maximum of ${MAX_PROJECT_TAGS} tags`;
   }
 
   return errors;

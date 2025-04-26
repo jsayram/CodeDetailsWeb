@@ -21,8 +21,8 @@ export interface Project extends DrizzleProject {
   profile?: {
     username: string | null;
     email_address: string | null;
-    profile_image_url: string | null;
-    full_name: string | null;
+    profile_image_url?: string | null;
+    full_name?: string | null;
     first_name?: string | null;
     last_name?: string | null;
   };

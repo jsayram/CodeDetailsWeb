@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uuid, numeric } from "drizzle-orm/pg-core";
 import { ProjectCategory } from "@/constants/project-categories";
 
 // Define the projects table schema
@@ -11,6 +11,7 @@ export const projects = pgTable("projects", {
   category: varchar("category", { length: 50 })
     .notNull()
     .default("web"),
+  total_favorites: numeric("total_favorites").notNull().default("0"), // Track total favorites for popularity sorting
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"), // For soft delete functionality

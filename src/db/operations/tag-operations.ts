@@ -20,7 +20,7 @@ export interface TagInfo {
 
 // Cache structure for tag queries with improved typing
 const tagQueryCache = new Map<string, { tags: TagInfo[]; timestamp: number }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 30 * 1000; // 30 seconds instead of 5 minutes
 
 // Helper to get cached tags or fetch from database
 async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
@@ -42,7 +42,8 @@ async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
       .orderBy(desc(tagsTable.name));
 
     if (query) {
-      return await baseQuery.where(like(tagsTable.name, `%${query}%`));
+      // Use ILIKE for case-insensitive search
+      return await baseQuery.where(sql`${tagsTable.name} ILIKE ${`%${query}%`}`);
     }
     
     return await baseQuery;

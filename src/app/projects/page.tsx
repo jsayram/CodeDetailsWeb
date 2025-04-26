@@ -173,7 +173,7 @@ export default function DashBoard() {
                           </CardHeader>
                           <CardContent>
                             <p className="text-muted-foreground text-center mb-6">
-                              Sign in to access all projects
+                              Sign in to add your very own projects!
                             </p>
                             {/* Display free projects for anonymous users with pagination */}
                             <div>
