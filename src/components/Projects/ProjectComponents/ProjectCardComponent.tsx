@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Heart, Trash2, Edit, User, Undo2 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import {
   permanentlyDeleteProject,
   restoreProject,
@@ -52,6 +53,7 @@ export const ProjectCard = React.memo(
   }: ProjectCardProps) {
     const { user } = useUser();
     const { userId } = useAuth();
+    const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
     const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
@@ -199,12 +201,16 @@ export const ProjectCard = React.memo(
       window.location.href = `/category/${encodeURIComponent(project.category)}`;
     };
 
+    const handleCardClick = () => {
+      router.push(`/projects/${project.slug}`);
+    };
+
     return (
       <>
         <Card
-          className={`group relative overflow-hidden w-full transition-all duration-200 project-card
+          className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02]
             ${project.deleted_at ? "deleted" : ""}`}
-          onClick={() => onViewDetails?.(project.id)}
+          onClick={handleCardClick}
         >
           <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
             {/* Category Badge */}

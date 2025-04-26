@@ -19,6 +19,7 @@
     oklch(0.98 0.01 290)
   );
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 /* Card actions container */
@@ -51,11 +52,13 @@
   backdrop-filter: blur(8px);
   transition: all 0.2s;
   position: relative;
+  cursor: pointer;
 }
 
 /* Favorite button specific styles */
 .project-card .favorite-button {
   position: relative;
+  cursor: pointer;
 }
 
 /* Counter styles */
@@ -74,6 +77,21 @@
   text-align: center;
   border: 2px solid var(--background);
   box-shadow: 0 0 0 2px var(--card);
+}
+
+/* Hover effects for interactive elements */
+.project-card .category-badge,
+.project-card .tag-badge,
+.project-card .card-button,
+.project-card .action-button {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.project-card .category-badge:hover,
+.project-card .tag-badge:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
 }
 
 @media (min-width: 640px) {
