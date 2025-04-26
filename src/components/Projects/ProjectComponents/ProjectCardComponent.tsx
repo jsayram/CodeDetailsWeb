@@ -355,7 +355,11 @@ export const ProjectCard = React.memo(
               <Button
                 variant="default"
                 size="sm"
-                onClick={handleChildClick}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push(`/projects/${project.slug}`);
+                }}
                 className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""}`}
               >
                 View Project Details
