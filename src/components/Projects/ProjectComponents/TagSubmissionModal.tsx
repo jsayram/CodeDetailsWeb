@@ -171,6 +171,11 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
       return;
     }
 
+    if (!email) {
+      toast.error("Email is required");
+      return;
+    }
+
     const isValid = await processTagInput(tagInput);
     if (!isValid) return;
 
@@ -179,6 +184,13 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
     try {
       // Submit each valid tag that's within the limit
       const validTags = processedTags.filter(tag => tag.isValid && tag.willBeSubmitted);
+      
+      if (validTags.length === 0) {
+        toast.error("No valid tags to submit");
+        setIsSubmitting(false);
+        return;
+      }
+
       const results = [];
       const errors = [];
       const autoApproved = [];
@@ -192,7 +204,9 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
             results.push(result);
           }
         } catch (error: any) {
-          errors.push(`${tag.name}: ${error?.message || 'Unknown error occurred'}`);
+          const errorMessage = error?.message || 'Unknown error occurred';
+          errors.push(`${tag.name}: ${errorMessage}`);
+          console.error(`Error submitting tag ${tag.name}:`, error);
         }
       }
 
@@ -232,19 +246,20 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
 
       // If any tags were processed successfully (either auto-approved or submitted)
       if (results.length > 0 || autoApproved.length > 0) {
-        setOpen(false);
-        
         // Reset form
         setTagInput("");
-        setEmail("");
         setDescription("");
         setProcessedTags([]);
         setTagError(null);
-
+        
         // Call onSubmit callback to refresh pending tags and project tags
-        onSubmit?.();
+        await onSubmit?.();
+        
+        // Close modal after everything is done
+        setOpen(false);
       }
     } catch (error) {
+      console.error("Error in tag submission:", error);
       toast.error("Failed to submit tag(s). Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -256,7 +271,12 @@ export function TagSubmissionModal({ projectId, onSubmit }: TagSubmissionModalPr
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" disabled={!isOwner || !isLoaded}>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          disabled={!isOwner || !isLoaded || remainingTagSlots <= 0}
+          title={remainingTagSlots <= 0 ? "Maximum tags reached. Please refresh the page after removing tags to request new ones." : undefined}
+        >
           Request New Tag
         </Button>
       </DialogTrigger>
