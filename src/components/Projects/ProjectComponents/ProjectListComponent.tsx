@@ -323,7 +323,7 @@ export function ProjectList({
       (container as HTMLElement).style.minHeight = `${containerHeight}px`;
     }
 
-    // Create a completely new filter state object
+    // Create a completely new filter state object preserving existing filters
     const newFilters = {
       ...filters,
       category,
