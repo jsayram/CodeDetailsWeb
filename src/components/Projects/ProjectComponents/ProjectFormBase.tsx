@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnnoyedIcon, RefreshCcwIcon } from "lucide-react";
+import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 
 interface ProjectFormBaseProps {
   // Project data (if updating)
@@ -391,7 +392,8 @@ export function ProjectFormBase({
             />
             {mode === "create" && (
               <div className="text-xs text-muted-foreground">
-                Need more tags? You can always request additional tags by editing your project later.
+                A tag you want is not found? You can request additional tags by editing your project later. Just make sure you stay within the 
+                <span className="text-purple-500"> {MAX_PROJECT_TAGS}</span> tag count limit or else it will be rejected.
               </div>
             )}
           </div>
