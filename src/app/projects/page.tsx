@@ -38,6 +38,8 @@ import ProtectedPage from "../auth/ProtectedPage";
 import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
 import { useUserTier } from "@/hooks/use-tierServiceClient";
 import Image from "next/image";
+import { Code2 } from "lucide-react";
+import { PageBanner } from "@/components/ui/page-banner";
 
 export default function DashBoard() {
   const { user, isLoaded: userLoaded } = useUser(); // auth from clerk
@@ -105,34 +107,28 @@ export default function DashBoard() {
                           {/* All Projects Section */}
 
                           <div className="mb-8">
-                            <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center mb-4">
-                              <div className="flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-indigo-900 via-blue-800 to-purple-800 rounded-2xl shadow-lg px-6 py-4 w-full border border-indigo-700/40">
-                                <Image
-                                  src="/images/CodeDetails_IconLogo.png"
-                                  alt="CodeDetails Logo"
-                                  width={48}
-                                  height={48}
-                                  className="w-12 h-12 rounded-full shadow-md border-2 border-indigo-400 bg-white p-1 animate-pulse"
-                                />
-                                <div className="flex flex-col items-center md:items-start text-center md:text-left">
-                                  <span className="text-lg font-semibold text-indigo-200 tracking-wide drop-shadow-sm">
-                                    Welcome to
-                                  </span>
-                                  <h2 className="text-3xl font-extrabold text-white drop-shadow-lg flex flex-col md:flex-row items-center gap-2">
-                                    Community
-                                    <span className="bg-gradient-to-r from-fuchsia-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent animate-gradient-x ml-2">
-                                      Projects
-                                    </span>
-                                  </h2>
-                                </div>
-
-                              </div>
+                            <div className="flex flex-col space-y-4">
+                              <PageBanner
+                                bannerTitle="Community Projects"
+                                isUserBanner={false}
+                                gradientFrom="indigo-900"
+                                gradientVia="blue-800"
+                                gradientTo="purple-800"
+                                borderColor="border-indigo-700/40"
+                                textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
+                                logo={{
+                                  src: "/images/CodeDetails_IconLogo.png",
+                                  alt: "Code Details Logo",
+                                  width: 50,
+                                  height: 50
+                                }}
+                              />
+                              <ProjectList
+                                currentPage={allProjectsPage}
+                                showSortingFilters={true}
+                                onPageChange={handleAllProjectsPageChange}
+                              />
                             </div>
-                            <ProjectList
-                              currentPage={allProjectsPage}
-                              showSortingFilters={true}
-                              onPageChange={handleAllProjectsPageChange}
-                            />
                           </div>
 
                           <Dialog
