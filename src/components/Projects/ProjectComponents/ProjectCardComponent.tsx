@@ -18,6 +18,7 @@ import { PermanentDeleteConfirmationModal } from "./PermanentDeleteConfirmationM
 import { RestoreProjectConfirmationModal } from "./RestoreProjectConfirmationModal";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { getInitials } from "@/utils/stringUtils";
+import { FavoriteButton } from "./FavoriteButton";
 
 interface ProjectCardProps {
   project: Project;
@@ -246,24 +247,15 @@ export const ProjectCard = React.memo(
                     </div>
                   )}
 
-                  <button
-                    className="action-button favorite-button group"
-                    onClick={(e) => {
+                  <FavoriteButton
+                    isFavorite={!!isFavorite}
+                    count={Number(project.total_favorites) || 0}
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       onToggleFavorite?.(project.id, !isFavorite);
                     }}
-                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <Heart
-                      size={20}
-                      className={`transition-all duration-300 ${
-                        isFavorite 
-                          ? "fill-red-500 text-red-500 scale-110 animate-heartPop" 
-                          : "text-muted-foreground group-hover:text-red-500"
-                      }`}
-                    />
-                    <span className="favorite-count">{project.total_favorites || 0}</span>
-                  </button>
+                    ariaLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  />
                 </>
               ) : (
                 isOwner && (

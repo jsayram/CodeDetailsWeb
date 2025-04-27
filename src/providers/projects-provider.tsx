@@ -160,9 +160,7 @@ export function ProjectsProvider({
     try {
       const params = {
         showAll: !filters.showMyProjects,
-        userId: filters.showMyProjects || filters.showFavorites || filters.showDeleted
-          ? (userId ?? undefined)
-          : undefined,
+        userId: userId ?? undefined, // Always include userId if available
         category: filters.category === "all" ? undefined : filters.category,
         showFavorites: filters.showFavorites,
         showDeleted: filters.showDeleted,

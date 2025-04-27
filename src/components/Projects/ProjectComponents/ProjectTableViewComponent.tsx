@@ -4,13 +4,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Project } from "@/types/models/project";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Settings2, ChevronUp, Heart } from "lucide-react";
+import { Edit, Trash2, Settings2, ChevronUp } from "lucide-react";
 import { FormattedDate } from "@/lib/FormattedDate";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/utils/stringUtils";
 import { useAuth } from "@clerk/nextjs";
+import { FavoriteButton } from "./FavoriteButton";
 
 interface ProjectTableViewProps {
   projects: Project[];
@@ -342,24 +343,15 @@ export function ProjectTableView({
                 )}
                 <td>
                   <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 transition-colors flex items-center gap-1.5 px-2 w-auto group"
+                    <FavoriteButton
+                      isFavorite={!!project.isFavorite}
+                      count={Number(project.total_favorites) || 0}
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleFavorite?.(project.id, !project.isFavorite);
                       }}
-                    >
-                      <Heart 
-                        className={`h-4 w-4 transition-all duration-300 ${
-                          project.isFavorite 
-                            ? "fill-red-500 text-red-500 scale-110 animate-heartPop" 
-                            : "text-muted-foreground group-hover:text-red-500"
-                        }`}
-                      />
-                      <span className="text-xs font-medium">{project.total_favorites || 0}</span>
-                    </Button>
+                      ariaLabel={project.isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    />
                     {isOwner && (
                       <>
                         <Button
