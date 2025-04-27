@@ -49,14 +49,15 @@ export function TagSelector({
       toast.error(`Projects can have a maximum of ${MAX_PROJECT_TAGS} tags`);
       return [];
     }
-    // Force a cache refresh when searching to ensure we have latest tags
-    await refreshCache(true);
+    
+    // Don't force refresh on every search - this causes the infinite loop
+    // Only use the cached tags for searching to avoid constant API calls
     const searchTerm = query.toLowerCase();
     return cachedTags.filter(
       tag => tag.name.toLowerCase().includes(searchTerm) &&
         !selectedTags.some(selectedTag => selectedTag.id === tag.id)
     );
-  }, [selectedTags, cachedTags, refreshCache]);
+  }, [selectedTags, cachedTags]);
 
   const handleAddTag = useCallback(async (tagId: string): Promise<void> => {
     if (!isOwner) return;

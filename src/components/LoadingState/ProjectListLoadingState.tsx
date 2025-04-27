@@ -1,6 +1,7 @@
 import React from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import { PROJECTS_PER_PAGE } from "../navigation/Pagination/paginationConstants";
 
 interface LoadingStateProps {
   itemsCount?: number;
@@ -8,7 +9,7 @@ interface LoadingStateProps {
 }
 
 export function ProjectListLoadingState({
-  itemsCount = 6,
+  itemsCount = PROJECTS_PER_PAGE,
   showTierInfo = true,
 }: LoadingStateProps) {
   return (

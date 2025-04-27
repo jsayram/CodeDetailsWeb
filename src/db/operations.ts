@@ -11,7 +11,7 @@ import {
 import { InsertProject, SelectProject } from "./schema/projects";
 import { SelectProfile } from "./schema/profiles";
 import { SelectFavorite } from "./schema/favorites";
-import { eq, sql, desc, and, isNull } from "drizzle-orm";
+import { eq, sql, desc, and, isNull, inArray } from "drizzle-orm";
 import { ProjectCategory } from "@/constants/project-categories";
 
 /**
@@ -68,7 +68,7 @@ export async function getRecentProjects(): Promise<SelectProject[]> {
       .from(projects)
       .where(isNull(projects.deleted_at))
       .orderBy(desc(projects.created_at))
-      .limit(10);
+      .limit(12);
   });
 }
 
@@ -198,18 +198,71 @@ export async function removeProjectFavorite(
 /**
  * Get all projects with a specific tag
  * @param tagName The name of the tag to filter projects by
- * @returns An array of projects with the specified tag
+ * @returns An array of projects with the specified tag and associated data
  */
 export async function getProjectsByTag(
   tagName: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
-    return await db
-      .select({ project: projects })
+    // First get projects with profile data
+    const projectsWithData = await db
+      .select({
+        project: {
+          id: projects.id,
+          title: projects.title,
+          slug: projects.slug,
+          description: projects.description,
+          category: projects.category,
+          user_id: projects.user_id,
+          total_favorites: projects.total_favorites,
+          created_at: projects.created_at,
+          updated_at: projects.updated_at,
+          deleted_at: projects.deleted_at
+        },
+        profile: {
+          username: profiles.username,
+          email_address: profiles.email_address,
+          profile_image_url: profiles.profile_image_url,
+          full_name: profiles.full_name
+        }
+      })
       .from(projects)
       .innerJoin(project_tags, eq(project_tags.project_id, projects.id))
       .innerJoin(tags, eq(tags.id, project_tags.tag_id))
+      .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .where(and(eq(tags.name, tagName), isNull(projects.deleted_at)))
       .orderBy(desc(projects.created_at));
+
+    // Get all tags for these projects
+    const projectIds = projectsWithData.map(p => p.project.id);
+    const allTags = await db
+      .select({
+        projectId: project_tags.project_id,
+        tagName: tags.name,
+      })
+      .from(project_tags)
+      .innerJoin(tags, eq(tags.id, project_tags.tag_id))
+      .where(inArray(project_tags.project_id, projectIds));
+
+    // Group tags by project
+    const tagsByProject = allTags.reduce((acc, { projectId, tagName }) => {
+      if (!acc[projectId]) {
+        acc[projectId] = [];
+      }
+      acc[projectId].push(tagName);
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    // Combine projects with their tags and profile data
+    return projectsWithData.map(({ project, profile }) => ({
+      ...project,
+      tags: tagsByProject[project.id] || [],
+      profile: {
+        username: profile?.username || null,
+        email_address: profile?.email_address || null,
+        profile_image_url: profile?.profile_image_url || null,
+        full_name: profile?.full_name || null
+      }
+    }));
   });
 }

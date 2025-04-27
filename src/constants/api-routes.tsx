@@ -8,9 +8,13 @@ import { ProjectCategory } from "./project-categories";
 interface ProjectFilters {
   showAll?: boolean;
   userId?: string;
-  category?: ProjectCategory;
+  category?: ProjectCategory | "all"; // Update to allow "all"
   tag?: string;
   showFavorites?: boolean;
+  showDeleted?: boolean; // Add deleted filter
+  sortBy?: string; // Add sorting
+  page?: number;
+  limit?: number;
 }
 
 export const API_ROUTES = {
@@ -22,9 +26,13 @@ export const API_ROUTES = {
       const params = new URLSearchParams();
       if (filters.showAll) params.append("showAll", "true");
       if (filters.userId) params.append("userId", filters.userId);
-      if (filters.category) params.append("category", filters.category);
+      if (filters.category && filters.category !== "all") params.append("category", filters.category);
       if (filters.tag) params.append("tag", filters.tag);
       if (filters.showFavorites) params.append("showFavorites", "true");
+      if (filters.showDeleted) params.append("showDeleted", "true");
+      if (filters.sortBy) params.append("sortBy", filters.sortBy);
+      if (filters.page) params.append("page", filters.page.toString());
+      if (filters.limit) params.append("limit", filters.limit.toString());
       return `/api/projects?${params.toString()}`;
     },
     TEST_PAGE: "/api/projects/test",

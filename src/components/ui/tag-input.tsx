@@ -46,7 +46,7 @@ export function TagInput({
             suggestion => !tags.some(tag => tag.id === suggestion.id)
           );
           setSuggestions(filteredResults);
-          setShowSuggestions(true);
+          setShowSuggestions(filteredResults.length > 0);
         } catch (error) {
           console.error("Error searching tags:", error);
           setError("Failed to search tags. Please try again.");
@@ -61,7 +61,8 @@ export function TagInput({
       }
     };
 
-    const timeoutId = setTimeout(search, 300);
+    // Use a longer debounce timeout to reduce API calls
+    const timeoutId = setTimeout(search, 500);
     return () => clearTimeout(timeoutId);
   }, [inputValue, searchTags, tags]);
 

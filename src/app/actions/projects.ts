@@ -22,8 +22,20 @@ const pathToRevalidate = "/projects";
 
 export async function getProjectById(projectId: string) {
   return executeQuery(async (db) => {
+    // Use more explicit query building pattern
     const results = await db
-      .select()
+      .select({
+        id: projects.id,
+        title: projects.title,
+        slug: projects.slug,
+        description: projects.description,
+        category: projects.category,
+        user_id: projects.user_id,
+        total_favorites: projects.total_favorites,
+        created_at: projects.created_at,
+        updated_at: projects.updated_at,
+        deleted_at: projects.deleted_at
+      })
       .from(projects)
       .where(eq(projects.id, projectId))
       .limit(1);

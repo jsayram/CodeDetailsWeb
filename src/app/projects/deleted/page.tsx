@@ -15,7 +15,7 @@ import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
 import { useUserTier } from "@/hooks/use-tierServiceClient";
 import { useState } from "react";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
-import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import { CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { Skull, Trash2, AlertOctagon } from "lucide-react";
 
 export default function DeletedProjects() {
@@ -81,7 +81,6 @@ export default function DeletedProjects() {
                       <div className="mb-8">
                         <ProjectList
                           currentPage={currentPage}
-                          itemsPerPage={PROJECTS_PER_PAGE}
                           showSortingFilters={true}
                           onPageChange={setCurrentPage}
                           showDeletedOnly={true}

@@ -162,10 +162,44 @@
   }
 }
 
+/* Pagination container to prevent CLS */
+.pagination-container {
+  min-height: 3rem; /* Fixed height for pagination container */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
+  width: 100%;
+}
+
 /* Pagination cursor styles */
 .pagination-item,
 [role="navigation"] button {
   cursor: pointer;
+  min-width: 2rem; /* Fixed width for page numbers */
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0.25rem; /* Consistent spacing */
+}
+
+/* Pagination styles */
+.pagination-item-text {
+  @apply relative text-foreground;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.25rem 0.75rem;
+  line-height: 1.5;
+}
+
+.pagination-item-text[data-active="true"] {
+  @apply bg-accent text-accent-foreground font-medium;
+  transform: scale(1.05);
+}
+
+.pagination-item-text:not([data-active="true"]):hover {
+  @apply bg-accent/80 text-accent-foreground;
+  transform: scale(1.02);
 }
 
 /* Fixing CLS issues */
@@ -239,6 +273,30 @@
   );
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+/* Adding custom responsive styles for filters */
+@layer utilities {
+  /* Filter dropdown responsive styles */
+  .filter-dropdown-container {
+    @apply flex flex-col sm:flex-row items-center justify-center gap-3;
+    width: 100%;
+  }
+
+  /* Make dropdowns full width on mobile, auto on larger screens */
+  .filter-dropdown {
+    @apply w-full sm:w-auto;
+  }
+
+  /* Center align filter section */
+  .filters-section {
+    @apply flex flex-col items-center justify-center w-full gap-4;
+  }
+
+  /* Ensure select triggers are consistent width */
+  .filter-select-trigger {
+    @apply w-full sm:w-[180px] text-center;
+  }
 }
 
 /* DEBUG STYLES - Remove before deploying to production */

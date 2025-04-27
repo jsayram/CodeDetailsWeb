@@ -2,13 +2,12 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
-import { GridIcon, TableIcon, Trash2, Plus } from "lucide-react";
+import { GridIcon, TableIcon, Plus } from "lucide-react";
 import { ProjectCardView } from "./ProjectCardViewComponent";
 import { ProjectTableView } from "./ProjectTableViewComponent";
 import { ProjectForm } from "../ProjectComponents/ProjectFormComponent";
+import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import {
-  PROJECTS_PER_PAGE,
-  TABLE_PROJECTS_PER_PAGE,
   CURRENT_PAGE,
 } from "@/components/navigation/Pagination/paginationConstants";
 
@@ -19,7 +18,6 @@ import { UpdateProjectModal } from "./UpdateProjectModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { UnfavoriteConfirmationModal } from "./UnfavoriteConfirmationModal";
 import { useAuth } from "@clerk/nextjs";
-import { FilterControls } from "@/components/navigation/Filter/FilterControlsComponent";
 import { PaginationControls } from "@/components/navigation/Pagination/PaginationControlComponent";
 import Image from "next/image";
 import {
@@ -29,10 +27,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ProjectFilters } from "@/providers/projects-provider";
+import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 
 interface ProjectListProps {
   currentPage: number;
-  itemsPerPage: number;
   filter?: {
     userId?: string;
     all?: boolean;
@@ -47,7 +53,6 @@ interface ProjectListProps {
 
 export function ProjectList({
   currentPage: externalPage = CURRENT_PAGE,
-  itemsPerPage = PROJECTS_PER_PAGE,
   filter,
   showSortingFilters = true,
   onPageChange,
@@ -66,22 +71,26 @@ export function ProjectList({
     filters,
     setFilters,
     setProjects,
+    pagination
   } = useProjects();
+  
+  const { userId } = useAuth();
   const [viewMode, setViewMode] = useState("card");
-  const [internalCurrentPage, setInternalCurrentPage] = useState(externalPage);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [showUnfavoriteModal, setShowUnfavoriteModal] = useState(false);
-  const [unfavoritingProject, setUnfavoritingProject] = useState<{ id: string; title: string } | null>(null);
+  const [unfavoritingProject, setUnfavoritingProject] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
   const [isUnfavoriting, setIsUnfavoriting] = useState(false);
-  const { userId } = useAuth();
 
-  // Check screen size for responsive design
+  // Check for mobile screen size
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -92,56 +101,72 @@ export function ProjectList({
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Filter and sort projects
-  const filteredProjects = useMemo(() => {
-    if (!projects?.length) return [];
+  // Sync external page changes with provider
+  useEffect(() => {
+    if (externalPage !== filters.page) {
+      setFilters({ page: externalPage });
+    }
+  }, [externalPage, filters.page, setFilters]);
 
-    let filtered = [...projects];
+  // Notify parent of filtered items count changes
+  useEffect(() => {
+    if (onFilteredItemsChange) {
+      onFilteredItemsChange(pagination.total);
+    }
+  }, [pagination.total, onFilteredItemsChange]);
 
-    // Filter by deleted status
-    if (showDeletedOnly) {
-      filtered = filtered.filter(
-        (project) => project.deleted_at !== null && project.user_id === userId
-      );
-    } else {
-      filtered = filtered.filter((project) => project.deleted_at === null);
+  // Set initial view state
+  useEffect(() => {
+    setFilters({
+      showMyProjects: showUserProjectsOnly,
+      showFavorites: showFavoritesOnly,
+      showDeleted: showDeletedOnly,
+      page: externalPage
+    });
+  }, [showUserProjectsOnly, showFavoritesOnly, showDeletedOnly, externalPage, setFilters]);
+
+  // Handle page changes
+  const handlePageChange = useCallback((page: number) => {
+    // Store the current scroll position and container height
+    const scrollPosition = window.scrollY;
+    const container = document.querySelector('.projects-container');
+    const containerHeight = container?.getBoundingClientRect().height;
+
+    // Apply the container height to prevent content shift
+    if (container && containerHeight) {
+      (container as HTMLElement).style.minHeight = `${containerHeight}px`;
     }
 
-    // Apply other filters
-    if (showUserProjectsOnly && userId) {
-      filtered = filtered.filter((project) => project.user_id === userId);
-    } else if (showFavoritesOnly) {
-      filtered = filtered.filter((project) => project.isFavorite);
-    } else if (filters.showMyProjects && userId) {
-      filtered = filtered.filter((project) => project.user_id === userId);
-    } else if (filter?.userId) {
-      filtered = filtered.filter((project) => project.user_id === filter.userId);
+    if (page > pagination.totalPages) {
+      page = pagination.totalPages;
+    }
+    
+    if (page === pagination.currentPage) {
+      return;
     }
 
-    // Apply category filter
-    if (filters.category && filters.category !== "all") {
-      filtered = filtered.filter((project) => project.category === filters.category);
+    const newFilters: Partial<ProjectFilters> = { page };
+    setFilters(newFilters);
+    
+    if (onPageChange) {
+      onPageChange(page);
     }
 
-    return filtered;
-  }, [projects, filters, userId, filter, showUserProjectsOnly, showFavoritesOnly, showDeletedOnly]);
-
-  // Calculate pagination
-  const totalPages = useMemo(() => {
-    return Math.ceil(
-      filteredProjects.length / (viewMode === "table" ? TABLE_PROJECTS_PER_PAGE : itemsPerPage)
-    );
-  }, [filteredProjects.length, itemsPerPage, viewMode]);
-
-  const currentPage = Math.min(internalCurrentPage, totalPages || 1);
-
-  // Apply pagination to filtered projects
-  const displayProjects = useMemo(() => {
-    const effectiveItemsPerPage = viewMode === "table" ? TABLE_PROJECTS_PER_PAGE : itemsPerPage;
-    const startIndex = (currentPage - 1) * effectiveItemsPerPage;
-    const endIndex = startIndex + effectiveItemsPerPage;
-    return filteredProjects.slice(startIndex, endIndex);
-  }, [filteredProjects, currentPage, itemsPerPage, viewMode]);
+    // Restore scroll position after content update
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'instant'
+      });
+      
+      // Reset the container height after the content has updated
+      if (container) {
+        setTimeout(() => {
+          (container as HTMLElement).style.minHeight = '';
+        }, 100);
+      }
+    });
+  }, [setFilters, onPageChange, pagination.totalPages, pagination.currentPage]);
 
   // Handlers
   const handleViewDetails = useCallback((id: string) => {
@@ -152,7 +177,6 @@ export function ProjectList({
     if (!userId) return;
     
     try {
-      // If trying to unfavorite, show confirmation dialog
       if (!isFavorite) {
         const project = projects.find(p => p.id === id);
         if (project) {
@@ -167,28 +191,31 @@ export function ProjectList({
       console.error("Error toggling favorite:", error);
       toast.error("Failed to update favorite status");
     }
-  }, [userId, setProjects, showFavoritesOnly, projects]);
+  }, [userId, setProjects, projects]);
 
   const handleFavoriteAction = async (id: string, isFavorite: boolean) => {
     try {
-      // Make API call first
       if (isFavorite) {
         await addProjectFavorite(id, userId!);
       } else {
         await removeProjectFavorite(id, userId!);
       }
 
-      // After successful API call, update UI
-      if (!isFavorite) {
-        if (showFavoritesOnly) {
-          // If we're in favorites view, remove the project from the list immediately
-          setProjects(prev => prev.filter(p => p.id !== id));
-          toast.success("Removed from favorites");
-          return;
+      // If we're unfavoriting and on the favorites page, remove from UI immediately
+      if (!isFavorite && showFavoritesOnly) {
+        // Remove from current state immediately
+        setProjects(prev => prev.filter(p => p.id !== id));
+
+        // Force a refresh of the projects list
+        if (handleProjectDeleted) {
+          await handleProjectDeleted(id);
         }
+        
+        toast.success("Removed from favorites");
+        return;
       }
 
-      // Update the projects state to reflect the new favorite status
+      // For all other cases, update the project in the current state
       setProjects(prev => prev.map(project => {
         if (project.id === id) {
           const currentFavorites = Number(project.total_favorites || 0);
@@ -203,6 +230,9 @@ export function ProjectList({
       }));
 
       toast.success(isFavorite ? "Added to favorites" : "Removed from favorites");
+    } catch (error) {
+      console.error("Error updating favorite status:", error);
+      toast.error("Failed to update favorite status");
     } finally {
       setIsUnfavoriting(false);
       setUnfavoritingProject(null);
@@ -254,11 +284,15 @@ export function ProjectList({
         return;
       }
 
+      // Remove from current state immediately
+      setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+      
+      // Call the context handler to ensure global state is updated
       if (handleProjectDeleted) {
-        handleProjectDeleted(projectToDelete.id);
+        await handleProjectDeleted(projectToDelete.id);
       }
 
-      toast.success("Project deleted successfully");
+      toast.success("Project sent to graveyard");
     } catch (error) {
       console.error("Failed to delete project:", error);
       toast.error("An error occurred while deleting the project");
@@ -266,27 +300,82 @@ export function ProjectList({
       setDeletingProjectId(null);
       setProjectToDelete(null);
     }
-  }, [projectToDelete, handleProjectDeleted, userId]);
+  }, [projectToDelete, handleProjectDeleted, userId, setProjects]);
 
-  const handlePageChange = useCallback((page: number) => {
-    setInternalCurrentPage(page);
-    onPageChange(page);
-  }, [onPageChange]);
+  // Update filter handlers with proper typing
+  const handleFilterChange = useCallback((filter: keyof ProjectFilters, value: any) => {
+    const newFilters: Partial<ProjectFilters> = { [filter]: value, page: 1 };
+    setFilters(newFilters);
+    if (onPageChange) {
+      onPageChange(1);
+    }
+  }, [setFilters, onPageChange]);
+
+  // Category change handler with proper typing
+  const handleCategoryChange = useCallback((category: ProjectCategory | "all") => {
+    // Store the current scroll position and container height
+    const scrollPosition = window.scrollY;
+    const container = document.querySelector('.projects-container');
+    const containerHeight = container?.getBoundingClientRect().height;
+
+    // Apply the container height to prevent content shift
+    if (container && containerHeight) {
+      (container as HTMLElement).style.minHeight = `${containerHeight}px`;
+    }
+
+    // Create a completely new filter state object
+    const newFilters = {
+      ...filters,
+      category,
+      page: 1,
+      showMyProjects: showUserProjectsOnly,
+      showFavorites: showFavoritesOnly,
+      showDeleted: showDeletedOnly
+    };
+    
+    // Set the complete new state
+    setFilters(newFilters);
+    
+    // Ensure parent components are notified of page change
+    if (onPageChange) {
+      onPageChange(1);
+    }
+
+    // Restore scroll position after content update
+    window.requestAnimationFrame(() => {
+      window.scrollTo({
+        top: scrollPosition,
+        behavior: 'instant'
+      });
+      
+      // Reset the container height after the content has updated
+      if (container) {
+        setTimeout(() => {
+          (container as HTMLElement).style.minHeight = '';
+        }, 100);
+      }
+    });
+  }, [filters, setFilters, showUserProjectsOnly, showFavoritesOnly, showDeletedOnly, onPageChange]);
+
+  // Sort change handler with proper typing
+  const handleSortChange = useCallback((sortBy: string) => {
+    const newFilters: Partial<ProjectFilters> = { sortBy, page: 1 };
+    setFilters(newFilters);
+    
+    if (onPageChange) {
+      onPageChange(1);
+    }
+  }, [setFilters, onPageChange]);
 
   // Loading state
   if (loading) {
-    return (
-      <div className="h-[300px] flex items-center justify-center">
-        Loading projects...
-      </div>
-    );
+    return <ProjectListLoadingState />;
   }
 
   return (
     <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">
       {/* Controls Section */}
       <div className="space-y-4 mb-6">
-        {/* Top Row - Create Project and Show All/My Projects buttons */}
         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           {/* Left side buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -302,40 +391,46 @@ export function ProjectList({
                 Create Project
               </Button>
             )}
-
-            {/* Filter Toggle Button */}
-            {!showUserProjectsOnly && !showDeletedOnly &&(
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setFilters({ showMyProjects: !filters.showMyProjects });
-                  toast.success(
-                    filters.showMyProjects
-                      ? "Showing complete list of projects"
-                      : "Showing your projects only"
-                  );
-                }}
-                className="w-full sm:w-auto"
-              >
-                {filters.showMyProjects ? "Show All Projects" : "Show My Projects"}
-              </Button>
-            )}
           </div>
 
           {/* Right side controls */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
-            {/* Filters and View Toggle wrapper */}
-            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
-              {/* Filters */}
-              {showSortingFilters && (
-                <div className="w-full lg:w-auto">
-                  <FilterControls showControls={showSortingFilters} />
-                </div>
-              )}
+          {showSortingFilters && (
+            <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center justify-center sm:justify-end gap-3">
+              {/* Sort Controls */}
+              <Select
+                value={filters.sortBy}
+                onValueChange={handleSortChange}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="popular">Most Popular</SelectItem>
+                </SelectContent>
+              </Select>
 
-              {/* View Mode Toggle - Hidden on mobile */}
-              <div className="hidden md:flex rounded-md overflow-hidden flex-none ml-auto">
+              {/* Category Filter */}
+              <Select
+                value={filters.category}
+                onValueChange={(value) => handleCategoryChange(value as ProjectCategory | "all")}
+              >
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* View Mode Toggle */}
+              <div className="hidden md:flex rounded-md">
                 <Button
                   variant={viewMode === "card" ? "default" : "outline"}
                   className="rounded-r-none"
@@ -356,80 +451,61 @@ export function ProjectList({
                 </Button>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Projects Display */}
-      {displayProjects.length === 0 ? (
-        <div
-          className={`h-[500px] flex items-center justify-center text-center flex-col gap-4 
-          ${showDeletedOnly ? "rounded-xl border border-red-900/20 py-8" : ""}`}
-        >
-          {showDeletedOnly ? (
-            <>
-              <div className="relative">
-                <Trash2 className="h-24 w-24 text-red-500/30" />
-              </div>
-              <p className="text-red-200/70 font-semibold">
-                No projects in the graveyard
-              </p>
-              <p className="text-gray-500 text-sm max-w-md">
-                Your digital cemetery is empty. Deleted projects will appear here, where
-                they can rest in peace... or be restored. 🪦
-              </p>
-            </>
-          ) : (
-            <>
-              <Image
-                src="/images/mascot.png"
-                alt="code details mascot"
-                width={128}
-                height={128}
-              />
-              <p>OOPS ... No projects found 🥲</p>
-              <p>Adjust your filters ✅</p>
-              {filter?.userId === userId && (
-                <Button variant="default" onClick={() => setShowAddForm(true)}>
-                  Create Your First Project
-                </Button>
-              )}
-            </>
+      {projects.length === 0 ? (
+        <div className={`h-[500px] flex items-center justify-center text-center flex-col gap-4`}>
+          <Image
+            src="/images/mascot.png"
+            alt="code details mascot"
+            width={128}
+            height={128}
+          />
+          <p>OOPS ... No projects found 🥲</p>
+          <p>Adjust your filters ✅</p>
+          {filter?.userId === userId && !showDeletedOnly && (
+            <Button variant="default" onClick={() => setShowAddForm(true)}>
+              Create Your First Project
+            </Button>
           )}
         </div>
       ) : (
-        // Force card view on mobile, otherwise use selected view mode
-        (viewMode === "card" || isMobile) ? (
-          <ProjectCardView
-            projects={displayProjects}
-            onViewDetails={handleViewDetails}
-            onToggleFavorite={handleToggleFavorite}
-            onDeleteProject={handleProjectDeletion}
-            onUpdateProject={handleUpdateProject}
-          />
-        ) : (
-          <div className="hidden md:block">
-            <ProjectTableView
-              projects={displayProjects}
+        <>
+          {(viewMode === "card" || isMobile) ? (
+            <ProjectCardView
+              projects={projects}
               onViewDetails={handleViewDetails}
               onToggleFavorite={handleToggleFavorite}
-              onUpdateProject={handleUpdateProject}
               onDeleteProject={handleProjectDeletion}
+              onUpdateProject={handleUpdateProject}
             />
-          </div>
-        )
-      )}
+          ) : (
+            <div className="hidden md:block">
+              <ProjectTableView
+                projects={projects}
+                onViewDetails={handleViewDetails}
+                onToggleFavorite={handleToggleFavorite}
+                onUpdateProject={handleUpdateProject}
+                onDeleteProject={handleProjectDeletion}
+              />
+            </div>
+          )}
 
-      {/* Pagination */}
-      <div className="flex justify-center items-center mt-4">
-        {filteredProjects.length > itemsPerPage && (
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        )}
-      </div>
+          {/* Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center items-center mt-4">
+              <PaginationControls
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
+        </>
+      )}
 
       {/* Modals */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
@@ -440,7 +516,14 @@ export function ProjectList({
               Add a new project to share with the community.
             </DialogDescription>
           </DialogHeader>
-          <ProjectForm onProjectAdded={() => setShowAddForm(false)} />
+          <ProjectForm 
+            onProjectAdded={(newProject) => {
+              // Close the modal
+              setShowAddForm(false);
+              // Call the context handler to update the project list
+              contextHandleProjectAdded(newProject);
+            }} 
+          />
         </DialogContent>
       </Dialog>
 
@@ -455,19 +538,18 @@ export function ProjectList({
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteConfirm}
-        projectTitle={projectToDelete?.title || ""}
-        projectCategory={projectToDelete?.category}
-        isDeleting={deletingProjectId !== null}
+        project={projectToDelete}
+        isDeleting={Boolean(deletingProjectId)}
       />
 
       <UnfavoriteConfirmationModal
+        project={unfavoritingProject}
         isOpen={showUnfavoriteModal}
         onClose={() => {
           setShowUnfavoriteModal(false);
           setUnfavoritingProject(null);
         }}
         onConfirm={handleUnfavoriteConfirm}
-        projectTitle={unfavoritingProject?.title || ""}
         isUnfavoriting={isUnfavoriting}
       />
     </div>

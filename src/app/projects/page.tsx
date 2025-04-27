@@ -17,13 +17,10 @@ import { ProjectsProvider } from "@/providers/projects-provider";
 import {
   ProjectList,
   ProjectForm,
-  MyProjectsComponent,
 } from "@/components/Projects";
 
 // UI Components (Tailwind CSS) and shadcn/ui components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -31,13 +28,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-
-// Theme Management
-import { PaginationControls } from "@/components/navigation/Pagination/PaginationControlComponent";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import {
-  PROJECTS_PER_PAGE,
   CURRENT_PAGE,
 } from "@/components/navigation/Pagination/paginationConstants";
 import { HeaderSection } from "@/components/layout/HeaderSection";
@@ -138,10 +130,8 @@ export default function DashBoard() {
                             </div>
                             <ProjectList
                               currentPage={allProjectsPage}
-                              itemsPerPage={PROJECTS_PER_PAGE}
                               showSortingFilters={true}
                               onPageChange={handleAllProjectsPageChange}
-                              //showCommunityOnly={true}
                             />
                           </div>
 
@@ -179,7 +169,6 @@ export default function DashBoard() {
                             <div>
                               <ProjectList
                                 currentPage={currentPage}
-                                itemsPerPage={PROJECTS_PER_PAGE}
                                 onPageChange={handleCurrentPageChange}
                               />
                             </div>

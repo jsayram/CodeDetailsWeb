@@ -1,26 +1,7 @@
 /* Project Cards and Grid Layout */
 
 /* Fixed dimensions for project cards */
-.project-card {
-  height: auto;
-  min-height: 400px;
-  max-height: 500px;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  border-radius: calc(var(--radius) + 4px); /* Making cards more rounded */
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, background 0.2s ease-out;
-  box-shadow: 0 2px 8px -2px oklch(0.3 0.1 280 / 0.1);
-  background: linear-gradient(
-    to bottom,
-    oklch(0.99 0.01 290),
-    oklch(0.98 0.01 290)
-  );
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-}
+
 
 /* Card actions container */
 .project-card .card-actions {
@@ -105,54 +86,6 @@
   }
 }
 
-/* Deleted projects styling */
-.project-card.deleted {
-  background-color: oklch(0.2 0.05 280); /* Dark purple background */
-  border: 1px solid oklch(0.55 0.15 25); /* Muted red border */
-  border-radius: calc(var(--radius) + 6px);
-  opacity: 0.95;
-  transition: all 0.2s ease-in-out;
-  box-shadow: 0 4px 8px -2px oklch(0.55 0.15 25 / 0.15); /* Softer red shadow */
-}
-
-.project-card.deleted .card-content {
-  color: oklch(0.9 0.02 280); /* Light text for dark background */
-}
-
-.project-card.deleted:hover {
-  opacity: 1;
-  transform: translateY(-2px);
-  background-color: oklch(0.22 0.06 280); /* Slightly lighter purple on hover */
-  border-color: oklch(0.55 0.15 25); /* Keep muted red border */
-  box-shadow: 0 6px 12px -2px oklch(0.55 0.15 25 / 0.2); /* Enhanced but still soft shadow */
-}
-
-.project-card.deleted .card-title {
-  color: oklch(0.95 0.02 280); /* Light text for better contrast */
-  text-decoration: line-through;
-  text-decoration-color: oklch(0.55 0.15 25 / 0.4); /* Subtle strikethrough */
-  text-decoration-thickness: 1px;
-  font-family: var(--font-mono);
-  letter-spacing: -0.01em;
-}
-
-.project-card.deleted .project-metadata {
-  color: oklch(0.85 0.02 280);
-  background-color: transparent;
-  border-top: 1px solid oklch(0.55 0.15 25 / 0.15);
-}
-
-.project-card.deleted .card-description {
-  color: oklch(0.85 0.02 280 / 0.9); /* Light text with slight transparency */
-  font-style: italic;
-}
-
-/* Footer and tags section */
-.project-card.deleted .card-footer {
-  background-color: oklch(0.25 0.05 280); /* Slightly lighter than main background */
-  border-color: oklch(0.3 0.05 280);
-  color: oklch(0.9 0.02 280); /* Light text */
-}
 
 .project-card.deleted .project-tags {
   background-color: oklch(0.22 0.05 280); /* Dark background for tags section */
@@ -202,17 +135,16 @@
 
 /* Softer deleted indicator */
 .project-card.deleted::before {
-  content: "DELETED";
-  position: absolute;
-  top: 1rem;
-  left: 1rem; /* Changed from right to left */
-  font-size: 0.75rem;
-  font-weight: 500;
+  /* position: absolute; */
+  top: 4rem;
+  right: 1rem; 
+  font-size: 1rem;
+  /* font-weight: 500;
   letter-spacing: 0.1em;
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
-  background-color: oklch(0.55 0.15 25 / 0.9); /* Muted red */
-  color: oklch(0.3 0.02 280); /* Dark gray */
+  background-color: oklch(0.55 0.15 25); 
+  color: oklch(0.3 0.02 280);  */
   opacity: 0.9;
   box-shadow: 0 2px 4px -1px oklch(0.55 0.15 25 / 0.2);
 }

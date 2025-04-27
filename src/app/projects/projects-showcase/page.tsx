@@ -6,8 +6,6 @@ import { useUser } from "@clerk/nextjs";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
 import { ProjectsProvider } from "@/providers/projects-provider";
 import { ProjectList } from "@/components/Projects";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "@/app/auth/ProtectedPage";
@@ -15,7 +13,7 @@ import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
 import { useUserTier } from "@/hooks/use-tierServiceClient";
 import { useState } from "react";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
-import { PROJECTS_PER_PAGE, CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import { CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import Image from "next/image";
 
 export default function MyProjectsShowcase() {
@@ -71,7 +69,6 @@ export default function MyProjectsShowcase() {
                           </div>
                           <ProjectList
                             currentPage={currentPage}
-                            itemsPerPage={PROJECTS_PER_PAGE}
                             showSortingFilters={true}
                             onPageChange={setCurrentPage}
                             showUserProjectsOnly={true}

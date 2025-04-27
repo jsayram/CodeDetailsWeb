@@ -155,11 +155,12 @@ export async function revalidateUserCache(userId: string): Promise<void> {
   console.log(`🔄 Revalidating all caches for user ${userId}`);
   // Clear memory cache
   Object.keys(memoryCache).forEach((key) => {
-    if (key.includes(userId)) {
+    if (key.includes(userId) || key.includes("project")) {
       delete memoryCache[key];
     }
   });
 
+  // Single revalidation call with both user and projects tags
   try {
     await fetch(API_ROUTES.CACHE.REVALIDATE, {
       method: "POST",
@@ -167,25 +168,11 @@ export async function revalidateUserCache(userId: string): Promise<void> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        tags: [`user-${userId}`],
+        tags: [`user-${userId}`, "projects"],
       }),
     });
   } catch (error) {
-    console.error(`Failed to revalidate user cache for user ${userId}`, error);
-  }
-
-  try {
-    await fetch(API_ROUTES.CACHE.REVALIDATE, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        tags: ["projects"],
-      }),
-    });
-  } catch (error) {
-    console.error("Failed to revalidate projects cache", error);
+    console.error("Failed to revalidate caches:", error);
   }
 }
 

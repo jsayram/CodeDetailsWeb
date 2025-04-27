@@ -18,11 +18,28 @@ import { useIsBrowser } from "@/lib/ClientSideUtils";
 import { useAuthState } from "@/hooks/use-auth-state";
 import { API_ROUTES } from "@/constants/api-routes";
 import { ProjectCategory } from "@/constants/project-categories";
+import {
+  revalidateUserCache,
+  revalidateProjectsCache,
+} from "@/lib/ProjectsCacheUtils";
+import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 
-interface ProjectFilters {
+
+export interface ProjectFilters {
   sortBy: string;
   category: ProjectCategory | "all";
   showMyProjects: boolean;
+  showFavorites: boolean;
+  showDeleted: boolean;
+  page: number;
+  limit: number;
+}
+
+interface PageCache {
+  [key: string]: {
+    data: Project[];
+    timestamp: number;
+  };
 }
 
 interface ProjectsContextType {
@@ -36,6 +53,11 @@ interface ProjectsContextType {
   filters: ProjectFilters;
   setFilters: (filters: Partial<ProjectFilters>) => void;
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  pagination: {
+    total: number;
+    totalPages: number;
+    currentPage: number;
+  };
 }
 
 const ProjectsContext = createContext<ProjectsContextType | undefined>(
@@ -69,7 +91,20 @@ export function ProjectsProvider({
     sortBy: "newest",
     category: "all",
     showMyProjects: false,
+    showFavorites: false,
+    showDeleted: false,
+    page: 1,
+    limit: PROJECTS_PER_PAGE,
   });
+
+  const [pagination, setPagination] = useState({
+    total: 0,
+    totalPages: 1,
+    currentPage: 1,
+  });
+
+  const [pageCache, setPageCache] = useState<PageCache>({});
+
   const lastFetchRef = useRef<{ timestamp: number; inProgress: boolean }>({
     timestamp: 0,
     inProgress: false,
@@ -88,36 +123,59 @@ export function ProjectsProvider({
     isReady: authReady,
   } = useAuthState(userId, token, authenticatedClient || undefined);
 
-  const updateFilters = useCallback((newFilters: Partial<ProjectFilters>) => {
-    setFilters((prev) => ({
-      ...prev,
-      ...newFilters,
-    }));
-  }, []);
-
   const fetchProjects = useCallback(async () => {
-    // Only fetch if we haven't fetched in the last 30 seconds
     const now = Date.now();
-    if (
-      lastFetchRef.current.inProgress ||
-      (now - lastFetchRef.current.timestamp < 30000 && projects.length > 0)
-    ) {
+    if (lastFetchRef.current.inProgress) {
       return;
     }
 
-    console.log("🔄 Fetching fresh projects");
+    const cacheKey = JSON.stringify({
+      showAll: !filters.showMyProjects,
+      userId: filters.showMyProjects || filters.showFavorites || filters.showDeleted
+        ? userId
+        : undefined,
+      category: filters.category === "all" ? undefined : filters.category,
+      showFavorites: filters.showFavorites,
+      showDeleted: filters.showDeleted,
+      sortBy: filters.sortBy,
+      page: filters.page,
+      limit: filters.limit,
+    });
+
+    const cached = pageCache[cacheKey];
+    if (cached && now - cached.timestamp < 300000) {
+      console.log("🎯 Using cached page data for page", filters.page);
+      setProjects(cached.data);
+      setPagination((prev) => ({
+        ...prev,
+        currentPage: filters.page,
+      }));
+      return;
+    }
+
+    console.log("🔄 Fetching fresh projects for page", filters.page);
     lastFetchRef.current.inProgress = true;
     setLoading(true);
 
     try {
-      const url = API_ROUTES.PROJECTS.WITH_FILTERS({ showAll: true });
+      const params = {
+        showAll: !filters.showMyProjects,
+        userId: filters.showMyProjects || filters.showFavorites || filters.showDeleted
+          ? (userId ?? undefined)
+          : undefined,
+        category: filters.category === "all" ? undefined : filters.category,
+        showFavorites: filters.showFavorites,
+        showDeleted: filters.showDeleted,
+        sortBy: filters.sortBy,
+        page: filters.page,
+        limit: filters.limit,
+      };
 
-      const response = await fetch(url, {
-        next: { revalidate: 60 },
-      });
+      const url = API_ROUTES.PROJECTS.WITH_FILTERS(params);
 
+      const response = await fetch(url);
       if (!response.ok) {
-        throw new Error("Failed to fetch projects");
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const result = await response.json();
@@ -125,45 +183,65 @@ export function ProjectsProvider({
         throw new Error(result.error || "Failed to fetch projects");
       }
 
-      // Load favorites for the current user if authenticated
-      if (userId) {
-        try {
-          const favoritesResponse = await fetch(API_ROUTES.PROJECTS.WITH_FILTERS({ userId, showFavorites: true }));
-          if (favoritesResponse.ok) {
-            const favoritesResult = await favoritesResponse.json();
-            const favoriteIds = new Set(favoritesResult.data.map((p: any) => p.id));
-            
-            // Mark favorite projects
-            result.data = result.data.map((project: Project) => ({
-              ...project,
-              isFavorite: favoriteIds.has(project.id)
-            }));
-          }
-        } catch (error) {
-          console.error("Failed to fetch favorites:", error);
-          // Keep existing favorite states if favorites fetch fails
-          const existingFavorites = new Map(projects.map(p => [p.id, p.isFavorite]));
-          result.data = result.data.map((project: Project) => ({
-            ...project,
-            isFavorite: existingFavorites.get(project.id) || false
-          }));
-        }
+      if (result.pagination) {
+        setPagination({
+          total: result.pagination.total,
+          totalPages: result.pagination.totalPages,
+          currentPage: filters.page,
+        });
       }
+
+      setPageCache((prev) => ({
+        ...prev,
+        [cacheKey]: {
+          data: result.data || [],
+          timestamp: now,
+        },
+      }));
 
       setProjects(result.data || []);
       lastFetchRef.current.timestamp = now;
-      console.log(`✅ Successfully fetched ${result.data?.length || 0} projects`);
     } catch (error) {
       console.error("❌ Error fetching projects:", error);
-      // Don't clear projects on error, keep existing state
       if (!projects.length) {
         setProjects([]);
+        setPagination({
+          total: 0,
+          totalPages: 1,
+          currentPage: 1,
+        });
       }
     } finally {
       setLoading(false);
       lastFetchRef.current.inProgress = false;
     }
-  }, [projects.length, userId, projects]);
+  }, [filters, userId, projects.length]);
+
+  const updateFilters = useCallback((newFilters: Partial<ProjectFilters>) => {
+    setFilters((prev) => {
+      const updatedFilters = {
+        ...prev,
+        ...newFilters,
+      };
+
+      // Reset cache if category changes
+      if ('category' in newFilters) {
+        setPageCache({});
+        lastFetchRef.current.timestamp = 0;
+      }
+
+      if ("page" in newFilters) {
+        updatedFilters.page = Math.max(
+          1,
+          Math.min(newFilters.page!, pagination.totalPages || 1)
+        );
+      } else if (Object.keys(newFilters).length > 0) {
+        updatedFilters.page = 1;
+      }
+
+      return updatedFilters;
+    });
+  }, [pagination.totalPages]);
 
   useEffect(() => {
     if (!authReady || parentIsLoading) return;
@@ -172,31 +250,60 @@ export function ProjectsProvider({
 
   const handleProjectAdded = async (newProject: Project) => {
     console.log("➕ Adding new project:", newProject.title);
-    // Place new project at the start and trigger a refresh
     setProjects((prev) => [newProject, ...prev]);
-    // Force an immediate refresh to ensure consistency
     await refreshProjects();
   };
 
   const handleProjectDeleted = async (projectId: string) => {
     console.log("🗑️ Deleting project:", projectId);
+    
+    // Remove from current state immediately
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
-    fetchProjects(); // Refresh to ensure consistency
+    
+    // Clear the page cache to force a fresh fetch
+    setPageCache({});
+    
+    // Reset fetch timestamp and refresh projects
+    lastFetchRef.current.timestamp = 0;
+    lastFetchRef.current.inProgress = false;
+    
+    try {
+      // Single revalidation call that handles both user and projects cache
+      await revalidateUserCache(userId || '');
+      // If we're showing favorites, force a refresh
+      if (filters.showFavorites) {
+        await fetchProjects();
+      }
+    } catch (error) {
+      console.error("Error refreshing data after deletion:", error);
+    }
   };
 
   const handleProjectUpdated = async (updatedProject: Project) => {
     console.log("✏️ Updating project:", updatedProject.title);
-    // Update local state immediately
-    setProjects((prev) =>
-      prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
-    );
     
-    // Don't trigger a refresh since we've already updated the local state
-    // Only refresh if the last fetch was more than 5 minutes ago
-    const now = Date.now();
-    if (now - lastFetchRef.current.timestamp >= 300000) { // 5 minutes
-      console.log("🔄 Last fetch was > 5 minutes ago, refreshing data");
-      await refreshProjects();
+    // If we're on favorites page and the project was unfavorited, remove it from the UI
+    if (filters.showFavorites && !updatedProject.isFavorite) {
+      // Remove from current state immediately
+      setProjects((prev) => prev.filter((p) => p.id !== updatedProject.id));
+      
+      // Clear the page cache to force fresh data on next fetch
+      setPageCache({});
+      lastFetchRef.current.timestamp = 0;
+      lastFetchRef.current.inProgress = false;
+      
+      try {
+        // Revalidate the cache and fetch fresh data
+        await revalidateUserCache(userId || '');
+        await fetchProjects();
+      } catch (error) {
+        console.error("Error refreshing data after unfavorite:", error);
+      }
+    } else {
+      // Normal update behavior for non-favorites page
+      setProjects((prev) =>
+        prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
+      );
     }
   };
 
@@ -207,7 +314,6 @@ export function ProjectsProvider({
     await fetchProjects();
   };
 
-  // Add sorting logic
   const sortedProjects = useMemo(() => {
     let result = [...projects];
 
@@ -216,19 +322,19 @@ export function ProjectsProvider({
         return result.sort((a, b) => {
           const dateA = new Date(a.created_at || 0).getTime();
           const dateB = new Date(b.created_at || 0).getTime();
-          return dateB - dateA; // Newest first
+          return dateB - dateA;
         });
       case "oldest":
         return result.sort((a, b) => {
           const dateA = new Date(a.created_at || 0).getTime();
           const dateB = new Date(b.created_at || 0).getTime();
-          return dateA - dateB; // Oldest first
+          return dateA - dateB;
         });
       case "popular":
         return result.sort((a, b) => {
           const aFavorites = Number(a.total_favorites || 0);
           const bFavorites = Number(b.total_favorites || 0);
-          return bFavorites - aFavorites; // Most favorited first
+          return bFavorites - aFavorites;
         });
       default:
         return result;
@@ -237,7 +343,7 @@ export function ProjectsProvider({
 
   const value = useMemo(
     () => ({
-      projects: sortedProjects, // Use sorted projects instead of raw projects
+      projects: sortedProjects,
       loading,
       handleProjectAdded,
       handleProjectDeleted,
@@ -247,8 +353,17 @@ export function ProjectsProvider({
       filters,
       setFilters: updateFilters,
       setProjects,
+      pagination,
     }),
-    [sortedProjects, loading, isAuthenticated, filters, updateFilters, setProjects] // Update dependencies
+    [
+      sortedProjects,
+      loading,
+      isAuthenticated,
+      filters,
+      updateFilters,
+      setProjects,
+      pagination,
+    ]
   );
 
   return (
