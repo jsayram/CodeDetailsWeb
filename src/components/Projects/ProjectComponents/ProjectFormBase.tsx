@@ -30,8 +30,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AnnoyedIcon, RefreshCcwIcon } from "lucide-react";
+import { AnnoyedIcon, RefreshCcwIcon, ChevronDown } from "lucide-react";
 import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface ProjectFormBaseProps {
   // Project data (if updating)
@@ -389,12 +390,23 @@ export function ProjectFormBase({
               projectId={project?.id}
               initialTags={selectedTags.map((tag) => tag.name)}
               onTagsChange={handleTagsChange}
+              className="w-full"
             />
             {mode === "create" && (
-              <div className="text-xs text-muted-foreground">
-                A tag you want is not found? You can request additional tags by editing your project later. Just make sure you stay within the 
-                <span className="text-purple-500"> {MAX_PROJECT_TAGS}</span> tag count limit or else it will be rejected.
-              </div>
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className=" mt-1 text-xs text-muted-foreground hover:text-foreground">
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Cant find a tag you need?
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-2 p-3 rounded-lg bg-muted/50 shadow-sm">
+                  <div className="text-xs text-muted-foreground">
+                    You can request additional tags by editing your project later. Just make sure you stay within the 
+                    <span className="text-purple-500"> {MAX_PROJECT_TAGS}</span> tag count limit or else it will be rejected.
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </div>
 
