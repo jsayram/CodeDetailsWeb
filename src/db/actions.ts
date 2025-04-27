@@ -88,7 +88,7 @@ export async function getProjectBySlugServer(
     const projectData = await db
       .select()
       .from(projects)
-      .where(and(eq(projects.slug, slug), isNull(projects.deleted_at)));
+      .where(eq(projects.slug, slug));
 
     if (!projectData.length) {
       return null;
