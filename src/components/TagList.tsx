@@ -49,21 +49,63 @@ export function TagList() {
     );
   }
 
+  // Separate tags into active and inactive
+  const activeTags = tags.filter(tag => (tag.count ?? 0) > 0);
+  const inactiveTags = tags.filter(tag => !tag.count || tag.count === 0);
+
   return (
-    <div 
-      className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4"
-      role="list"
-    >
-      {tags.map((tag) => (
-        <div
-          key={tag.id}
-          className="bg-card hover:bg-accent text-card-foreground hover:text-accent-foreground 
-                     rounded-lg p-3 shadow-sm transition-colors cursor-pointer"
-          role="listitem"
+    <div className="space-y-8">
+      {/* Active Tags Section */}
+      <section>
+        <h2 className="text-lg font-semibold mb-4">Active Tags</h2>
+        <div 
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          role="list"
         >
-          <h3 className="text-sm font-medium">{tag.name}</h3>
+          {activeTags.map((tag) => (
+            <div
+              key={tag.id}
+              className="bg-card hover:bg-accent text-card-foreground hover:text-accent-foreground 
+                        rounded-lg p-3 shadow-sm transition-colors cursor-pointer"
+              role="listitem"
+            >
+              <h3 className="text-sm font-medium">{tag.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {tag.count} project{tag.count === 1 ? '' : 's'}
+              </p>
+            </div>
+          ))}
         </div>
-      ))}
+      </section>
+
+      {/* Inactive Tags Section */}
+      {inactiveTags.length >= 0 && (
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Tags Without Projects</h2>
+          <div className="bg-muted/50 rounded-lg p-4 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Be the first to create projects for these tags! 🚀
+            </p>
+            <div 
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+              role="list"
+            >
+              {inactiveTags.map((tag) => (
+                <div
+                  key={tag.id}
+                  className="bg-background text-muted-foreground/60
+                            rounded-lg p-3 shadow-sm select-none
+                            border border-dashed border-muted-foreground/20"
+                  role="listitem"
+                  aria-disabled="true"
+                >
+                  <h3 className="text-sm font-medium">{tag.name}</h3>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

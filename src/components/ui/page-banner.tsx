@@ -1,3 +1,5 @@
+"use client";
+
 import { LucideIcon } from "lucide-react";
 import React from "react";
 import Image from "next/image";
@@ -6,6 +8,7 @@ interface PageBannerProps {
   icon?: React.ReactNode; // Made icon optional
   userName?: string; // Made optional since community banners won't have a user
   bannerTitle: string;
+  description?: string; // Added description prop
   userTier?: string; // Made optional for community banners
   gradientFrom: string;
   gradientVia?: string;
@@ -26,6 +29,7 @@ export function PageBanner({
   icon,
   userName,
   bannerTitle,
+  description,
   userTier,
   gradientFrom,
   gradientVia,
@@ -68,6 +72,9 @@ export function PageBanner({
               </span>
             )}
           </h2>
+          {description && (
+            <p className="text-sm text-gray-200 mt-2">{description}</p>
+          )}
         </div>
         {isUserBanner && userTier && tierBgColor && (
           <div className="ml-0 md:ml-auto mt-2 md:mt-0 w-full md:w-auto flex justify-center md:block">

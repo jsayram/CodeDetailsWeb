@@ -2,6 +2,7 @@ import { eq, and, inArray, sql, like, desc } from "drizzle-orm";
 import { executeQuery } from "../server";
 import { project_tags } from "../schema/project_tags";
 import { tags as tagsTable } from "../schema/tags";
+import { projects } from "../schema/projects";
 import { z } from "zod";
 
 export const ContentType = z.enum([
@@ -16,6 +17,7 @@ export type ContentType = z.infer<typeof ContentType>;
 export interface TagInfo {
   id: string;
   name: string;
+  count?: number; // Optional count for tag usage statistics
 }
 
 // Cache structure for tag queries with improved typing
@@ -37,12 +39,15 @@ async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
       .select({
         id: tagsTable.id,
         name: tagsTable.name,
+        count: sql<number>`COUNT(DISTINCT CASE WHEN ${project_tags.project_id} IS NOT NULL AND projects.deleted_at IS NULL THEN ${project_tags.project_id} ELSE NULL END)::int`
       })
       .from(tagsTable)
-      .orderBy(desc(tagsTable.name));
+      .leftJoin(project_tags, eq(project_tags.tag_id, tagsTable.id))
+      .leftJoin(projects, eq(project_tags.project_id, projects.id))
+      .groupBy(tagsTable.id, tagsTable.name)
+      .orderBy(desc(sql<number>`COUNT(DISTINCT CASE WHEN ${project_tags.project_id} IS NOT NULL AND projects.deleted_at IS NULL THEN ${project_tags.project_id} ELSE NULL END)`), desc(tagsTable.name));
 
     if (query) {
-      // Use ILIKE for case-insensitive search
       return await baseQuery.where(sql`${tagsTable.name} ILIKE ${`%${query}%`}`);
     }
     

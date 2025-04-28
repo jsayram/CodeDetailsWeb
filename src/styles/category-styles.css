@@ -182,3 +182,52 @@
   color: var(--muted-foreground);
   border-color: var(--border);
 }
+
+/* Category Card Styles */
+.category-card {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.category-card:not(.disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 20px -8px oklch(0.3 0.1 280 / 0.15),
+    0 4px 10px -4px oklch(0.3 0.1 280 / 0.1);
+}
+
+.category-card.disabled {
+  cursor: not-allowed;
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.98 0.01 290 / 0.9),
+    oklch(0.96 0.01 290 / 0.9)
+  );
+}
+
+.dark .category-card.disabled {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.2 0.04 280 / 0.9),
+    oklch(0.18 0.04 280 / 0.9)
+  );
+}
+
+.category-card .category-count {
+  transition: all 0.2s ease;
+}
+
+.category-card:not(.disabled):hover .category-count {
+  transform: scale(1.05);
+}
+
+/* Category Button Styles */
+.category-card .category-button {
+  transition: all 0.2s ease;
+}
+
+.category-card:not(.disabled):hover .category-button {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}

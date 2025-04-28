@@ -3,7 +3,7 @@ import { eq, and, SQL, inArray, desc, sql } from "drizzle-orm";
 import { executeQuery } from "@/db/server";
 import { getProject } from "@/app/actions/projects";
 import { projects } from "@/db/schema/projects";
-import { tags } from "@/db/schema/tags";
+import { tags as tagsTable } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
 import { profiles } from "@/db/schema/profiles";
 import { favorites } from "@/db/schema/favorites";
@@ -49,10 +49,10 @@ const getProjectTags = async (db: any, projectIds: string[]) => {
   const allTags = await db
     .select({
       projectId: project_tags.project_id,
-      tagName: tags.name,
+      tagName: tagsTable.name,
     })
     .from(project_tags)
-    .innerJoin(tags, eq(project_tags.tag_id, tags.id))
+    .innerJoin(tagsTable, eq(project_tags.tag_id, tagsTable.id))
     .where(inArray(project_tags.project_id, projectIds));
 
   return allTags.reduce((acc: Record<string, string[]>, { projectId, tagName }: { projectId: string; tagName: string }) => {
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get("userId");
     const slug = searchParams.get("slug");
     const category = searchParams.get("category") as (ProjectCategory | "all" | null);
-    const tag = searchParams.get("tag");
+    const tags = searchParams.getAll("tags");
     const showFavorites = searchParams.get("showFavorites") === "true";
     const showDeleted = searchParams.get("showDeleted") === "true";
     const sortBy = searchParams.get("sortBy") || "newest";
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       `🔍 API Request - Projects:
        - Category: ${category || "any"}
        - User: ${userId || "anonymous"}
-       - Tag: ${tag || "any"}
+       - Tags: ${tags.length ? tags.join(", ") : "any"}
        - Show All: ${showAll}
        - Show Favorites: ${showFavorites}
        - Show Deleted: ${showDeleted}
@@ -134,13 +134,47 @@ export async function GET(request: NextRequest) {
 
         const profileId = userProfile[0].id;
 
+        // Get projects filtered by tags if specified
+        let tagCondition: SQL | undefined;
+        if (tags.length > 0) {
+          const matchingTags = await db
+            .select()
+            .from(tagsTable)
+            .where(inArray(tagsTable.name, tags));
+
+          if (matchingTags.length > 0) {
+            const tagIds = matchingTags.map(t => t.id);
+            
+            // Find projects that have ALL specified tags using a subquery
+            tagCondition = sql`${projects.id} IN (
+              SELECT ${project_tags.project_id}
+              FROM ${project_tags}
+              WHERE ${project_tags.tag_id} IN (${sql.join(tagIds)})
+              GROUP BY ${project_tags.project_id}
+              HAVING count(*) = ${tagIds.length}
+            )`;
+          } else {
+            // If no matching tags found, return empty result
+            return NextResponse.json({
+              success: true,
+              data: [],
+              pagination: { total: 0, page, limit, totalPages: 0 }
+            });
+          }
+        }
+
         // Get total count for favorites
         const [{ count }] = await db
           .select({ count: sql<number>`count(*)` })
           .from(favorites)
-          .where(eq(favorites.profile_id, profileId));
+          .where(
+            and(
+              eq(favorites.profile_id, profileId),
+              ...(tagCondition ? [tagCondition] : [])
+            )
+          );
 
-        // Build and execute favorites query
+        // Build and execute favorites query with tag filtering
         let query = db
           .select(buildProjectSelection())
           .from(favorites)
@@ -149,7 +183,8 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               eq(favorites.profile_id, profileId),
-              ...(category && category !== "all" ? [eq(projects.category, category)] : [])
+              ...(category && category !== "all" ? [eq(projects.category, category)] : []),
+              ...(tagCondition ? [tagCondition] : [])
             )
           );
 
@@ -198,10 +233,36 @@ export async function GET(request: NextRequest) {
         conditions.push(eq(projects.category, category));
       }
 
+      // Add tag filtering using Drizzle syntax
+      if (tags.length > 0) {
+        const matchingTags = await db
+          .select()
+          .from(tagsTable)
+          .where(inArray(tagsTable.name, tags));
+
+        if (matchingTags.length > 0) {
+          const tagIds = matchingTags.map(t => t.id);
+          
+          // Find projects that have ALL specified tags using Drizzle SQL builder
+          conditions.push(
+            sql`${projects.id} IN (
+              SELECT ${project_tags.project_id}
+              FROM ${project_tags}
+              WHERE ${project_tags.tag_id} IN (${sql.join(tagIds)})
+              GROUP BY ${project_tags.project_id}
+              HAVING count(*) = ${tagIds.length}
+            )`
+          );
+        } else {
+          // If no matching tags found, ensure no results
+          conditions.push(sql`FALSE`);
+        }
+      }
+
       if (showDeleted && userId) {
-        conditions.push(sql<SQL>`${eq(projects.user_id, userId)} AND ${projects.deleted_at} IS NOT NULL`);
+        conditions.push(sql`${eq(projects.user_id, userId)} AND ${projects.deleted_at} IS NOT NULL`);
       } else if (!showDeleted) {
-        conditions.push(sql<SQL>`${projects.deleted_at} IS NULL`);
+        conditions.push(sql`${projects.deleted_at} IS NULL`);
       }
 
       // Get total count

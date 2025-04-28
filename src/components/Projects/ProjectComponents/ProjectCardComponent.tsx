@@ -176,7 +176,7 @@ export const ProjectCard = React.memo(
 
     const handleTagClick = (e: React.MouseEvent, tag: string) => {
       e.stopPropagation();
-      window.location.href = `/tags/${encodeURIComponent(tag)}`;
+      router.push(`/tags/${encodeURIComponent(tag)}`);
     };
 
     const handleTagExpandClick = (e: React.MouseEvent) => {
@@ -187,7 +187,7 @@ export const ProjectCard = React.memo(
     const handleCategoryClick = (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      window.location.href = `/category/${encodeURIComponent(project.category)}`;
+      router.push(`/categories/${encodeURIComponent(project.category)}`);
     };
 
     const handleCardClick = () => {

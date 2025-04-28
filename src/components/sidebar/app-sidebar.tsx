@@ -38,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Logo } from "../CodeDetailsLogoComponent";
 import { API_ROUTES } from "../../constants/api-routes";
+import { url } from "inspector";
 
 const data = {
   navMain: [
@@ -62,23 +63,41 @@ const data = {
         },
       ],
     },
-
     {
-      title: "Community Projects",
-      url:  "/projects",
+      title: "Browse",
+      url: "",
       icon: Folder,
       items: [
         {
-          title: "My Showcase",
+          title: "Categories",
+          url: "/categories",
+        },
+        {
+          title: "Tags",
+          url: "/tags",
+        },
+      ],
+    },
+    {
+      title: "Projects",
+      url: "",
+      icon: Folder,
+      items: [
+        {
+          title: "Community Projects",
+          url: "/projects",
+        },
+        {
+          title: "My Projects Showcase",
           url: "/projects/projects-showcase",
         },
         {
-          title: "Favorites",
+          title: "My Favorites",
           url: "/projects/favorites",
         },
         {
-          title: "Deleted",
-          url: "/projects/deleted"
+          title: "My Deleted",
+          url: "/projects/deleted",
         },
       ],
     },

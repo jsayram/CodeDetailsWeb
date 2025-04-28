@@ -12,6 +12,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getInitials } from "@/utils/stringUtils";
 import { useAuth } from "@clerk/nextjs";
 import { FavoriteButton } from "./FavoriteButton";
+import { useRouter } from "next/navigation";
 
 interface ProjectTableViewProps {
   projects: Project[];
@@ -34,6 +35,7 @@ export function ProjectTableView({
   onUpdateProject,
 }: ProjectTableViewProps) {
   const { userId } = useAuth();
+  const router = useRouter();
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'created_at', direction: 'desc' });
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
@@ -148,14 +150,13 @@ export function ProjectTableView({
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     e.stopPropagation();
-    // Navigate to tag page
-    window.location.href = `/tags/${encodeURIComponent(tag)}`;
+    router.push(`/tags/${encodeURIComponent(tag)}`);
   };
 
   const handleCategoryClick = (e: React.MouseEvent, category: string) => {
     e.preventDefault();
     e.stopPropagation();
-    window.location.href = `/category/${encodeURIComponent(category)}`;
+    router.push(`/categories/${encodeURIComponent(category)}`);
   };
 
   const sortedProjects = useMemo(() => {

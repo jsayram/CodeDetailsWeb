@@ -10,6 +10,7 @@ interface ProjectFilters {
   userId?: string;
   category?: ProjectCategory | "all"; // Update to allow "all"
   tag?: string;
+  tags?: string[]; // Add tags array
   showFavorites?: boolean;
   showDeleted?: boolean; // Add deleted filter
   sortBy?: string; // Add sorting
@@ -33,6 +34,10 @@ export const API_ROUTES = {
       if (filters.sortBy) params.append("sortBy", filters.sortBy);
       if (filters.page) params.append("page", filters.page.toString());
       if (filters.limit) params.append("limit", filters.limit.toString());
+      // Handle tags array
+      if (filters.tags?.length) {
+        filters.tags.forEach(tag => params.append("tags", tag));
+      }
       return `/api/projects?${params.toString()}`;
     },
     TEST_PAGE: "/api/projects/test",
