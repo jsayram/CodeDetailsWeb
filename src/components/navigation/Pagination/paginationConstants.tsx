@@ -1,7 +1,5 @@
-// For card view
-export const PROJECTS_PER_PAGE = 9;
-// For table view
-export const TABLE_PROJECTS_PER_PAGE = 15;
+// Constants for pagination
+export const PROJECTS_PER_PAGE = 18;
 export const CURRENT_PAGE = 1;
 
 //Constants for card layout

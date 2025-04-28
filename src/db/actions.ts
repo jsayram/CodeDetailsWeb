@@ -88,7 +88,7 @@ export async function getProjectBySlugServer(
     const projectData = await db
       .select()
       .from(projects)
-      .where(and(eq(projects.slug, slug), isNull(projects.deleted_at)));
+      .where(eq(projects.slug, slug));
 
     if (!projectData.length) {
       return null;
@@ -199,12 +199,21 @@ export async function getAccessibleProjectsServer(
   userTier?: string
 ): Promise<SelectProject[]> {
   return await executeQuery(async (db) => {
-    console.log(`Finding projects for user ID: ${userId}`);
-
     // Get all projects with profile data and tags in a single query
     const projectsData = await db
       .select({
-        project: projects,
+        project: {
+          id: projects.id,
+          title: projects.title,
+          slug: projects.slug,
+          description: projects.description,
+          category: projects.category,
+          user_id: projects.user_id,
+          total_favorites: projects.total_favorites,
+          created_at: projects.created_at,
+          updated_at: projects.updated_at,
+          deleted_at: projects.deleted_at
+        },
         profile: {
           id: profiles.id,
           user_id: profiles.user_id,
@@ -216,18 +225,28 @@ export async function getAccessibleProjectsServer(
           created_at: profiles.created_at,
           updated_at: profiles.updated_at,
         },
-        tags: sql<string[]>`array_agg(${tags.name})`
+        tags: sql<string[]>`array_agg(distinct ${tags.name})`
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
       .leftJoin(tags, eq(tags.id, project_tags.tag_id))
-      .groupBy(projects.id, profiles.id, profiles.user_id, profiles.username, profiles.full_name, 
-               profiles.profile_image_url, profiles.tier, profiles.email_address, 
-               profiles.created_at, profiles.updated_at)
+      .where(isNull(projects.deleted_at))
+      .groupBy(
+        projects.id,
+        profiles.id,
+        profiles.user_id,
+        profiles.username,
+        profiles.full_name,
+        profiles.profile_image_url,
+        profiles.tier,
+        profiles.email_address,
+        profiles.created_at,
+        profiles.updated_at
+      )
       .orderBy(desc(projects.created_at));
 
-    // Map the results to the expected format
+    // Map the results to the expected format with proper typing
     return projectsData.map(({ project, profile, tags }) => ({
       ...project,
       tags: tags?.filter(Boolean) || [], // Filter out null values and provide empty array fallback

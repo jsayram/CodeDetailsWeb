@@ -18,20 +18,7 @@ import { PermanentDeleteConfirmationModal } from "./PermanentDeleteConfirmationM
 import { RestoreProjectConfirmationModal } from "./RestoreProjectConfirmationModal";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { getInitials } from "@/utils/stringUtils";
-
-const categoryColors = {
-  web: "bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/50",
-  mobile: "bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800/50",
-  desktop: "bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800/50",
-  backend: "bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/50",
-  "cloud-devops": "bg-cyan-100 dark:bg-cyan-950/50 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800/50",
-  "data-engineering": "bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/50",
-  "ai-ml": "bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800/50",
-  "dev-tools": "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50",
-  integration: "bg-violet-100 dark:bg-violet-950/50 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800/50",
-  "embedded-iot": "bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800/50",
-  "gaming-graphics": "bg-fuchsia-100 dark:bg-fuchsia-950/50 text-fuchsia-700 dark:text-fuchsia-300 border-fuchsia-200 dark:border-fuchsia-800/50"
-};
+import { FavoriteButton } from "./FavoriteButton";
 
 interface ProjectCardProps {
   project: Project;
@@ -84,10 +71,11 @@ export const ProjectCard = React.memo(
         setShowPermanentDeleteModal(false);
 
         if (result.success) {
-          toast.success("Project permanently deleted");
+          // Remove from current list immediately
           if (onDeleteProject) {
             onDeleteProject(project.id, true);
           }
+          toast.success("Project permanently deleted");
         } else {
           toast.error(result.error || "Failed to delete project permanently");
         }
@@ -115,10 +103,11 @@ export const ProjectCard = React.memo(
         setShowRestoreModal(false);
 
         if (result.success) {
-          toast.success("Project restored successfully");
+          // Remove from current list immediately
           if (onDeleteProject) {
             onDeleteProject(project.id, true);
           }
+          toast.success("Project restored successfully");
         } else {
           toast.error(result.error || "Failed to restore project");
         }
@@ -216,8 +205,8 @@ export const ProjectCard = React.memo(
             {/* Category Badge */}
             <div className={`category-badge category-${project.category}`}>
               <Badge
-                variant={project.deleted_at ? "destructive" : "secondary"}
-                className="capitalize text-sm cursor-pointer hover:bg-accent"
+                variant={project.deleted_at ? "outline" : "secondary"}
+                className={`capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)]`}
                 onClick={handleCategoryClick}
               >
                 {PROJECT_CATEGORIES[project.category]?.label || project.category}
@@ -258,24 +247,15 @@ export const ProjectCard = React.memo(
                     </div>
                   )}
 
-                  <button
-                    className="action-button favorite-button group"
-                    onClick={(e) => {
+                  <FavoriteButton
+                    isFavorite={!!isFavorite}
+                    count={Number(project.total_favorites) || 0}
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       onToggleFavorite?.(project.id, !isFavorite);
                     }}
-                    aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <Heart
-                      size={20}
-                      className={`transition-all duration-300 ${
-                        isFavorite 
-                          ? "fill-red-500 text-red-500 scale-110 animate-heartPop" 
-                          : "text-muted-foreground group-hover:text-red-500"
-                      }`}
-                    />
-                    <span className="favorite-count">{project.total_favorites || 0}</span>
-                  </button>
+                    ariaLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  />
                 </>
               ) : (
                 isOwner && (
@@ -305,21 +285,17 @@ export const ProjectCard = React.memo(
           </div>
 
           {/* Content area */}
-          <div className="card-content mx-2">
+          <div className={`card-content mx-2 ${project.deleted_at ? "dark:text-white/100" : ""}`}>
             {/* Project title and description */}
             <h3
-              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${
-                project.deleted_at ? "text-white/90" : ""
-              }`}
+              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${project.deleted_at ? "dark:text-white/100" : ""}`}
             >
               {project.title}
             </h3>
             
             <div className="min-h-[3rem]">
               <p
-                className={`card-description text-xs sm:text-sm ${
-                  project.deleted_at ? "text-white/70" : "text-muted-foreground"
-                }`}
+                className={`card-description text-xs sm:text-sm ${project.deleted_at ? "text-black/100" : ""}`}
               >
                 {project.description || "No description provided"}
               </p>

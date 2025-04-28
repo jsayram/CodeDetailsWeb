@@ -286,13 +286,15 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
     // Execute all updates
     await Promise.all(updates);
 
-    // Force clear ALL tag-related caches
-    revalidatePath("/projects");
-    revalidatePath("/administrator/dashboard");
-    revalidatePath("/api/tags");
-    revalidatePath("/api/projects");
-    revalidatePath(`/projects/${submission.project_id}`);
-    revalidatePath("/");  // Revalidate homepage which might show projects
+    // Force clear ALL tag-related caches with wildcards to ensure complete invalidation
+    revalidatePath("/projects", "layout");
+    revalidatePath("/administrator/dashboard", "layout");
+    revalidatePath("/api/tags", "layout");
+    revalidatePath("/api/projects", "layout");
+    revalidatePath(`/projects/${submission.project_id}`, "layout");
+    revalidatePath("/", "layout");  // Revalidate homepage which might show projects
+    revalidatePath("/tags", "layout"); // Revalidate tags page
+    revalidatePath(`/api/projects/${submission.project_id}`, "layout"); // Revalidate project API endpoint
   });
 }
 

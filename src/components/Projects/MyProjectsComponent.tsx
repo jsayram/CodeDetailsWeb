@@ -9,7 +9,6 @@ import { ProjectList } from "./ProjectComponents/ProjectListComponent";
 import { Project } from "@/types/models/project";
 import {
   CURRENT_PAGE,
-  PROJECTS_PER_PAGE,
 } from "@/components/navigation/Pagination/paginationConstants";
 
 interface MyProjectsComponentProps {
@@ -56,7 +55,6 @@ export function MyProjectsComponent({ userId }: MyProjectsComponentProps) {
       <ProjectList
         filter={{ userId }}
         currentPage={CURRENT_PAGE}
-        itemsPerPage={PROJECTS_PER_PAGE}
         onPageChange={() => {}}
         onFilteredItemsChange={() => {}}
       />

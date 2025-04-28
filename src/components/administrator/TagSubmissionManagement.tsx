@@ -124,7 +124,12 @@ export function TagSubmissionManagement({
     try {
       await approveTagSubmission(submissionId, adminNotes[submissionId]);
       toast.success(`Tag "${tagName}" approved successfully`);
+      
+      // Refresh the tag cache and wait for it to complete
       await refreshCache();
+      
+      // Force an immediate refresh of project data
+      window.location.reload();
 
       setSubmissions((prevSubmissions) => {
         const updatedSubmissions = prevSubmissions

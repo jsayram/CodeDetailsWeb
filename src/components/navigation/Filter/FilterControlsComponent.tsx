@@ -23,47 +23,49 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
   if (!showControls) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 w-full">
-      <Select
-        value={filters.sortBy}
-        onValueChange={(value) => setFilters({ sortBy: value })}
-      >
-        <SelectTrigger className="w-full sm:w-[150px] h-9">
-          <SelectValue placeholder="Sort by" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Sort by</SelectLabel>
-            <SelectItem value="newest">Newest</SelectItem>
-            <SelectItem value="oldest">Oldest</SelectItem>
-            <SelectItem value="popular">Popular</SelectItem>
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+    <div className="filters-section">
+      <div className="filter-dropdown-container">
+        <Select
+          value={filters.sortBy}
+          onValueChange={(value) => setFilters({ sortBy: value })}
+        >
+          <SelectTrigger className="filter-select-trigger">
+            <SelectValue placeholder="Sort by" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Sort by</SelectLabel>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="oldest">Oldest</SelectItem>
+              <SelectItem value="popular">Popular</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
 
-      <Select
-        value={filters.category}
-        onValueChange={(value) => setFilters({ category: value as ProjectCategory | "all" })}
-      >
-        <SelectTrigger className="w-full sm:w-[240px] h-9">
-          <SelectValue placeholder="Filter by category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            <SelectLabel>Category</SelectLabel>
-            <SelectItem value="all">
-              <span className="text-muted-foreground">All Categories</span>
-            </SelectItem>
-            {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
-              <SelectItem key={value} value={value}>
-                <div className={`filter-category-pill category-${value}`}>
-                  {label}
-                </div>
+        <Select
+          value={filters.category}
+          onValueChange={(value) => setFilters({ category: value as ProjectCategory | "all" })}
+        >
+          <SelectTrigger className="filter-select-trigger">
+            <SelectValue placeholder="Filter by category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Category</SelectLabel>
+              <SelectItem value="all">
+                <span className="text-muted-foreground">All Categories</span>
               </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+              {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                <SelectItem key={value} value={value}>
+                  <div className={`filter-category-pill category-${value}`}>
+                    {label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }

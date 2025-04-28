@@ -15,18 +15,20 @@ import { Button } from "@/components/ui/button";
 interface UnfavoriteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
-  projectTitle: string;
-  isUnfavoriting?: boolean;
+  onConfirm: () => Promise<void>;
+  project: { id: string; title: string; } | null;
+  isUnfavoriting: boolean;
 }
 
 export function UnfavoriteConfirmationModal({
   isOpen,
   onClose,
   onConfirm,
-  projectTitle,
-  isUnfavoriting = false,
+  project,
+  isUnfavoriting
 }: UnfavoriteConfirmationModalProps) {
+  if (!project) return null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] bg-gray-950/95 border-red-900/30">
@@ -36,7 +38,7 @@ export function UnfavoriteConfirmationModal({
             Remove from Favorites?
           </DialogTitle>
           <DialogDescription className="text-red-200/70">
-            Are you sure you want to remove <span className="font-semibold">{projectTitle}</span> from your favorites?
+            Are you sure you want to remove <span className="font-semibold">{project.title}</span> from your favorites?
           </DialogDescription>
         </DialogHeader>
 

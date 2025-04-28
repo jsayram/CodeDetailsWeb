@@ -14,22 +14,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 
+interface Project {
+  title: string;
+  category?: ProjectCategory;
+}
+
 interface DeleteConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
-  projectTitle: string;
-  projectCategory?: ProjectCategory;
-  isDeleting?: boolean;
+  onConfirm: () => Promise<void>;
+  project: Project | null;
+  isDeleting: boolean;
 }
 
 export function DeleteConfirmationModal({
   isOpen,
   onClose,
   onConfirm,
-  projectTitle,
-  projectCategory,
-  isDeleting = false,
+  project,
+  isDeleting,
 }: DeleteConfirmationModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -42,9 +45,9 @@ export function DeleteConfirmationModal({
             This project will be removed from community projects and sent to the digital graveyard.
             You can find it later in the deleted projects section.
           </DialogDescription>
-          {projectCategory && (
+          {project?.category && (
             <span className="text-sm text-red-200/70 mt-2">
-              Category: {PROJECT_CATEGORIES[projectCategory].label}
+              Category: {PROJECT_CATEGORIES[project.category].label}
             </span>
           )}
         </DialogHeader>
@@ -55,7 +58,7 @@ export function DeleteConfirmationModal({
             <Badge variant="destructive" className="bg-red-950/60 text-red-200">
               Project
             </Badge>
-            <span className="font-medium text-red-200/80">{projectTitle}</span>
+            <span className="font-medium text-red-200/80">{project?.title}</span>
           </div>
         </div>
 

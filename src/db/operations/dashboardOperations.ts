@@ -42,17 +42,19 @@ export interface DashboardStats {
 
 export async function getDashboardStats(): Promise<DashboardStats> {
   return executeQuery(async (db) => {
-    // Get total projects and activity stats in a single query
+    // Get total projects and activity stats in a single query with explicit typing
     const projectStats = await db
       .select({
         total: sql<number>`count(distinct ${projects.id})`,
-        activeThisWeek: sql<number>`count(distinct case when ${projects.updated_at} > now() - interval '7 days' then ${projects.id} end)`,
+        activeThisWeek: sql<number>`count(distinct case 
+          when ${projects.updated_at} > now() - interval '7 days' 
+          then ${projects.id} end)`,
         totalFavorites: sql<number>`coalesce(sum(${projects.total_favorites}), 0)`,
       })
       .from(projects)
       .where(isNull(projects.deleted_at));
 
-    // Get active users (users with activity in last 7 days)
+    // Get active users with proper join and explicit typing
     const activeUsers = await db
       .select({
         count: sql<number>`count(distinct ${profiles.id})`,
@@ -61,12 +63,16 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .innerJoin(projects, eq(projects.user_id, profiles.user_id))
       .where(sql`${projects.updated_at} > now() - interval '7 days'`);
 
-    // Get recent activity with proper null handling
+    // Get recent activity with proper null handling and explicit field selection
     const recentActivity = await db
       .select({
         id: projects.id,
         title: projects.title,
-        action: sql<string>`case when ${projects.created_at} = ${projects.updated_at} then 'created' else 'updated' end`,
+        action: sql<string>`case 
+          when ${projects.created_at} = ${projects.updated_at} 
+          then 'created' 
+          else 'updated' 
+          end`,
         username: sql<string>`coalesce(${profiles.username}, 'Unknown User')`,
         timestamp: projects.updated_at,
       })
@@ -76,7 +82,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .orderBy(desc(projects.updated_at))
       .limit(5);
 
-    // Get active projects with progress calculation
+    // Get active projects with calculated progress and proper typing
     const activeProjects = await db
       .select({
         id: projects.id,
@@ -84,30 +90,28 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         description: projects.description,
         owner: sql<string>`coalesce(${profiles.username}, 'Unknown User')`,
         total_favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
-        progress: sql<number>`
-          (
-            CASE 
-              WHEN ${projects.description} IS NOT NULL AND length(${projects.description}) > 0 THEN 40
-              ELSE 0
-            END +
-            CASE 
-              WHEN EXISTS (
-                SELECT 1 FROM ${project_tags} 
-                WHERE ${project_tags.project_id} = ${projects.id}
-                LIMIT 1
-              ) THEN 30
-              ELSE 0
-            END +
-            CASE 
-              WHEN coalesce(${projects.total_favorites}, 0) > 0 THEN 20
-              ELSE 0
-            END +
-            CASE 
-              WHEN ${projects.category} != 'web' THEN 10
-              ELSE 0
-            END
-          )::numeric
-        `,
+        progress: sql<number>`(
+          CASE 
+            WHEN ${projects.description} IS NOT NULL AND length(${projects.description}) > 0 THEN 40
+            ELSE 0
+          END +
+          CASE 
+            WHEN EXISTS (
+              SELECT 1 FROM ${project_tags} 
+              WHERE ${project_tags.project_id} = ${projects.id}
+              LIMIT 1
+            ) THEN 30
+            ELSE 0
+          END +
+          CASE 
+            WHEN coalesce(${projects.total_favorites}, 0) > 0 THEN 20
+            ELSE 0
+          END +
+          CASE 
+            WHEN ${projects.category} != 'web' THEN 10
+            ELSE 0
+          END
+        )::numeric`
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
@@ -115,7 +119,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .orderBy(desc(projects.updated_at))
       .limit(4);
 
-    // Get most popular projects with null handling
+    // Get most popular projects with proper joins and field selection
     const mostPopularProjects = await db
       .select({
         id: projects.id,
@@ -129,7 +133,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .orderBy(desc(projects.total_favorites))
       .limit(3);
 
-    // Get top tags with proper counting
+    // Get top tags with proper counting and joins
     const topTags = await db
       .select({
         name: tags.name,
@@ -137,11 +141,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       })
       .from(tags)
       .leftJoin(project_tags, eq(project_tags.tag_id, tags.id))
-      .groupBy(tags.id, tags.name)
+      .groupBy(tags.id)
       .orderBy(desc(sql<number>`count(${project_tags.project_id})`))
       .limit(10);
 
-    // Count total tags
+    // Count total tags using explicit counting
     const tagStats = await db
       .select({
         total: sql<number>`count(distinct ${tags.id})`,
@@ -168,7 +172,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       topTags: topTags.map(tag => ({
         name: tag.name,
         count: Number(tag.count || 0)
-      })),
+      }))
     };
   });
 }
