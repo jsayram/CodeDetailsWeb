@@ -39,7 +39,8 @@ export function ProjectTableView({
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'created_at', direction: 'desc' });
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
-  
+  const [navigatingProjectId, setNavigatingProjectId] = useState<string | null>(null);
+
   const getDisplayName = (project: Project): string => {
     if (project.profile?.full_name) {
       return project.profile.full_name;
@@ -159,6 +160,12 @@ export function ProjectTableView({
     router.push(`/categories/${encodeURIComponent(category)}`);
   };
 
+  const handleRowClick = async (project: Project) => {
+    if (navigatingProjectId === project.id) return;
+    setNavigatingProjectId(project.id);
+    await router.push(`/projects/${project.slug}`);
+  };
+
   const sortedProjects = useMemo(() => {
     const sorted = [...projects];
     sorted.sort((a, b) => {
@@ -259,20 +266,39 @@ export function ProjectTableView({
         <tbody>
           {sortedProjects.map((project) => {
             const isOwner = project.user_id === userId;
+            const isNavigating = navigatingProjectId === project.id;
             
             return (
               <tr 
                 key={project.id} 
-                onClick={() => onViewDetails?.(project.id)}
-                className="hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => handleRowClick(project)}
+                className="hover:bg-muted/50 cursor-pointer relative"
               >
+                {isNavigating && (
+                  <td 
+                    className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none" 
+                    style={{ 
+                      margin: 0,
+                      backgroundColor: 'var(--background)',
+                      opacity: 0.5,
+                      left: 0,
+                      right: 0,
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute'
+                    }}
+                  >
+                    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </td>
+                )}
+                
                 {!hiddenColumns.includes('title') && (
-                  <td>
+                  <td className={isNavigating ? 'opacity-70' : ''}>
                     <div className="font-medium">{project.title}</div>
                   </td>
                 )}
                 {!hiddenColumns.includes('description') && (
-                  <td className="table-description-cell">
+                  <td className={`table-description-cell ${isNavigating ? 'opacity-70' : ''}`}>
                     <div className="table-description-content relative">
                       {project.description || "No description provided"}
                       <div 
@@ -284,7 +310,7 @@ export function ProjectTableView({
                   </td>
                 )}
                 {!hiddenColumns.includes('category') && (
-                  <td>
+                  <td className={isNavigating ? 'opacity-70' : ''}>
                     <Badge 
                       variant="secondary" 
                       className="capitalize cursor-pointer hover:bg-accent"
@@ -295,7 +321,7 @@ export function ProjectTableView({
                   </td>
                 )}
                 {!hiddenColumns.includes('tags') && (
-                  <td>
+                  <td className={isNavigating ? 'opacity-70' : ''}>
                     <div className="flex flex-wrap gap-1">
                       {project.tags && project.tags.length > 0 ? (
                         project.tags.map((tag, index) => (
@@ -315,7 +341,7 @@ export function ProjectTableView({
                   </td>
                 )}
                 {!hiddenColumns.includes('creator') && (
-                  <td>
+                  <td className={isNavigating ? 'opacity-70' : ''}>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
                         {project.profile?.profile_image_url ? (
@@ -334,7 +360,7 @@ export function ProjectTableView({
                   </td>
                 )}
                 {!hiddenColumns.includes('created_at') && (
-                  <td>
+                  <td className={isNavigating ? 'opacity-70' : ''}>
                     {project.created_at ? (
                       <FormattedDate date={project.created_at} />
                     ) : (
@@ -342,7 +368,7 @@ export function ProjectTableView({
                     )}
                   </td>
                 )}
-                <td>
+                <td className={isNavigating ? 'opacity-70' : ''}>
                   <div className="flex items-center gap-2">
                     <FavoriteButton
                       isFavorite={!!project.isFavorite}

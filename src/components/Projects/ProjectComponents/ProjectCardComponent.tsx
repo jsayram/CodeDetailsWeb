@@ -46,6 +46,7 @@ export const ProjectCard = React.memo(
     const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
@@ -190,7 +191,9 @@ export const ProjectCard = React.memo(
       router.push(`/categories/${encodeURIComponent(project.category)}`);
     };
 
-    const handleCardClick = () => {
+    const handleCardClick = async () => {
+      if (isNavigating) return;
+      setIsNavigating(true);
       router.push(`/projects/${project.slug}`);
     };
 
@@ -198,9 +201,14 @@ export const ProjectCard = React.memo(
       <>
         <Card
           className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02]
-            ${project.deleted_at ? "deleted" : ""}`}
+            ${project.deleted_at ? "deleted" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
           onClick={handleCardClick}
         >
+          {isNavigating && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
           <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
             {/* Category Badge */}
             <div className={`category-badge category-${project.category}`}>
