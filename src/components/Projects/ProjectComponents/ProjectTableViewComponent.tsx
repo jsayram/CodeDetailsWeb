@@ -151,13 +151,29 @@ export function ProjectTableView({
   const handleTagClick = (e: React.MouseEvent, tag: string) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/tags/${encodeURIComponent(tag)}`);
+    
+    // Check if we're already on this tag page
+    const currentPath = window.location.pathname;
+    const tagPath = `/tags/${encodeURIComponent(tag)}`;
+    if (currentPath === tagPath) {
+      return; // Don't navigate if we're already on this tag
+    }
+    
+    router.push(tagPath);
   };
 
   const handleCategoryClick = (e: React.MouseEvent, category: string) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/categories/${encodeURIComponent(category)}`);
+    
+    // Check if we're already on this category page
+    const currentPath = window.location.pathname;
+    const categoryPath = `/categories/${encodeURIComponent(category)}`;
+    if (currentPath === categoryPath) {
+      return; // Don't navigate if we're already on this category
+    }
+    
+    router.push(categoryPath);
   };
 
   const handleRowClick = async (project: Project) => {

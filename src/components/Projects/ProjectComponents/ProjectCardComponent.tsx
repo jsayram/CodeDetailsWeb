@@ -47,6 +47,8 @@ export const ProjectCard = React.memo(
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [loadingTag, setLoadingTag] = useState<string | null>(null);
+    const [isCategoryLoading, setIsCategoryLoading] = useState(false);
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
@@ -175,9 +177,19 @@ export const ProjectCard = React.memo(
       return getInitials(nameForInitials);
     }, [project.profile]);
 
-    const handleTagClick = (e: React.MouseEvent, tag: string) => {
+    const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.stopPropagation();
-      router.push(`/tags/${encodeURIComponent(tag)}`);
+      
+      // Check if we're already on this tag page
+      const currentPath = window.location.pathname;
+      const tagPath = `/tags/${encodeURIComponent(tag)}`;
+      if (currentPath === tagPath) {
+        return; // Don't navigate if we're already on this tag
+      }
+      
+      if (loadingTag) return; // Prevent multiple tag clicks while loading
+      setLoadingTag(tag);
+      router.push(tagPath);
     };
 
     const handleTagExpandClick = (e: React.MouseEvent) => {
@@ -185,10 +197,20 @@ export const ProjectCard = React.memo(
       setShowAllTags(true);
     };
 
-    const handleCategoryClick = (e: React.MouseEvent) => {
+    const handleCategoryClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      router.push(`/categories/${encodeURIComponent(project.category)}`);
+      
+      // Check if we're already on this category page
+      const currentPath = window.location.pathname;
+      const categoryPath = `/categories/${encodeURIComponent(project.category)}`;
+      if (currentPath === categoryPath) {
+        return; // Don't navigate if we're already on this category
+      }
+
+      if (isCategoryLoading) return; // Prevent multiple clicks while loading
+      setIsCategoryLoading(true);
+      router.push(categoryPath);
     };
 
     const handleCardClick = async () => {
@@ -222,10 +244,19 @@ export const ProjectCard = React.memo(
             <div className={`category-badge category-${project.category}`}>
               <Badge
                 variant={project.deleted_at ? "outline" : "secondary"}
-                className={`capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)]`}
+                className={`capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)] ${
+                  isCategoryLoading ? "opacity-70 pointer-events-none" : ""
+                }`}
                 onClick={handleCategoryClick}
               >
-                {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                {isCategoryLoading ? (
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                  </span>
+                ) : (
+                  PROJECT_CATEGORIES[project.category]?.label || project.category
+                )}
               </Badge>
             </div>
 
@@ -377,10 +408,17 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        }`}
+                        } ${loadingTag === tag ? "opacity-70 pointer-events-none" : ""}`}
                         onClick={(e) => handleTagClick(e, tag)}
                       >
-                        #{tag}
+                        {loadingTag === tag ? (
+                          <span className="flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            #{tag}
+                          </span>
+                        ) : (
+                          `#${tag}`
+                        )}
                       </Badge>
                     ))}
                     {!showAllTags && tags.length > 3 && (
