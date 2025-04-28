@@ -10,6 +10,42 @@
   width: 100%;
 }
 
+/* Table row and loading state styles */
+.responsive-table tbody tr {
+  position: relative;
+  width: 100%;
+  transform: none !important;
+  transition: background-color 0.2s ease;
+}
+
+.responsive-table tbody tr td[class*="absolute"] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--background);
+  opacity: 0.5;
+  z-index: 10;
+  transform: none !important;
+}
+
+/* Remove any margins/padding that might cause shifting */
+.responsive-table tbody tr:hover {
+  transform: none !important;
+}
+
+.responsive-table tbody tr.pointer-events-none {
+  transform: none;
+}
+
 .responsive-table th,
 .responsive-table td {
   padding: 0.75rem;
@@ -35,9 +71,9 @@
   border-bottom: none;
 }
 
-/* Row hover effects */
+/* Row hover effects - only change background color */
 .responsive-table tbody tr {
-  @apply transition-all duration-200 hover:bg-muted/10;
+  @apply transition-colors duration-200 hover:bg-muted/10;
 }
 
 .responsive-table tbody tr:hover .action-button {
@@ -240,4 +276,20 @@ tr:hover .copy-button {
 
 .column-settings-dropdown {
   @apply fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto;
+}
+
+/* Table row width during loading state */
+.responsive-table tr {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.responsive-table tr td[class*="absolute"] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  table-layout: fixed;
 }

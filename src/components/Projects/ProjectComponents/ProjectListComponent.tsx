@@ -44,6 +44,7 @@ interface ProjectListProps {
     all?: boolean;
   };
   showSortingFilters?: boolean;
+  hideCategoryFilter?: boolean;
   onPageChange: (page: number) => void;
   onFilteredItemsChange?: (count: number) => void;
   showUserProjectsOnly?: boolean;
@@ -55,6 +56,7 @@ export function ProjectList({
   currentPage: externalPage = CURRENT_PAGE,
   filter,
   showSortingFilters = true,
+  hideCategoryFilter = false,
   onPageChange,
   onFilteredItemsChange,
   showUserProjectsOnly = false,
@@ -385,7 +387,7 @@ export function ProjectList({
                 variant="default"
                 size="sm"
                 onClick={() => setShowAddForm(true)}
-                className="w-full sm:w-auto hover:bg-primary/90"
+                className="w-full sm:w-auto hover:bg-primary/90 cursor-pointer"
               >
                 <Plus size={16} className="mr-2" />
                 Create Project
@@ -411,29 +413,31 @@ export function ProjectList({
                 </SelectContent>
               </Select>
 
-              {/* Category Filter */}
-              <Select
-                value={filters.category}
-                onValueChange={(value) => handleCategoryChange(value as ProjectCategory | "all")}
-              >
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Filter by category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Category Filter - only show if not hidden */}
+              {!hideCategoryFilter && (
+                <Select
+                  value={filters.category}
+                  onValueChange={(value) => handleCategoryChange(value as ProjectCategory | "all")}
+                >
+                  <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Filter by category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
 
               {/* View Mode Toggle */}
               <div className="hidden md:flex rounded-md">
                 <Button
                   variant={viewMode === "card" ? "default" : "outline"}
-                  className="rounded-r-none"
+                  className="rounded-r-none cursor-pointer"
                   onClick={() => setViewMode("card")}
                   size="sm"
                 >
@@ -442,7 +446,7 @@ export function ProjectList({
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "default" : "outline"}
-                  className="rounded-l-none"
+                  className="rounded-l-none cursor-pointer"
                   onClick={() => setViewMode("table")}
                   size="sm"
                 >

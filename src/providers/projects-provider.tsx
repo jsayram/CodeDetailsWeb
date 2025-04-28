@@ -24,7 +24,6 @@ import {
 } from "@/lib/ProjectsCacheUtils";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 
-
 export interface ProjectFilters {
   sortBy: string;
   category: ProjectCategory | "all";
@@ -33,6 +32,7 @@ export interface ProjectFilters {
   showDeleted: boolean;
   page: number;
   limit: number;
+  tags?: string[];
 }
 
 interface PageCache {
@@ -77,6 +77,7 @@ interface ProjectsProviderProps {
   token: string | null;
   userId: string | null;
   isLoading?: boolean;
+  initialFilters?: Partial<ProjectFilters>;
 }
 
 export function ProjectsProvider({
@@ -84,6 +85,7 @@ export function ProjectsProvider({
   token,
   userId,
   isLoading: parentIsLoading,
+  initialFilters,
 }: ProjectsProviderProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,7 @@ export function ProjectsProvider({
     showDeleted: false,
     page: 1,
     limit: PROJECTS_PER_PAGE,
+    ...initialFilters,
   });
 
   const [pagination, setPagination] = useState({
@@ -140,6 +143,7 @@ export function ProjectsProvider({
       sortBy: filters.sortBy,
       page: filters.page,
       limit: filters.limit,
+      tags: filters.tags, // Add tags to the cache key
     });
 
     const cached = pageCache[cacheKey];
@@ -167,6 +171,7 @@ export function ProjectsProvider({
         sortBy: filters.sortBy,
         page: filters.page,
         limit: filters.limit,
+        tags: filters.tags, // Add tags to the params
       };
 
       const url = API_ROUTES.PROJECTS.WITH_FILTERS(params);

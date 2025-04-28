@@ -82,7 +82,7 @@ export function DeleteConfirmationModal({
             ) : (
               <>
                 <Trash2 size={16} />
-                Send to Graveyard
+                Send to Graveyard...
               </>
             )}
           </Button>

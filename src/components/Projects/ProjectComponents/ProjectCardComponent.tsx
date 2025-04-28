@@ -46,6 +46,9 @@ export const ProjectCard = React.memo(
     const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
+    const [loadingTag, setLoadingTag] = useState<string | null>(null);
+    const [isCategoryLoading, setIsCategoryLoading] = useState(false);
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
@@ -174,9 +177,19 @@ export const ProjectCard = React.memo(
       return getInitials(nameForInitials);
     }, [project.profile]);
 
-    const handleTagClick = (e: React.MouseEvent, tag: string) => {
+    const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.stopPropagation();
-      window.location.href = `/tags/${encodeURIComponent(tag)}`;
+      
+      // Check if we're already on this tag page
+      const currentPath = window.location.pathname;
+      const tagPath = `/tags/${encodeURIComponent(tag)}`;
+      if (currentPath === tagPath) {
+        return; // Don't navigate if we're already on this tag
+      }
+      
+      if (loadingTag) return; // Prevent multiple tag clicks while loading
+      setLoadingTag(tag);
+      router.push(tagPath);
     };
 
     const handleTagExpandClick = (e: React.MouseEvent) => {
@@ -184,13 +197,33 @@ export const ProjectCard = React.memo(
       setShowAllTags(true);
     };
 
-    const handleCategoryClick = (e: React.MouseEvent) => {
+    const handleCategoryClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      window.location.href = `/category/${encodeURIComponent(project.category)}`;
+      
+      // Check if we're already on this category page
+      const currentPath = window.location.pathname;
+      const categoryPath = `/categories/${encodeURIComponent(project.category)}`;
+      if (currentPath === categoryPath) {
+        return; // Don't navigate if we're already on this category
+      }
+
+      if (isCategoryLoading) return; // Prevent multiple clicks while loading
+      setIsCategoryLoading(true);
+      router.push(categoryPath);
     };
 
-    const handleCardClick = () => {
+    const handleCardClick = async () => {
+      if (isNavigating) return;
+      setIsNavigating(true);
+      router.push(`/projects/${project.slug}`);
+    };
+
+    const handleViewDetailsClick = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isNavigating) return;
+      setIsNavigating(true);
       router.push(`/projects/${project.slug}`);
     };
 
@@ -198,18 +231,32 @@ export const ProjectCard = React.memo(
       <>
         <Card
           className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02]
-            ${project.deleted_at ? "deleted" : ""}`}
+            ${project.deleted_at ? "deleted" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
           onClick={handleCardClick}
         >
+          {isNavigating && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
           <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
             {/* Category Badge */}
             <div className={`category-badge category-${project.category}`}>
               <Badge
                 variant={project.deleted_at ? "outline" : "secondary"}
-                className={`capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)]`}
+                className={`capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)] ${
+                  isCategoryLoading ? "opacity-70 pointer-events-none" : ""
+                }`}
                 onClick={handleCategoryClick}
               >
-                {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                {isCategoryLoading ? (
+                  <span className="flex items-center gap-1">
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                  </span>
+                ) : (
+                  PROJECT_CATEGORIES[project.category]?.label || project.category
+                )}
               </Badge>
             </div>
 
@@ -285,17 +332,21 @@ export const ProjectCard = React.memo(
           </div>
 
           {/* Content area */}
-          <div className={`card-content mx-2 ${project.deleted_at ? "dark:text-white/100" : ""}`}>
+          <div className="card-content mx-2">
             {/* Project title and description */}
             <h3
-              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${project.deleted_at ? "dark:text-white/100" : ""}`}
+              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${
+                project.deleted_at ? "text-foreground dark:text-foreground" : ""
+              }`}
             >
               {project.title}
             </h3>
             
             <div className="min-h-[3rem]">
               <p
-                className={`card-description text-xs sm:text-sm ${project.deleted_at ? "text-black/100" : ""}`}
+                className={`card-description text-xs sm:text-sm ${
+                  project.deleted_at ? "text-foreground dark:text-foreground/90" : ""
+                }`}
               >
                 {project.description || "No description provided"}
               </p>
@@ -331,14 +382,18 @@ export const ProjectCard = React.memo(
               <Button
                 variant="default"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(`/projects/${project.slug}`);
-                }}
-                className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""}`}
+                onClick={handleViewDetailsClick}
+                className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                disabled={isNavigating}
               >
-                View Project Details
+                {isNavigating ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    Loading...
+                  </div>
+                ) : (
+                  "View Project Details"
+                )}
               </Button>
             </div>
 
@@ -353,10 +408,17 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        }`}
+                        } ${loadingTag === tag ? "opacity-70 pointer-events-none" : ""}`}
                         onClick={(e) => handleTagClick(e, tag)}
                       >
-                        #{tag}
+                        {loadingTag === tag ? (
+                          <span className="flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            #{tag}
+                          </span>
+                        ) : (
+                          `#${tag}`
+                        )}
                       </Badge>
                     ))}
                     {!showAllTags && tags.length > 3 && (

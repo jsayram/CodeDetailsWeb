@@ -1,6 +1,7 @@
 import { ChevronRight, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 import {
   Collapsible,
@@ -40,24 +41,34 @@ export function NavMain({
       <SidebarGroupLabel>Administrator</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const isActive = pathname.startsWith(item.url);
           const hasActiveChild = item.items?.some(subItem => pathname.startsWith(subItem.url));
-          const shouldBeOpen = isActive || hasActiveChild;
+          const isActive = pathname === item.url || (hasActiveChild && pathname.startsWith(item.url));
 
           return (
-            <Collapsible key={item.title} asChild defaultOpen={shouldBeOpen}>
+            <Collapsible key={item.title} asChild defaultOpen={hasActiveChild}>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
-                  <Link href={item.url} prefetch={false}>
-                    <item.icon />
+                <SidebarMenuButton 
+                  asChild 
+                  tooltip={item.title} 
+                  isActive={isActive}
+                  size="lg"
+                  className={cn(
+                    "transition-colors cursor-default py-2.5",
+                    hasActiveChild ? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" : ""
+                  )}
+                >
+                  <Link href={item.url} prefetch={false} className="w-full">
+                    <item.icon className="size-5" />
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
                 {item.items?.length ? (
                   <>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuAction className="data-[state=open]:rotate-90 transition-transform duration-200">
-                        <ChevronRight />
+                      <SidebarMenuAction 
+                        className="data-[state=open]:rotate-90 transition-transform duration-200 cursor-pointer size-6 after:-inset-3"
+                      >
+                        <ChevronRight className="size-5" />
                         <span className="sr-only">Toggle</span>
                       </SidebarMenuAction>
                     </CollapsibleTrigger>
@@ -67,8 +78,13 @@ export function NavMain({
                           const isSubItemActive = pathname.startsWith(subItem.url);
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild isActive={isSubItemActive}>
-                                <Link href={subItem.url} prefetch={false}>
+                              <SidebarMenuSubButton 
+                                asChild 
+                                isActive={isSubItemActive} 
+                                className="cursor-default py-2"
+                                size="md"
+                              >
+                                <Link href={subItem.url} prefetch={false} className="cursor-pointer w-full">
                                   <span>{subItem.title}</span>
                                 </Link>
                               </SidebarMenuSubButton>
