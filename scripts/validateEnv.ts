@@ -19,15 +19,20 @@ const requiredEnvVars = [
   "NEXT_PUBLIC_STRIPE_PUBLIC_KEY", // Public Stripe API key (frontend usage)
   "NEXT_PUBLIC_ALGOLIA_APP_ID", // Public Algolia App ID (search functionality)
   "NEXT_PUBLIC_ALGOLIA_SEARCH_KEY", // Public Algolia Search Key (used in frontend search)
+  // Clerk Auth Routes
+  "NEXT_PUBLIC_CLERK_SIGN_IN_URL", // Sign-in route
+  "NEXT_PUBLIC_CLERK_SIGN_UP_URL", // Sign-up route
+  "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL", // Fallback URL after sign-in
+  "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL", // Fallback URL after sign-up
 ];
 
-  //Check which required environment variables are missing.
-  const missingVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
-  
-  //If any required variables are missing, log an error and stop the process.
-  if (missingVars.length > 0) {
-    console.error(`🚨 Missing required environment variables: ${missingVars.join(", ")} \n ❌ Exiting program ❌`);
-    process.exit(1); // Exit the process to prevent the app from running without essential config.
-  } else {
-    console.log("✅ All required environment variables are set"); // Success message
-  }
+//Check which required environment variables are missing.
+const missingVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+
+//If any required variables are missing, log an error and stop the process.
+if (missingVars.length > 0) {
+  console.error(`🚨 Missing required environment variables: ${missingVars.join(", ")} \n ❌ Exiting program ❌`);
+  process.exit(1); // Exit the process to prevent the app from running without essential config.
+} else {
+  console.log("✅ All required environment variables are set"); // Success message
+}

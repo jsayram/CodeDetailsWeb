@@ -1,11 +1,11 @@
 "use client";
-import { SignUp } from "@clerk/nextjs";
+import { SignIn } from "@clerk/nextjs";
 import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { TerminalWindowSection } from "@/components/layout/TerminalWindowSection";
 import Image from "next/image";
 
-export default function SignUpPage() {
+export default function SignInPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <HeaderSectionNoSideBar 
@@ -20,7 +20,7 @@ export default function SignUpPage() {
               className="border-1 border-primary text-medium shadow-x backdrop-blur-lg transform transition-all duration-300"
               showTrafficLights={true}
               showDatetime={true}
-              unauthenticatedMessage="Ready to join Code Details? Create your account to get started!"
+              unauthenticatedMessage="Welcome to Code Details! Please sign in to continue..."
             />
             {/* Mascot positioned absolutely relative to terminal */}
             <div className="absolute -right-4 top-1/2 transform -translate-y-1/2 hidden md:block">
@@ -38,9 +38,9 @@ export default function SignUpPage() {
             </div>
           </div>
           
-          {/* Sign Up Form */}
+          {/* Sign In Form */}
           {/* <div className="z-10 bg-background/80 p-6 rounded-lg backdrop-blur">
-            <SignUp />
+            <SignIn />
           </div> */}
         </div>
       </main>
