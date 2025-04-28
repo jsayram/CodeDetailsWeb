@@ -387,7 +387,7 @@ export function ProjectList({
                 variant="default"
                 size="sm"
                 onClick={() => setShowAddForm(true)}
-                className="w-full sm:w-auto hover:bg-primary/90"
+                className="w-full sm:w-auto hover:bg-primary/90 cursor-pointer"
               >
                 <Plus size={16} className="mr-2" />
                 Create Project
@@ -437,7 +437,7 @@ export function ProjectList({
               <div className="hidden md:flex rounded-md">
                 <Button
                   variant={viewMode === "card" ? "default" : "outline"}
-                  className="rounded-r-none"
+                  className="rounded-r-none cursor-pointer"
                   onClick={() => setViewMode("card")}
                   size="sm"
                 >
@@ -446,7 +446,7 @@ export function ProjectList({
                 </Button>
                 <Button
                   variant={viewMode === "table" ? "default" : "outline"}
-                  className="rounded-l-none"
+                  className="rounded-l-none cursor-pointer"
                   onClick={() => setViewMode("table")}
                   size="sm"
                 >

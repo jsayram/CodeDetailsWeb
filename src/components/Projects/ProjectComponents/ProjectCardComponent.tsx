@@ -197,6 +197,14 @@ export const ProjectCard = React.memo(
       router.push(`/projects/${project.slug}`);
     };
 
+    const handleViewDetailsClick = async (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isNavigating) return;
+      setIsNavigating(true);
+      router.push(`/projects/${project.slug}`);
+    };
+
     return (
       <>
         <Card
@@ -343,14 +351,18 @@ export const ProjectCard = React.memo(
               <Button
                 variant="default"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.push(`/projects/${project.slug}`);
-                }}
-                className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""}`}
+                onClick={handleViewDetailsClick}
+                className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                disabled={isNavigating}
               >
-                View Project Details
+                {isNavigating ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    Loading...
+                  </div>
+                ) : (
+                  "View Project Details"
+                )}
               </Button>
             </div>
 
