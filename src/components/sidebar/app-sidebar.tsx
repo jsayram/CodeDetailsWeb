@@ -38,7 +38,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Logo } from "../CodeDetailsLogoComponent";
 import { API_ROUTES } from "../../constants/api-routes";
-import { url } from "inspector";
 
 const data = {
   navMain: [
