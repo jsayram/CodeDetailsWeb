@@ -51,21 +51,24 @@ export function NavMain({
                   asChild 
                   tooltip={item.title} 
                   isActive={isActive}
+                  size="lg"
                   className={cn(
-                    "transition-colors cursor-default",
+                    "transition-colors cursor-default py-2.5",
                     hasActiveChild ? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" : ""
                   )}
                 >
-                  <Link href={item.url} prefetch={false}>
-                    <item.icon />
+                  <Link href={item.url} prefetch={false} className="w-full">
+                    <item.icon className="size-5" />
                     <span>{item.title}</span>
                   </Link>
                 </SidebarMenuButton>
                 {item.items?.length ? (
                   <>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuAction className="data-[state=open]:rotate-90 transition-transform duration-200 cursor-pointer">
-                        <ChevronRight />
+                      <SidebarMenuAction 
+                        className="data-[state=open]:rotate-90 transition-transform duration-200 cursor-pointer size-6 after:-inset-3"
+                      >
+                        <ChevronRight className="size-5" />
                         <span className="sr-only">Toggle</span>
                       </SidebarMenuAction>
                     </CollapsibleTrigger>
@@ -75,8 +78,13 @@ export function NavMain({
                           const isSubItemActive = pathname.startsWith(subItem.url);
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton asChild isActive={isSubItemActive} className="cursor-default">
-                                <Link href={subItem.url} prefetch={false} className="cursor-pointer">
+                              <SidebarMenuSubButton 
+                                asChild 
+                                isActive={isSubItemActive} 
+                                className="cursor-default py-2"
+                                size="md"
+                              >
+                                <Link href={subItem.url} prefetch={false} className="cursor-pointer w-full">
                                   <span>{subItem.title}</span>
                                 </Link>
                               </SidebarMenuSubButton>
