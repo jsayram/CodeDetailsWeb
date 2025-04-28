@@ -293,17 +293,21 @@ export const ProjectCard = React.memo(
           </div>
 
           {/* Content area */}
-          <div className={`card-content mx-2 ${project.deleted_at ? "dark:text-white/100" : ""}`}>
+          <div className="card-content mx-2">
             {/* Project title and description */}
             <h3
-              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${project.deleted_at ? "dark:text-white/100" : ""}`}
+              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${
+                project.deleted_at ? "text-foreground dark:text-foreground" : ""
+              }`}
             >
               {project.title}
             </h3>
             
             <div className="min-h-[3rem]">
               <p
-                className={`card-description text-xs sm:text-sm ${project.deleted_at ? "text-black/100" : ""}`}
+                className={`card-description text-xs sm:text-sm ${
+                  project.deleted_at ? "text-foreground dark:text-foreground/90" : ""
+                }`}
               >
                 {project.description || "No description provided"}
               </p>
