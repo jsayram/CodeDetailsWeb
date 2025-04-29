@@ -38,6 +38,11 @@ export interface DashboardStats {
     name: string;
     count: number;
   }[];
+  allProjects: {
+    id: string;
+    title: string;
+    total_favorites: number;
+  }[];
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -53,6 +58,17 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       })
       .from(projects)
       .where(isNull(projects.deleted_at));
+
+    // Get all projects for the overview chart
+    const allProjects = await db
+      .select({
+        id: projects.id,
+        title: projects.title,
+        total_favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
+      })
+      .from(projects)
+      .where(isNull(projects.deleted_at))
+      .orderBy(desc(projects.total_favorites));
 
     // Get active users with proper join and explicit typing
     const activeUsers = await db
@@ -172,7 +188,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       topTags: topTags.map(tag => ({
         name: tag.name,
         count: Number(tag.count || 0)
-      }))
+      })),
+      allProjects // Add the allProjects to the returned stats
     };
   });
 }

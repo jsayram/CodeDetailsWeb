@@ -8,25 +8,46 @@ import { ProjectsProvider } from "@/providers/projects-provider";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { PageBanner } from "@/components/ui/page-banner";
-import { Tag } from "lucide-react";
+import { Tag, Hash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 export default function TagsIndexPage() {
   const { user, isLoaded: userLoaded } = useUser();
   const { token, loading: tokenLoading } = useSupabaseToken();
   const router = useRouter();
   const { tags: allTags, isLoading: tagsLoading } = useTagCache();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [clickedTag, setClickedTag] = useState<string | null>(null);
 
-  // Sort tags by usage count if available, otherwise alphabetically
-  const sortedTags = [...(allTags || [])].sort((a, b) => {
-    if (a.count !== b.count) {
-      return (b.count || 0) - (a.count || 0);
-    }
-    return a.name.localeCompare(b.name);
-  });
+  // Filter and sort tags
+  const filteredTags = (allTags || [])
+    .filter((tag) => {
+      const searchLower = searchQuery.toLowerCase().trim();
+      if (!searchLower) return true;
+      return tag.name.toLowerCase().includes(searchLower);
+    })
+    .sort((a, b) => {
+      if (a.count !== b.count) {
+        return (b.count || 0) - (a.count || 0);
+      }
+      return a.name.localeCompare(b.name);
+    });
+
+  // Separate active and inactive tags
+  const activeTags = filteredTags.filter((tag) => (tag.count ?? 0) > 0);
+  const inactiveTags = filteredTags.filter(
+    (tag) => !tag.count || tag.count === 0
+  );
+
+  const handleTagClick = (tagName: string) => {
+    setClickedTag(tagName);
+    router.push(`/tags/${encodeURIComponent(tagName)}`);
+  };
 
   return (
     <ProjectsProvider token={token} userId={user?.id ?? null}>
@@ -49,43 +70,130 @@ export default function TagsIndexPage() {
                   textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
                 />
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>All Tags</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {tagsLoading ? (
-                      <div className="flex flex-wrap gap-2">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                          <div
-                            key={i}
-                            className="h-8 w-24 animate-pulse rounded-full bg-muted"
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {sortedTags.map((tag) => (
-                          <Badge
-                            key={tag.name}
-                            variant="secondary"
-                            className={`text-base py-2 ${
-                              (tag.count ?? 0) > 0 
-                                ? 'cursor-pointer hover:bg-accent' 
-                                : 'opacity-50 select-none'
-                            }`}
-                            onClick={(tag.count ?? 0) > 0 ? () => router.push(`/tags/${encodeURIComponent(tag.name)}`) : undefined}
-                          >
-                            #{tag.name}
-                            <span className="ml-2 text-xs text-muted-foreground">
-                              ({tag.count ?? 0})
-                            </span>
+                <div className="space-y-6">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Search tags..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 max-w-md"
+                    />
+                  </div>
+
+                  {/* Active Tags Section */}
+                  {(searchQuery || activeTags.length > 0) && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center justify-between">
+                          <span>Active Tags</span>
+                          <Badge variant="secondary" className="font-mono">
+                            {activeTags.length}
                           </Badge>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {tagsLoading ? (
+                          <div className="flex flex-wrap gap-2">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                              <div
+                                key={i}
+                                className="h-8 w-24 animate-pulse rounded-full bg-muted"
+                              />
+                            ))}
+                          </div>
+                        ) : activeTags.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {activeTags.map((tag) => (
+                              <Badge
+                                key={tag.name}
+                                variant="secondary"
+                                className="group relative text-base py-2 pl-2.5 pr-3 transition-all duration-200 
+                                  hover:bg-primary hover:text-primary-foreground cursor-pointer
+                                  transform hover:scale-105"
+                                onClick={() => handleTagClick(tag.name)}
+                              >
+                                <Hash className="inline-block h-4 w-4 mr-1 text-primary/60 group-hover:text-primary-foreground transition-colors" />
+                                {clickedTag === tag.name ? (
+                                  <span className="flex items-center gap-2">
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                                    {tag.name}
+                                  </span>
+                                ) : (
+                                  <>{tag.name}</>
+                                )}
+                                <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
+                                  {tag.count}
+                                </span>
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : searchQuery ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No active tags found matching "{searchQuery}"
+                          </div>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Inactive Tags Section */}
+                  {(searchQuery || inactiveTags.length > 0) && (
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="text-muted-foreground">
+                            Available Tags
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="font-mono text-muted-foreground"
+                          >
+                            {inactiveTags.length}
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {inactiveTags.length > 0 ? (
+                          <>
+                            {!searchQuery && (
+                              <p className="text-sm text-muted-foreground mb-4">
+                                Be the first to create projects for these tags!
+                                🚀
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-2">
+                              {inactiveTags.map((tag) => (
+                                <Badge
+                                  key={tag.name}
+                                  variant="outline"
+                                  className="group relative text-base py-2 pl-2.5 pr-3 
+                                    opacity-60 cursor-not-allowed select-none"
+                                >
+                                  <Hash className="inline-block h-4 w-4 mr-1 text-muted-foreground" />
+                                  {tag.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          </>
+                        ) : searchQuery ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            No available tags found matching "{searchQuery}"
+                          </div>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* No results message when searching */}
+                  {searchQuery && filteredTags.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No tags found matching "{searchQuery}"
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -76,6 +76,10 @@ const data = {
           title: "Tags",
           url: "/tags",
         },
+        {
+          title: "Users",
+          url: "/users",
+        },
       ],
     },
     {

@@ -12,6 +12,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import {
   ArrowRight,
@@ -83,6 +84,11 @@ interface DashboardStats {
     topTags: Array<{
       name: string;
       count: number;
+    }>;
+    allProjects: Array<{
+      id: string;
+      title: string;
+      total_favorites: number;
     }>;
   };
   submissions: Array<any>; // Type from getPendingTagSubmissions
@@ -192,8 +198,8 @@ function DashboardContent() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground mt-2">
-          Welcome to your project dashboard. Here&apos;s an overview of
-          your current status.
+          Welcome to your project dashboard. Here&apos;s an overview of your
+          current status.
         </p>
       </div>
 
@@ -214,7 +220,11 @@ function DashboardContent() {
         <StatsCard
           title="Total Likes"
           value={stats.stats.projectStats.totalFavorites.toString()}
-          description={stats.stats.mostPopularProjects[0] ? `Most liked: ${stats.stats.mostPopularProjects[0].title}` : "No favorites yet"}
+          description={
+            stats.stats.mostPopularProjects[0]
+              ? `Most liked: ${stats.stats.mostPopularProjects[0].title}`
+              : "No favorites yet"
+          }
           icon={<Heart className="h-4 w-4 text-primary" />}
         />
         <StatsCard
@@ -229,10 +239,21 @@ function DashboardContent() {
       <ClientOnly fallback={<ChartSkeleton />}>
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Activity Overview</CardTitle>
+            <CardTitle>Projects Overview</CardTitle>
+            <CardDescription>
+              A comprehensive view of all projects and their favorites
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Overview data={stats.stats.activeProjects.map(p => ({ name: p.title, total: p.total_favorites }))} />
+            <Overview
+              data={stats.stats.allProjects.map((p) => ({
+                name:
+                  p.title.length > 20
+                    ? p.title.substring(0, 20) + "..."
+                    : p.title,
+                total: p.total_favorites,
+              }))}
+            />
           </CardContent>
         </Card>
       </ClientOnly>
@@ -242,7 +263,9 @@ function DashboardContent() {
         {/* Activity Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Recent Activity
+            </CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -272,7 +295,9 @@ function DashboardContent() {
         {/* Projects Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Projects
+            </CardTitle>
             <Code className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -309,9 +334,14 @@ function DashboardContent() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {stats.stats.topTags.map((tag) => (
-                <div key={tag.name} className="flex items-center justify-between p-4 bg-muted/10 rounded-lg">
+                <div
+                  key={tag.name}
+                  className="flex items-center justify-between p-4 bg-muted/10 rounded-lg"
+                >
                   <span className="font-medium">{tag.name}</span>
-                  <span className="text-sm text-muted-foreground">{tag.count} projects</span>
+                  <span className="text-sm text-muted-foreground">
+                    {tag.count} projects
+                  </span>
                 </div>
               ))}
             </div>
@@ -383,7 +413,7 @@ export default function DashboardPage() {
             showDarkModeButton={true}
             showMobileMenu={false}
           />
-          
+
           <ErrorBoundary>
             <Suspense fallback={<DashboardLoading />}>
               <DashboardContent />

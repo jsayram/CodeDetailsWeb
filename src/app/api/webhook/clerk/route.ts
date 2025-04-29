@@ -10,6 +10,8 @@ import { createClient } from "@supabase/supabase-js";
 import { ClerkUserData } from "@/types/models/clerkUserData";
 import { fetchClerkUser } from "@/services/clerkServerFetchUserService";
 import { ClerkSessionData } from "@/types/models/clerkSessionData";
+import { Webhook } from "svix";
+import { headers } from "next/headers";
 
 // Create a Supabase client (not public) for server-side operations
 const supabaseServer = createClient(
@@ -22,8 +24,10 @@ async function extractClerkUserData(data: ClerkUserData) {
   const email_address = data.email_addresses?.[0]?.email_address || "";
   const first_name = data.first_name || "Code";
   const last_name = data.last_name || "Minion";
-  const full_name = data.full_name || // Use Clerk-provided full name if available
-    (data.first_name || data.last_name) // If either name part exists
+  const full_name =
+    data.full_name || // Use Clerk-provided full name if available
+    data.first_name ||
+    data.last_name // If either name part exists
       ? `${data.first_name || ""} ${data.last_name || ""}`.trim() // Combine available parts
       : `_${
           data.email_addresses?.[0]?.email_address?.split("@")[0] ||
@@ -39,10 +43,10 @@ async function extractClerkUserData(data: ClerkUserData) {
   // optional metadata
   const profile_image_url = data.profile_image_url;
   const role = data.public_metadata?.role || "authenticated";
-  
+
   // Get tier from metadata if provided
   let tier = data.public_metadata?.tier;
-  
+
   // If tier is not provided in the webhook data, try to get it from cache first, then database
   if (!tier && user_id) {
     // First check if this user was recently verified and is in our cache
@@ -54,18 +58,22 @@ async function extractClerkUserData(data: ClerkUserData) {
       try {
         // Try to get user data from Clerk's APIs if this user was recently verified
         const { data: clerkUserData } = await fetchClerkUser(user_id);
-        
+
         if (clerkUserData?.public_metadata?.tier) {
-          console.log(`🎫 Found tier in cached Clerk data: ${clerkUserData.public_metadata.tier}`);
+          console.log(
+            `🎫 Found tier in cached Clerk data: ${clerkUserData.public_metadata.tier}`
+          );
           tier = clerkUserData.public_metadata.tier;
         } else {
-          console.log(`🎫 No tier found in cached Clerk data, will check database`);
+          console.log(
+            `🎫 No tier found in cached Clerk data, will check database`
+          );
         }
       } catch (cacheError) {
         console.log("Cache lookup failed, will check database:", cacheError);
       }
     }
-    
+
     // If still no tier from cache, try the database
     if (!tier) {
       try {
@@ -75,10 +83,12 @@ async function extractClerkUserData(data: ClerkUserData) {
           .select("tier")
           .eq("user_id", user_id)
           .single();
-        
+
         // If the user exists, use their current tier
         if (existingUser && existingUser.tier) {
-          console.log(`🎫 Using existing tier from database: ${existingUser.tier} for user ${user_id}`);
+          console.log(
+            `🎫 Using existing tier from database: ${existingUser.tier} for user ${user_id}`
+          );
           tier = existingUser.tier;
         } else {
           // For new users, default to 'free'
@@ -141,8 +151,10 @@ async function handleUserCreated(data: ClerkUserData) {
 
   // If user already exists, update only different fields (similar to handleUserUpdated)
   if (existingProfile) {
-    console.log(`User ${user_id} already exists in profiles. Updating different fields only.`);
-    
+    console.log(
+      `User ${user_id} already exists in profiles. Updating different fields only.`
+    );
+
     // Build an object of only changed fields
     const fieldUpdates = [
       { key: "email_address", value: email_address, requireDefined: true },
@@ -150,7 +162,11 @@ async function handleUserCreated(data: ClerkUserData) {
       { key: "last_name", value: last_name, requireDefined: true },
       { key: "full_name", value: full_name, requireDefined: true },
       { key: "username", value: username, requireDefined: true },
-      { key: "profile_image_url", value: profile_image_url, requireDefined: false },
+      {
+        key: "profile_image_url",
+        value: profile_image_url,
+        requireDefined: false,
+      },
       { key: "role", value: role, requireDefined: false },
       { key: "tier", value: tier, requireDefined: false },
     ];
@@ -172,9 +188,9 @@ async function handleUserCreated(data: ClerkUserData) {
     // If no fields changed, no need to update
     if (Object.keys(updatedFields).length === 0) {
       console.log("No changes detected, skipping update for existing user");
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: "User already exists and no changes needed",
-        status: "unchanged" 
+        status: "unchanged",
       });
     }
 
@@ -185,7 +201,10 @@ async function handleUserCreated(data: ClerkUserData) {
       .eq("user_id", user_id);
 
     if (updateError) {
-      console.error("Supabase update error (user collision handling):", updateError);
+      console.error(
+        "Supabase update error (user collision handling):",
+        updateError
+      );
       return NextResponse.json(
         { error: "Error updating existing profile" },
         { status: 500 }
@@ -194,7 +213,7 @@ async function handleUserCreated(data: ClerkUserData) {
 
     return NextResponse.json({
       message: "Existing user updated successfully with changed fields",
-      status: "updated"
+      status: "updated",
     });
   }
 
@@ -222,7 +241,7 @@ async function handleUserCreated(data: ClerkUserData) {
   }
   return NextResponse.json({
     message: "User created successfully",
-    status: "created"
+    status: "created",
   });
 }
 
@@ -277,7 +296,11 @@ async function handleUserUpdated(data: ClerkUserData) {
     { key: "last_name", value: last_name, requireDefined: true },
     { key: "full_name", value: full_name, requireDefined: true },
     { key: "username", value: username, requireDefined: true },
-    { key: "profile_image_url", value: profile_image_url, requireDefined: false },
+    {
+      key: "profile_image_url",
+      value: profile_image_url,
+      requireDefined: false,
+    },
     //optional metadata
     { key: "role", value: role, requireDefined: false },
     { key: "tier", value: tier, requireDefined: false },
@@ -355,9 +378,9 @@ async function handleSessionCreated(data: ClerkSessionData) {
   if (!userId) {
     console.error("No user ID found in session data");
     return NextResponse.json(
-      { 
+      {
         error: "Invalid session data",
-        redirect: "/auth/sign-in"
+        redirect: "/auth/sign-in",
       },
       { status: 400 }
     );
@@ -418,9 +441,9 @@ async function handleSessionCreated(data: ClerkSessionData) {
     if (error || !clerkUser) {
       console.error(`Failed to fetch Clerk user data for ${userId}:`, error);
       return NextResponse.json(
-        { 
+        {
           error: "User not found",
-          redirect: "/auth/sign-in" 
+          redirect: "/auth/sign-in",
         },
         { status: 404 }
       );
@@ -433,9 +456,9 @@ async function handleSessionCreated(data: ClerkSessionData) {
   } catch (error) {
     console.error("Error syncing profile from session:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Error synchronizing user profile",
-        redirect: "/auth/sign-in"
+        redirect: "/auth/sign-in",
       },
       { status: 500 }
     );
@@ -454,36 +477,94 @@ function cleanupCache() {
 
 // Main Webhook Handler for Clerk events
 export async function POST(req: Request) {
+  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
+
+  if (!WEBHOOK_SECRET) {
+    console.error("Missing CLERK_WEBHOOK_SIGNING_SECRET");
+    return NextResponse.json(
+      { error: "Webhook secret not configured" },
+      { status: 500 }
+    );
+  }
+
+  // Get the headers asynchronously
+  const headersList = await headers();
+  const svix_id = headersList.get("svix-id");
+  const svix_timestamp = headersList.get("svix-timestamp");
+  const svix_signature = headersList.get("svix-signature");
+
+  // If there are no headers, error out
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    return NextResponse.json(
+      { error: "Missing svix headers" },
+      { status: 400 }
+    );
+  }
+
+  // Get the body
+  const payload = await req.json();
+  const body = JSON.stringify(payload);
+
+  // Create a new Svix instance with your secret.
+  const wh = new Webhook(WEBHOOK_SECRET);
+
+  let evt: WebhookEvent;
+
   try {
-    const event: WebhookEvent = await req.json();
-    const { type: eventType } = event;
-    
-    // Handle different data types based on event type
+    evt = wh.verify(body, {
+      "svix-id": svix_id,
+      "svix-timestamp": svix_timestamp,
+      "svix-signature": svix_signature,
+    }) as WebhookEvent;
+  } catch (err) {
+    console.error("Error verifying webhook:", err);
+    return NextResponse.json(
+      { error: "Error verifying webhook" },
+      { status: 400 }
+    );
+  }
+
+  const { type: eventType } = evt;
+
+  // Handle different data types based on event type
+  try {
     switch (eventType) {
       case "user.created": {
-        const { data } = event as { type: string; data: ClerkUserData };
-        console.log("Raw Clerk user.created event:", JSON.stringify(data, null, 2));
+        const { data } = evt as { type: string; data: ClerkUserData };
+        console.log(
+          "Raw Clerk user.created event:",
+          JSON.stringify(data, null, 2)
+        );
         return await handleUserCreated(data);
       }
-      
+
       case "user.updated": {
-        const { data } = event as { type: string; data: ClerkUserData };
-        console.log("Raw Clerk user.updated event:", JSON.stringify(data, null, 2));
+        const { data } = evt as { type: string; data: ClerkUserData };
+        console.log(
+          "Raw Clerk user.updated event:",
+          JSON.stringify(data, null, 2)
+        );
         return await handleUserUpdated(data);
       }
-      
+
       case "user.deleted": {
-        const { data } = event as { type: string; data: ClerkUserData };
-        console.log("Raw Clerk user.deleted event:", JSON.stringify(data, null, 2));
+        const { data } = evt as { type: string; data: ClerkUserData };
+        console.log(
+          "Raw Clerk user.deleted event:",
+          JSON.stringify(data, null, 2)
+        );
         return await handleUserDeleted(data);
       }
-      
+
       case "session.created": {
-        const { data } = event as { type: string; data: ClerkSessionData };
-        console.log("Raw Clerk session.created event:", JSON.stringify(data, null, 2));
+        const { data } = evt as { type: string; data: ClerkSessionData };
+        console.log(
+          "Raw Clerk session.created event:",
+          JSON.stringify(data, null, 2)
+        );
         return await handleSessionCreated(data);
       }
-      
+
       default:
         console.warn(`Unhandled event type: ${eventType}`);
         return NextResponse.json({ error: "Unhandled event" }, { status: 400 });
@@ -491,8 +572,8 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Error processing webhook:", error);
     return NextResponse.json(
-      { error: "Invalid request payload" },
-      { status: 400 }
+      { error: "Error processing webhook" },
+      { status: 500 }
     );
   }
 }

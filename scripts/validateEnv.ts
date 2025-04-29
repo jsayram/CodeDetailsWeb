@@ -8,6 +8,7 @@ const requiredEnvVars = [
   // Secret keys (DO NOT expose)
   "SUPABASE_SERVICE_ROLE_KEY",  // Secret Supabase service role key (DO NOT expose)
   "CLERK_SECRET_KEY", // Secret API key for Clerk authentication (server-side)
+  "CLERK_WEBHOOK_SIGNING_SECRET", // Secret for verifying Clerk webhooks
   "STRIPE_SECRET_KEY", // Secret Stripe API key (server-side only)
   "DATABASE_URL", // Database connection string (PostgreSQL, MySQL, etc.)
   "JWT_SECRET", // Secret key used for JWT token encryption/authentication

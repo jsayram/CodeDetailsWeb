@@ -43,7 +43,8 @@ export const ProjectCard = React.memo(
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
-    const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
+    const [showPermanentDeleteModal, setShowPermanentDeleteModal] =
+      useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
@@ -146,47 +147,49 @@ export const ProjectCard = React.memo(
       if (isCurrentUserProject) {
         return "Your Project";
       }
-      
+
       // First try full name
       if (project.profile?.full_name) {
         return project.profile.full_name;
       }
-      
+
       // Then try to combine first and last name if either exists
       if (project.profile?.first_name || project.profile?.last_name) {
         return [project.profile.first_name, project.profile.last_name]
-          .filter(Boolean)  // Remove null/undefined values
+          .filter(Boolean) // Remove null/undefined values
           .join(" ")
           .trim();
       }
-      
+
       // Fall back to username or email
-      return project.profile?.username?.split("@")[0] ||
-             project.profile?.email_address?.split("@")[0] ||
-             "Unknown user";
+      return (
+        project.profile?.username?.split("@")[0] ||
+        project.profile?.email_address?.split("@")[0] ||
+        "Unknown user"
+      );
     }, [isCurrentUserProject, project.profile]);
 
     // Get initials for the avatar fallback
     const userInitials = useMemo(() => {
       // Try to get initials from full name first, then username, then email
       const nameForInitials =
-      project.profile?.full_name ||
-      project.profile?.username?.split("@")[0] ||
-      project.profile?.email_address?.split("@")[0] ||
+        project.profile?.full_name ||
+        project.profile?.username?.split("@")[0] ||
+        project.profile?.email_address?.split("@")[0] ||
         "??";
       return getInitials(nameForInitials);
     }, [project.profile]);
 
     const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.stopPropagation();
-      
+
       // Check if we're already on this tag page
       const currentPath = window.location.pathname;
       const tagPath = `/tags/${encodeURIComponent(tag)}`;
       if (currentPath === tagPath) {
         return; // Don't navigate if we're already on this tag
       }
-      
+
       if (loadingTag) return; // Prevent multiple tag clicks while loading
       setLoadingTag(tag);
       router.push(tagPath);
@@ -200,10 +203,12 @@ export const ProjectCard = React.memo(
     const handleCategoryClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Check if we're already on this category page
       const currentPath = window.location.pathname;
-      const categoryPath = `/categories/${encodeURIComponent(project.category)}`;
+      const categoryPath = `/categories/${encodeURIComponent(
+        project.category
+      )}`;
       if (currentPath === categoryPath) {
         return; // Don't navigate if we're already on this category
       }
@@ -231,7 +236,9 @@ export const ProjectCard = React.memo(
       <>
         <Card
           className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02]
-            ${project.deleted_at ? "deleted" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+            ${project.deleted_at ? "deleted" : ""} ${
+            isNavigating ? "opacity-70 pointer-events-none" : ""
+          }`}
           onClick={handleCardClick}
         >
           {isNavigating && (
@@ -252,10 +259,12 @@ export const ProjectCard = React.memo(
                 {isCategoryLoading ? (
                   <span className="flex items-center gap-1">
                     <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                    {PROJECT_CATEGORIES[project.category]?.label ||
+                      project.category}
                   </span>
                 ) : (
-                  PROJECT_CATEGORIES[project.category]?.label || project.category
+                  PROJECT_CATEGORIES[project.category]?.label ||
+                  project.category
                 )}
               </Badge>
             </div>
@@ -301,7 +310,9 @@ export const ProjectCard = React.memo(
                       e.stopPropagation();
                       onToggleFavorite?.(project.id, !isFavorite);
                     }}
-                    ariaLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    ariaLabel={
+                      isFavorite ? "Remove from favorites" : "Add to favorites"
+                    }
                   />
                 </>
               ) : (
@@ -341,11 +352,13 @@ export const ProjectCard = React.memo(
             >
               {project.title}
             </h3>
-            
+
             <div className="min-h-[3rem]">
               <p
                 className={`card-description text-xs sm:text-sm ${
-                  project.deleted_at ? "text-foreground dark:text-foreground/90" : ""
+                  project.deleted_at
+                    ? "text-foreground dark:text-foreground/90"
+                    : ""
                 }`}
               >
                 {project.description || "No description provided"}
@@ -357,20 +370,40 @@ export const ProjectCard = React.memo(
           <div className="flex flex-col">
             <div className="card-footer border-t">
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
-                  {project.profile?.profile_image_url ? (
-                    <AvatarImage
-                      src={project.profile.profile_image_url}
-                      alt={displayUsername}
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-muted text-xs font-medium">
-                      {userInitials || <User className="h-4 w-4" />}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(
+                      `/users/${encodeURIComponent(
+                        project.profile?.username || ""
+                      )}`
+                    );
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Avatar className="h-8 w-8">
+                    {project.profile?.profile_image_url ? (
+                      <AvatarImage
+                        src={project.profile.profile_image_url}
+                        alt={displayUsername}
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-muted text-xs font-medium">
+                        {userInitials || <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </div>
                 <span
-                  className={`text-xs truncate max-w-[120px] ${
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(
+                      `/users/${encodeURIComponent(
+                        project.profile?.username || ""
+                      )}`
+                    );
+                  }}
+                  className={`text-xs truncate max-w-[120px] cursor-pointer hover:underline ${
                     project.deleted_at ? "text-red-400/50" : ""
                   }`}
                   title={displayUsername}
@@ -383,7 +416,11 @@ export const ProjectCard = React.memo(
                 variant="default"
                 size="sm"
                 onClick={handleViewDetailsClick}
-                className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                className={`card-button ${
+                  project.deleted_at
+                    ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
+                    : ""
+                } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
                 disabled={isNavigating}
               >
                 {isNavigating ? (
@@ -402,25 +439,33 @@ export const ProjectCard = React.memo(
               <div className="flex flex-wrap gap-1.5">
                 {tags.length > 0 ? (
                   <>
-                    {(showAllTags ? tags : tags.slice(0, 3)).map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className={`${
-                          project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } ${loadingTag === tag ? "opacity-70 pointer-events-none" : ""}`}
-                        onClick={(e) => handleTagClick(e, tag)}
-                      >
-                        {loadingTag === tag ? (
-                          <span className="flex items-center gap-1">
-                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                            #{tag}
-                          </span>
-                        ) : (
-                          `#${tag}`
-                        )}
-                      </Badge>
-                    ))}
+                    {(showAllTags ? tags : tags.slice(0, 3)).map(
+                      (tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className={`${
+                            project.deleted_at
+                              ? "tag-badge-deleted"
+                              : "tag-badge"
+                          } ${
+                            loadingTag === tag
+                              ? "opacity-70 pointer-events-none"
+                              : ""
+                          }`}
+                          onClick={(e) => handleTagClick(e, tag)}
+                        >
+                          {loadingTag === tag ? (
+                            <span className="flex items-center gap-1">
+                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              #{tag}
+                            </span>
+                          ) : (
+                            `#${tag}`
+                          )}
+                        </Badge>
+                      )
+                    )}
                     {!showAllTags && tags.length > 3 && (
                       <Badge
                         variant="secondary"
@@ -448,7 +493,9 @@ export const ProjectCard = React.memo(
                     )}
                   </>
                 ) : (
-                  <span className="text-xs text-muted-foreground">No tags added</span>
+                  <span className="text-xs text-muted-foreground">
+                    No tags added
+                  </span>
                 )}
               </div>
             </div>

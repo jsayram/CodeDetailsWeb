@@ -8,6 +8,7 @@ import { ProjectCategory } from "./project-categories";
 interface ProjectFilters {
   showAll?: boolean;
   userId?: string;
+  username?: string;  // Add username filter
   category?: ProjectCategory | "all"; // Update to allow "all"
   tag?: string;
   tags?: string[]; // Add tags array
@@ -27,6 +28,7 @@ export const API_ROUTES = {
       const params = new URLSearchParams();
       if (filters.showAll) params.append("showAll", "true");
       if (filters.userId) params.append("userId", filters.userId);
+      if (filters.username) params.append("username", filters.username);
       if (filters.category && filters.category !== "all") params.append("category", filters.category);
       if (filters.tag) params.append("tag", filters.tag);
       if (filters.showFavorites) params.append("showFavorites", "true");

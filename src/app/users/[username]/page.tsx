@@ -1,0 +1,282 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { use } from "react";
+import { User, Heart, Tag, FolderKanban } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { HeaderSection } from "@/components/layout/HeaderSection";
+import { FooterSection } from "@/components/layout/FooterSection";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { SelectProfile } from "@/db/schema/profiles";
+
+interface PageProps {
+  params: Promise<{ username: string }> | { username: string };
+}
+
+export default function UserProfilePage({ params }: PageProps) {
+  const resolvedParams = params instanceof Promise ? use(params) : params;
+  const username = decodeURIComponent(resolvedParams.username);
+  const { user, isLoaded } = useUser();
+  const [profileData, setProfileData] = useState<SelectProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [stats, setStats] = useState({
+    totalLikes: 0,
+    totalTags: 0,
+    totalProjects: 0,
+    projectsFavorited: 0,
+    projectsReceivedFavorites: 0,
+    mostLikedProject: { title: "", favorites: 0 },
+  });
+
+  useEffect(() => {
+    if (username) {
+      // Fetch profile data
+      const profilePromise = fetch(
+        `/api/profiles/lookup/${encodeURIComponent(username)}`
+      )
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error("Failed to fetch profile");
+          }
+          const data = await response.json();
+          // Fetch profile with stats in a single request
+          return fetch(
+            `/api/profiles/by-id/${data.profile.user_id}?includeStats=true`
+          );
+        })
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error("Failed to fetch profile stats");
+          }
+          return res.json();
+        });
+
+      profilePromise
+        .then((data) => {
+          if (data.profile) {
+            setProfileData(data.profile);
+          }
+          if (data.stats) {
+            setStats(data.stats);
+          }
+        })
+        .catch((err) => console.error("Error fetching profile:", err));
+    }
+  }, [username]);
+
+  const handleSaveProfile = async () => {
+    if (!profileData) return;
+
+    try {
+      const response = await fetch(`/api/profiles/${username}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+    }
+  };
+
+  const isOwnProfile = user?.id === profileData?.user_id;
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <HeaderSection />
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Profile Card */}
+            <div className="md:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Profile</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-col items-center">
+                    <Avatar className="h-24 w-24">
+                      {profileData?.profile_image_url ? (
+                        <AvatarImage
+                          src={profileData.profile_image_url}
+                          alt={profileData.username}
+                        />
+                      ) : (
+                        <AvatarFallback>
+                          <User className="h-12 w-12" />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    {isEditing ? (
+                      <div className="space-y-2 mt-4 w-full">
+                        <Input
+                          placeholder="Username"
+                          value={profileData?.username || ""}
+                          onChange={(e) =>
+                            setProfileData((prev) =>
+                              prev
+                                ? { ...prev, username: e.target.value }
+                                : null
+                            )
+                          }
+                        />
+                        <Input
+                          placeholder="Email"
+                          value={profileData?.email_address || ""}
+                          onChange={(e) =>
+                            setProfileData((prev) =>
+                              prev
+                                ? { ...prev, email_address: e.target.value }
+                                : null
+                            )
+                          }
+                        />
+                        <Input
+                          placeholder="Profile Image URL"
+                          value={profileData?.profile_image_url || ""}
+                          onChange={(e) =>
+                            setProfileData((prev) =>
+                              prev
+                                ? { ...prev, profile_image_url: e.target.value }
+                                : null
+                            )
+                          }
+                        />
+                        <div className="flex gap-2">
+                          <Button onClick={handleSaveProfile}>Save</Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsEditing(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center mt-4">
+                        <h2 className="text-xl font-semibold">
+                          {profileData?.username || "Loading..."}
+                        </h2>
+                        <p className="text-muted-foreground">
+                          {profileData?.email_address}
+                        </p>
+                        {isOwnProfile && (
+                          <Button
+                            variant="outline"
+                            className="mt-2"
+                            onClick={() => setIsEditing(true)}
+                          >
+                            Edit Profile
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="md:col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Heart className="h-5 w-5" />
+                      Project Stats
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2">
+                      <div>
+                        <dt className="text-sm text-muted-foreground">
+                          Total Projects
+                        </dt>
+                        <dd className="text-2xl font-semibold">
+                          {stats.totalProjects}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground">
+                          Projects Favorited
+                        </dt>
+                        <dd className="text-2xl font-semibold">
+                          {stats.projectsFavorited}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground">
+                          Received Favorites
+                        </dt>
+                        <dd className="text-2xl font-semibold">
+                          {stats.projectsReceivedFavorites}
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Tag className="h-5 w-5" />
+                      Most Popular Project
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2">
+                      <div>
+                        <dt className="text-sm text-muted-foreground">Title</dt>
+                        <dd className="text-xl font-semibold">
+                          {stats.mostLikedProject.title || "No projects yet"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-muted-foreground">
+                          Favorites
+                        </dt>
+                        <dd className="text-2xl font-semibold">
+                          {stats.mostLikedProject.favorites}
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FolderKanban className="h-5 w-5" />
+                      Projects
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Link
+                      href={`/projects/users/${username}`}
+                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2"
+                    >
+                      Check out their projects →
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+        <FooterSection />
+      </SidebarInset>
+    </SidebarProvider>
+  );
+}
