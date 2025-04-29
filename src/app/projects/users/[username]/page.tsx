@@ -63,7 +63,7 @@ export default function UserProjectsPage({ params }: PageProps) {
           isLoading={isLoading}
           initialFilters={{
             username: decodedUsername,
-            showAll: true,
+            showAll: false,
             page: currentPage,
             limit: 10,
           }}
@@ -75,23 +75,6 @@ export default function UserProjectsPage({ params }: PageProps) {
             <SidebarInset>
               <HeaderSection />
               <div className="container mx-auto px-4">
-                <SignedOut>
-                  <div className="mb-6">
-                    <PageBanner
-                      userName=""
-                      icon={<LogIn className="h-6 w-6 text-primary" />}
-                      bannerTitle={`Projects by ${
-                        profileData?.full_name || decodedUsername
-                      }`}
-                      description="Sign in to explore more projects and interact with content"
-                      isUserBanner={false}
-                      gradientFrom="primary/10"
-                      gradientTo="primary/5"
-                      borderColor="border-border"
-                      textGradient="from-primary via-primary to-primary"
-                    />
-                  </div>
-                </SignedOut>
                 <div className="flex justify-center w-full mb-20">
                   <div className="w-full max-w-7xl">
                     <div className="flex flex-col gap-4 mb-6 py-3">
@@ -118,7 +101,6 @@ export default function UserProjectsPage({ params }: PageProps) {
                     <ProjectList
                       currentPage={currentPage}
                       onPageChange={setCurrentPage}
-                      allowAnonymousView={true}
                     />
                   </div>
                 </div>

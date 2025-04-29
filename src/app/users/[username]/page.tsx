@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SelectProfile } from "@/db/schema/profiles";
+import { useRouter } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ username: string }> | { username: string };
@@ -35,6 +36,16 @@ export default function UserProfilePage({ params }: PageProps) {
     projectsReceivedFavorites: 0,
     mostLikedProject: { title: "", favorites: 0 },
   });
+  const [isNavigating, setIsNavigating] = useState(false);
+  const router = useRouter();
+
+  const handleProjectsClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isNavigating) return;
+    setIsNavigating(true);
+    router.push(`/projects/users/${encodeURIComponent(username)}`);
+  };
 
   useEffect(() => {
     if (username) {
@@ -98,7 +109,7 @@ export default function UserProfilePage({ params }: PageProps) {
 
   const isOwnProfile = user?.id === profileData?.user_id;
 
-  if (!isLoaded || isLoading) {
+  if (!isLoaded || isLoading || !profileData) {
     return (
       <SidebarProvider>
         <AppSidebar />
@@ -335,6 +346,7 @@ export default function UserProfilePage({ params }: PageProps) {
                   </CardContent>
                 </Card>
 
+                              
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -343,12 +355,13 @@ export default function UserProfilePage({ params }: PageProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Link
-                      href={`/projects/users/${username}`}
-                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2"
+                    <Button
+                      variant="link"
+                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2 p-0"
+                      onClick={handleProjectsClick}
                     >
                       Check out their projects →
-                    </Link>
+                    </Button>
                   </CardContent>
                 </Card>
               </div>
