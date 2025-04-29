@@ -21,6 +21,7 @@ import {
   Bot,
   Send,
   Folder,
+  Search,
 } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
@@ -65,7 +66,7 @@ const data = {
     {
       title: "Browse",
       url: "",
-      icon: Folder,
+      icon: Search,
       items: [
         {
           title: "Categories",

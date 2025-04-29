@@ -38,3 +38,17 @@ export type SelectProjectWithOwner = SelectProject & {
   owner_created_at?: Date;
   owner_updated_at?: Date;
 };
+
+//user information from gathering project
+export type SelectUserWithProject = SelectProject & {
+  id: string;
+  user_id: string;
+  username: string;
+  full_name: string;
+  profile_image_url: string;
+  tier: string;
+  email_address: string;
+  created_at: Date;
+  updated_at: Date;
+};
+

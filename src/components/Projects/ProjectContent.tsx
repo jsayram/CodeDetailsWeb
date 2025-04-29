@@ -10,21 +10,25 @@ import { FormattedDate } from "@/lib/FormattedDate";
 import { Separator } from "@/components/ui/separator";
 import { SelectProject } from "@/db/schema/projects";
 
-interface ProjectWithProfile extends SelectProject {
-  profile?: {
-    full_name?: string;
-    username?: string;
-    profile_image_url?: string;
-  } | null;
+interface UserProfile extends SelectProject {
+  user_id: string;
+  username: string;
+  full_name: string;
+  profile_image_url: string;
+  tier: string;
+  email_address: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
 interface ProjectContentProps {
-  project: ProjectWithProfile | null;
+  project: SelectProject | null;
   error?: string;
+  userProfile? : UserProfile | null;
 }
 
-export function ProjectContent({ project, error }: ProjectContentProps): React.ReactElement {
-  if (!project || error) {
+export function ProjectContent({ project, error, userProfile }: ProjectContentProps): React.ReactElement {
+  if (!project || !userProfile || error) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
@@ -41,8 +45,8 @@ export function ProjectContent({ project, error }: ProjectContentProps): React.R
     );
   }
 
-  const displayName = project.profile?.full_name || 
-                     project.profile?.username?.split('@')[0] || 
+  const displayName = userProfile?.full_name || 
+                     userProfile?.username.split('@')[0] || 
                      "Anonymous User";
 
   return (
@@ -51,9 +55,9 @@ export function ProjectContent({ project, error }: ProjectContentProps): React.R
       <div className="mb-6 bg-card rounded-lg p-6 shadow-lg">
         <div className="flex items-start gap-6">
           <Avatar className="h-24 w-24 border-4 border-background">
-            {project.profile?.profile_image_url ? (
+            {userProfile?.profile_image_url ? (
               <AvatarImage
-                src={project.profile.profile_image_url}
+                src={userProfile?.profile_image_url}
                 alt={displayName}
               />
             ) : (
