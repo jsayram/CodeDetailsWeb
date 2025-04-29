@@ -1,6 +1,6 @@
 "use client";
 
-import { Project } from "@/types/models/project";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
@@ -8,14 +8,27 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, Calendar, User, Clock, Tags } from "lucide-react";
 import { FormattedDate } from "@/lib/FormattedDate";
 import { Separator } from "@/components/ui/separator";
+import { SelectProject } from "@/db/schema/projects";
 
-interface ProjectContentProps {
-  project: Project | null;
-  error?: string;
+interface UserProfile extends SelectProject {
+  user_id: string;
+  username: string;
+  full_name: string;
+  profile_image_url: string;
+  tier: string;
+  email_address: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export function ProjectContent({ project, error }: ProjectContentProps) {
-  if (!project || error) {
+interface ProjectContentProps {
+  project: SelectProject | null;
+  error?: string;
+  userProfile? : UserProfile | null;
+}
+
+export function ProjectContent({ project, error, userProfile }: ProjectContentProps): React.ReactElement {
+  if (!project || !userProfile || error) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
@@ -32,8 +45,8 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
     );
   }
 
-  const displayName = project.profile?.full_name || 
-                     project.profile?.username?.split('@')[0] || 
+  const displayName = userProfile?.full_name || 
+                     userProfile?.username.split('@')[0] || 
                      "Anonymous User";
 
   return (
@@ -42,9 +55,9 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
       <div className="mb-6 bg-card rounded-lg p-6 shadow-lg">
         <div className="flex items-start gap-6">
           <Avatar className="h-24 w-24 border-4 border-background">
-            {project.profile?.profile_image_url ? (
+            {userProfile?.profile_image_url ? (
               <AvatarImage
-                src={project.profile.profile_image_url}
+                src={userProfile?.profile_image_url}
                 alt={displayName}
               />
             ) : (
@@ -61,7 +74,7 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="capitalize">
-                  {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                  {PROJECT_CATEGORIES[project.category as keyof typeof PROJECT_CATEGORIES]?.label || project.category}
                 </Badge>
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Heart className="h-5 w-5" />
@@ -156,7 +169,7 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
                 <div>
                   <p className="text-sm font-medium">Category</p>
                   <p className="text-muted-foreground">
-                    {PROJECT_CATEGORIES[project.category]?.description || project.category}
+                    {PROJECT_CATEGORIES[project.category as keyof typeof PROJECT_CATEGORIES]?.description || project.category}
                   </p>
                 </div>
                 <Separator />

@@ -5,7 +5,7 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { getProjectBySlugServer, getProjectUsersProfileBySlugServer } from "@/db/actions";
-import { ProjectContent } from "@/components/Projects/ProjectContent";
+import { ProjectContent } from "@/components/Projects/ProjectComponents/ProjectContent";
 import { notFound } from "next/navigation";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { LogIn } from "lucide-react";

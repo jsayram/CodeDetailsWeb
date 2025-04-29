@@ -27,25 +27,21 @@ export default function UserProjectsPage({ params }: PageProps) {
   const { user, isLoaded: userLoaded } = useUser();
   const { token, loading: tokenLoading } = useSupabaseToken();
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
-  const [decodedUsername, setDecodedUsername] = useState<string>("");
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
 
-  useEffect(() => {
-    if (resolvedParams.username) {
-      const username = decodeURIComponent(resolvedParams.username);
-      setDecodedUsername(username);
+  // derive the decoded username from route params immediately
+  const decodedUsername = resolvedParams.username
+    ? decodeURIComponent(resolvedParams.username)
+    : "";
 
-      // Fetch the user's profile data
-      fetch(`/api/profiles/${encodeURIComponent(username)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.profile) {
-            setProfileData(data.profile);
-          }
-        })
-        .catch((err) => console.error("Error fetching profile:", err));
-    }
-  }, [resolvedParams.username]);
+  // fetch profile data when decodedUsername changes
+  useEffect(() => {
+    if (!decodedUsername) return;
+    fetch(`/api/profiles/${encodeURIComponent(decodedUsername)}`)
+      .then((res) => res.json())
+      .then((data) => data.profile && setProfileData(data.profile))
+      .catch((err) => console.error("Error fetching profile:", err));
+  }, [decodedUsername]);
 
   // Only consider loading if we're waiting for auth-related data AND we don't have profile data yet
   const isLoading = (!userLoaded || tokenLoading) && !profileData;

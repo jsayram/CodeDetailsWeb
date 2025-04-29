@@ -50,6 +50,7 @@ export const ProjectCard = React.memo(
     const [isNavigating, setIsNavigating] = useState(false);
     const [loadingTag, setLoadingTag] = useState<string | null>(null);
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+    const [isNavigatingUser, setIsNavigatingUser] = useState(false);
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
@@ -232,6 +233,18 @@ export const ProjectCard = React.memo(
       router.push(`/projects/${project.slug}`);
     };
 
+    const handleNavigateUser = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const username = project.profile?.username;
+      if (isNavigatingUser || !username) return;
+      setIsNavigatingUser(true);
+      try {
+         router.push(`/users/${encodeURIComponent(username)}`);
+      } finally {
+        setIsNavigatingUser(false);
+      }
+    };
+
     return (
       <>
         <Card
@@ -370,16 +383,16 @@ export const ProjectCard = React.memo(
           <div className="flex flex-col">
             <div className="card-footer border-t">
               <div className="flex items-center space-x-2">
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(
-                      `/users/${encodeURIComponent(
-                        project.profile?.username || ""
-                      )}`
-                    );
-                  }}
-                  className="cursor-pointer"
+                {/* Avatar navigates to user profile */}
+                <button
+                  type="button"
+                  disabled={isNavigatingUser}
+                  onClick={handleNavigateUser}
+                  className={
+                    isNavigatingUser
+                      ? "opacity-50 cursor-wait p-0"
+                      : "cursor-pointer p-0"
+                  }
                 >
                   <Avatar className="h-8 w-8">
                     {project.profile?.profile_image_url ? (
@@ -393,23 +406,19 @@ export const ProjectCard = React.memo(
                       </AvatarFallback>
                     )}
                   </Avatar>
-                </div>
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(
-                      `/users/${encodeURIComponent(
-                        project.profile?.username || ""
-                      )}`
-                    );
-                  }}
+                </button>
+                {/* Username navigates to user profile */}
+                <button
+                  type="button"
+                  disabled={isNavigatingUser}
+                  onClick={handleNavigateUser}
                   className={`text-xs truncate max-w-[120px] cursor-pointer hover:underline ${
-                    project.deleted_at ? "text-red-400/50" : ""
-                  }`}
+                    isNavigatingUser ? "opacity-50 cursor-wait" : ""
+                  } ${project.deleted_at ? "text-red-400/50" : ""}`}
                   title={displayUsername}
                 >
                   {displayUsername}
-                </span>
+                </button>
               </div>
 
               <Button
