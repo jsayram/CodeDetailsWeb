@@ -2,7 +2,7 @@
  * Clerk Authentication Webhook Handler
  *
  * Processes Clerk auth events and synchronizes user data with Supabase.
- * Handles: user.created, user.updated, user.deleted, session.created
+ * Handles: user.created, user.updated, user.deleted, session.created, session.removed
  */
 import { NextResponse } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
@@ -366,10 +366,6 @@ async function handleUserDeleted(data: ClerkUserData) {
   return NextResponse.json({ message: "User deleted successfully" });
 }
 
-// Cache to track recently verified user IDs and prevent redundant DB checks
-const recentlyVerifiedUsers = new Map<string, number>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-
 // Handle session.created
 async function handleSessionCreated(data: ClerkSessionData) {
   // Extract the user ID from the session data
@@ -464,6 +460,29 @@ async function handleSessionCreated(data: ClerkSessionData) {
     );
   }
 }
+
+// Handle session.removed
+async function handleSessionRemoved(data: ClerkSessionData) {
+  const sessionId = data.id;
+  const userId = data.user_id;
+
+  console.log(`🔒 Session removed for user: ${userId}, session: ${sessionId}`);
+
+  // Remove from recently verified users cache if present
+  if (recentlyVerifiedUsers.has(userId)) {
+    recentlyVerifiedUsers.delete(userId);
+    console.log(`🧹 Cleaned up cache entry for user: ${userId}`);
+  }
+
+  return NextResponse.json({
+    message: "Session removal processed",
+    status: "ok"
+  });
+}
+
+// Cache to track recently verified user IDs and prevent redundant DB checks
+const recentlyVerifiedUsers = new Map<string, number>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 // Clean up old entries from the cache
 function cleanupCache() {
@@ -563,6 +582,15 @@ export async function POST(req: Request) {
           JSON.stringify(data, null, 2)
         );
         return await handleSessionCreated(data);
+      }
+
+      case "session.removed": {
+        const { data } = evt as { type: string; data: ClerkSessionData };
+        console.log(
+          "Raw Clerk session.removed event:",
+          JSON.stringify(data, null, 2)
+        );
+        return await handleSessionRemoved(data);
       }
 
       default:

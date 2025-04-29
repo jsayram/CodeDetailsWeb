@@ -5,14 +5,16 @@ import { eq } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  context: { params: Promise<{ username: string }> }
 ) {
   try {
+    const { username } = await context.params;
+    
     const profile = await executeQuery(async (db) => {
       const result = await db
         .select()
         .from(profiles)
-        .where(eq(profiles.username, params.username))
+        .where(eq(profiles.username, username))
         .limit(1);
 
       return result[0] || null;
@@ -33,9 +35,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  context: { params: Promise<{ username: string }> }
 ) {
   try {
+    const { username } = await context.params;
     const body = await request.json();
 
     const updatedProfile = await executeQuery(async (db) => {
@@ -47,7 +50,7 @@ export async function PUT(
           profile_image_url: body.profile_image_url,
           updated_at: new Date(),
         })
-        .where(eq(profiles.username, params.username))
+        .where(eq(profiles.username, username))
         .returning();
 
       return result;

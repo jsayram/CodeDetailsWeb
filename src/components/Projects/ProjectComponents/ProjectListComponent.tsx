@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { ProjectFilters } from "@/providers/projects-provider";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
+import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 
 interface ProjectListProps {
   currentPage: number;
@@ -529,14 +530,42 @@ export function ProjectList({
         <div
           className={`h-[500px] flex items-center justify-center text-center flex-col gap-4`}
         >
+          <CodeParticlesElement 
+          quantity={"medium"}
+          speed={"slow"}
+          size={"large"}
+          containerClassName={"container flex "}
+          includeEmojis={true}
+          includeSymbols={true}
+          depth="layered"
+          opacityRange={[0.1, 0.5]}
+          lightModeOpacityRange={[0.1, 0.5]}
+          />
+        
           <Image
             src="/images/mascot.png"
             alt="code details mascot"
-            width={128}
-            height={128}
+            width={200}
+            height={200}
           />
-          <p>OOPS ... No projects found 🥲</p>
-          <p>Adjust your filters ✅</p>
+          <div className="text-xl font-bold text-primary/90 dark:text-primary/80 mb-2">
+            {showDeletedOnly
+              ? "The Project Graveyard is Empty! 🪦"
+              : showFavoritesOnly
+              ? "Your Collection Awaits! ⭐"
+              : showUserProjectsOnly
+              ? "Time to Showcase Your Genius! 🚀"
+              : "Ready to Discover Amazing Projects! 💫"}
+          </div>
+          <p className="text-muted-foreground dark:text-muted-foreground/90">
+            {showDeletedOnly
+              ? "Looks like all projects are alive and kicking!"
+              : showFavoritesOnly
+              ? "Start exploring and mark your favorite projects"
+              : showUserProjectsOnly
+              ? "Share your coding adventures with the community"
+              : "Be the first to add something spectacular"}
+          </p>
           {filter?.userId === userId && !showDeletedOnly && (
             <Button variant="default" onClick={() => setShowAddForm(true)}>
               Create Your First Project or Keep Exploring
