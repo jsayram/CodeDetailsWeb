@@ -40,14 +40,104 @@ export default function TagsIndexPage() {
 
   // Separate active and inactive tags
   const activeTags = filteredTags.filter((tag) => (tag.count ?? 0) > 0);
-  const inactiveTags = filteredTags.filter(
-    (tag) => !tag.count || tag.count === 0
-  );
+  const inactiveTags = filteredTags.filter((tag) => !tag.count || tag.count === 0);
 
   const handleTagClick = (tagName: string) => {
     setClickedTag(tagName);
     router.push(`/tags/${encodeURIComponent(tagName)}`);
   };
+
+  // Define fixed widths for skeletons to prevent hydration mismatches
+  const activeTagWidths = [120, 108, 106, 123, 92, 119, 119, 138];
+  const inactiveTagWidths = [78, 72, 80, 80, 87, 88];
+
+  // Show loading state while tags are loading
+  if (tagsLoading) {
+    return (
+      <ProjectsProvider token={token} userId={user?.id ?? null}>
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset>
+            <HeaderSection />
+            <div className="flex justify-center w-full mb-20">
+              <div className="w-full max-w-7xl px-4">
+                <div className="flex flex-col gap-4 mb-6 py-3">
+                  <PageBanner
+                    icon={<Tag className="h-8 w-8 text-primary" />}
+                    bannerTitle="Project Tags"
+                    description="Browse projects by tags"
+                    isUserBanner={false}
+                    gradientFrom="indigo-900"
+                    gradientVia="blue-800"
+                    gradientTo="purple-800"
+                    borderColor="border-indigo-700/40"
+                    textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
+                  />
+
+                  <div className="space-y-6">
+                    {/* Search Input Skeleton */}
+                    <div className="relative">
+                      <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                      <div className="h-10 bg-muted rounded-md w-64 animate-pulse"></div>
+                    </div>
+
+                    {/* Active Tags Section Skeleton */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center justify-between">
+                          <span>Active Tags</span>
+                          <div className="h-6 w-8 bg-muted rounded-full animate-pulse"></div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {activeTagWidths.map((width, i) => (
+                            <div
+                              key={i}
+                              className="h-8 bg-muted rounded-full animate-pulse"
+                              style={{
+                                width: `${width}px`,
+                                animationDelay: `${(i + 1) * 100}ms`
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Inactive Tags Section Skeleton */}
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Available Tags</span>
+                          <div className="h-6 w-8 bg-muted rounded-full animate-pulse"></div>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {inactiveTagWidths.map((width, i) => (
+                            <div
+                              key={i}
+                              className="h-8 bg-muted/50 rounded-full animate-pulse"
+                              style={{
+                                width: `${width}px`,
+                                animationDelay: `${(i + 1) * 100}ms`
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <FooterSection />
+          </SidebarInset>
+        </SidebarProvider>
+      </ProjectsProvider>
+    );
+  }
 
   return (
     <ProjectsProvider token={token} userId={user?.id ?? null}>

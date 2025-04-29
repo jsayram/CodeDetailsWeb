@@ -15,6 +15,7 @@ export function UserList() {
   const [users, setUsers] = useState<UserWithProjectCount[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -131,6 +132,11 @@ export function UserList() {
     }
   };
 
+  const handleUserClick = (user: UserWithProjectCount) => {
+    setLoadingUserId(user.id);
+    router.push(`/users/${user.username}`);
+  };
+
   if (isLoading) {
     return (
       <div aria-live="polite" aria-busy="true">
@@ -190,13 +196,18 @@ export function UserList() {
               .map((user, index) => (
                 <Card
                   key={user.id}
-                  className={`p-4 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${getLeaderboardCardStyle(
-                    index
-                  )}`}
-                  onClick={() => router.push(`/users/${user.username}`)}
+                  className={`p-4 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${
+                    loadingUserId === user.id ? "opacity-50" : ""
+                  } ${getLeaderboardCardStyle(index)}`}
+                  onClick={() => handleUserClick(user)}
                 >
                   <div className="flex items-center gap-4">
                     <div className="relative">
+                      {loadingUserId === user.id ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full z-10">
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : null}
                       {user.profile_image_url ? (
                         <div className="relative">
                           <img
@@ -257,10 +268,17 @@ export function UserList() {
               .map((user) => (
                 <Card
                   key={user.id}
-                  className="p-4 cursor-pointer hover:bg-accent transition-colors"
-                  onClick={() => router.push(`/users/${user.username}`)}
+                  className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                    loadingUserId === user.id ? "opacity-50" : ""
+                  }`}
+                  onClick={() => handleUserClick(user)}
                 >
                   <div className="flex items-center gap-4">
+                    {loadingUserId === user.id ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    ) : null}
                     {user.profile_image_url ? (
                       <img
                         src={user.profile_image_url}

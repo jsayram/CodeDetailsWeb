@@ -145,7 +145,7 @@ export const ProjectCard = React.memo(
     // Display username logic
     const displayUsername = useMemo(() => {
       if (isCurrentUserProject) {
-        return "Your Project";
+        return "YOUR PROJECT✨";
       }
 
       // First try full name

@@ -298,6 +298,29 @@
   animation: heartbeat 1.3s ease-in-out infinite;
 }
 
+/* Sidebar Loading States */
+[data-loading=true] {
+  position: relative;
+}
+
+[data-sidebar=loader] {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+[data-loading=true] [data-sidebar=loader] {
+  opacity: 1;
+}
+
+/* Adjust spacing for items with loader */
+[data-loading=true].group {
+  padding-right: 2rem;
+}
+
 /* Adding custom responsive styles for filters */
 @layer utilities {
   /* Filter dropdown responsive styles */

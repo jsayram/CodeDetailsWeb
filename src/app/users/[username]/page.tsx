@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SelectProfile } from "@/db/schema/profiles";
 
 interface PageProps {
@@ -24,6 +25,7 @@ export default function UserProfilePage({ params }: PageProps) {
   const username = decodeURIComponent(resolvedParams.username);
   const { user, isLoaded } = useUser();
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [stats, setStats] = useState({
     totalLikes: 0,
@@ -36,6 +38,7 @@ export default function UserProfilePage({ params }: PageProps) {
 
   useEffect(() => {
     if (username) {
+      setIsLoading(true);
       // Fetch profile data
       const profilePromise = fetch(
         `/api/profiles/lookup/${encodeURIComponent(username)}`
@@ -66,7 +69,10 @@ export default function UserProfilePage({ params }: PageProps) {
             setStats(data.stats);
           }
         })
-        .catch((err) => console.error("Error fetching profile:", err));
+        .catch((err) => console.error("Error fetching profile:", err))
+        .finally(() => {
+          setIsLoading(false);
+        });
     }
   }, [username]);
 
@@ -91,6 +97,80 @@ export default function UserProfilePage({ params }: PageProps) {
   };
 
   const isOwnProfile = user?.id === profileData?.user_id;
+
+  if (!isLoaded || isLoading) {
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <HeaderSection />
+          <div className="container mx-auto px-4 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Profile Card Loading State */}
+              <div className="md:col-span-1">
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex flex-col items-center">
+                      <Skeleton className="h-24 w-24 rounded-full" />
+                      <div className="space-y-2 mt-4 w-full text-center">
+                        <Skeleton className="h-6 w-32 mx-auto" />
+                        <Skeleton className="h-4 w-48 mx-auto" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Stats Grid Loading State */}
+              <div className="md:col-span-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <Skeleton className="h-6 w-32" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <Skeleton className="h-4 w-24 mb-2" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-4 w-32 mb-2" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-4 w-28 mb-2" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <Skeleton className="h-6 w-40" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <Skeleton className="h-4 w-16 mb-2" />
+                          <Skeleton className="h-6 w-48" />
+                        </div>
+                        <div>
+                          <Skeleton className="h-4 w-24 mb-2" />
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          </div>
+          <FooterSection />
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
 
   return (
     <SidebarProvider>
