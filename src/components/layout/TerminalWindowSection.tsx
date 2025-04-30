@@ -4,7 +4,7 @@ import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { TextTypingEffectAnimation } from "@/animations/TextTypingEffectAnimation";
 import { ClientOnly, getClientSideValue } from "@/lib/ClientSideUtils";
 import { capitalizeNames } from "@/utils/stringUtils";
-
+import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
 // Screen size type for visibility control
 type ScreenSize = "all" | "mobile" | "sm" | "md" | "lg" | "xl" | "2xl";
 
@@ -146,19 +146,13 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
           {/* Show sign in message for unauthenticated users */}
           <div className="space-y-4">
             <div className="text-red-500 mb-3">{unauthenticatedMessage}</div>
-
             <div className="relative group">
               <div className="flex items-center">
-                <span className="text-green-400 mr-2">$</span>
-                <SignInButton mode="modal">
-                  <div className="flex items-center text-xl font-bold relative bg-clip-text text-transparent bg-gradient-to-r from-lime-500 to-green-500 hover:from-yellow-300 hover:to-orange-400 transition-all duration-300 cursor-pointer">
-                    {"> "}
-                    <TextTypingEffectAnimation
-                      className="text-xl font-medium"
-                      text={"Sign In"}
-                    />
-                  </div>
-                </SignInButton>
+                <SignInButtonComponent 
+                  text="sudo --authenticate user" 
+                  useTypingEffect={true}
+                  animationSpeed={120}
+                />
                 {/* Flat blinking cursor (underscore style) - safe for SSR */}
                 <ClientOnly>
                   <span

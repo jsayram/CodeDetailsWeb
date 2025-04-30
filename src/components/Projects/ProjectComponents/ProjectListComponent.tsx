@@ -42,6 +42,7 @@ import {
 import { ProjectFilters } from "@/providers/projects-provider";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
+import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
 
 interface ProjectListProps {
   currentPage: number;
@@ -415,9 +416,7 @@ export function ProjectList({
           height={128}
         />
         <p>Please sign in to view projects 🔐</p>
-        <SignInButton>
-          <Button variant="default">Sign In</Button>
-        </SignInButton>
+         <SignInButtonComponent text="Sign In" useTypingEffect={false} variant="plain" />
       </div>
     );
   }

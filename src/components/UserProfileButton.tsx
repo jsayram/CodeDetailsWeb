@@ -5,10 +5,8 @@ import {
   useUser,
   SignedIn,
   SignedOut,
-  SignInButton,
 } from "@clerk/nextjs";
-import { Button } from "./ui/button";
-import { LogIn } from "lucide-react";
+import { SignInButtonComponent } from "./auth/SignInButtonComponent";
 
 export function UserProfileButton() {
   const { user, isLoaded } = useUser();
@@ -57,15 +55,7 @@ export function UserProfileButton() {
         </div>
       </SignedIn>
       <SignedOut>
-        <SignInButton mode="modal">
-          <Button
-            size="sm"
-            className="rounded-lg shadow-sm hover:shadow transition-all"
-          >
-            <LogIn className="mr-2 h-4 w-4" />
-            Sign In
-          </Button>
-        </SignInButton>
+        <SignInButtonComponent text="Sign In" useTypingEffect={false} variant="plain" />
       </SignedOut>
     </div>
   );

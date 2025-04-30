@@ -8,9 +8,9 @@ import { Home } from "lucide-react";
 import {
   SignedIn,
   SignedOut,
-  SignInButton,
-  SignUpButton,
+
 } from "@clerk/nextjs";
+import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
 
 export default function NotFound() {
   return (
@@ -83,24 +83,8 @@ export default function NotFound() {
             className="bg-primary text-primary-foreground hover:bg-primary/90
                      transition-all duration-300 hover:scale-105"
           >
-            <SignInButton mode="modal">
-              <span
-                className="
-                     transition-all duration-300 hover:scale-105 hover:cursor-pointer w-20"
-              >
-               👉 Sign In
-              </span>
-            </SignInButton>
+            <SignInButtonComponent text="Sign In" />
           </Button>
-
-          <div className="text-muted-foreground mt-4">
-            Or Create an Account to explore more :{" "}
-            <SignUpButton mode="modal">
-              <span className="text-primary transition-all duration-300 hover:scale-105 hover:cursor-pointer">
-                Sign Up 👈
-              </span>
-            </SignUpButton>
-          </div>
         </SignedOut>
       </div>
     </div>
