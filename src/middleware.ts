@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isPublicRoute = createRouteMatcher([
+        "/",  // Allow access to the root page
         "/sign-in(.*)", 
         "/sign-up(.*)",
         "/projects/:slug",

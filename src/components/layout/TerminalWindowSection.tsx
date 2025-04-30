@@ -2,10 +2,8 @@ import React from "react";
 import Link from "next/link";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { TextTypingEffectAnimation } from "@/animations/TextTypingEffectAnimation";
-import {
-  ClientOnly,
-  getClientSideValue,
-} from "@/lib/ClientSideUtils";
+import { ClientOnly, getClientSideValue } from "@/lib/ClientSideUtils";
+import { capitalizeNames } from "@/utils/stringUtils";
 
 // Screen size type for visibility control
 type ScreenSize = "all" | "mobile" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -20,6 +18,7 @@ interface TerminalLink {
   style?: React.CSSProperties;
   // New property for responsive visibility
   visibleOn?: ScreenSize[] | "all";
+  onClick?: () => void; // Add onClick handler
 }
 
 interface TerminalWindowProps {
@@ -68,7 +67,6 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
 }) => {
   // Get the user info if not provided as prop
   const { user: clerkUser } = useUser();
-  
 
   // Handle Clerk user email address properly
   const userEmail =
@@ -176,7 +174,7 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
         <SignedIn>
           {/* Show greeting with user's name if available */}
           <div className="text-fuchsia-400 mb-3 font-medium">
-            {`${authenticatedMessage}, ${userName}!`}
+            {`${authenticatedMessage}, ${capitalizeNames(userName)}!`}
           </div>
 
           {/* Links styled as terminal commands */}
@@ -203,12 +201,14 @@ export const TerminalWindowSection: React.FC<TerminalWindowProps> = ({
                           ...link.style,
                           color: link.textColor,
                         }}
+                        onClick={link.onClick} // Add onClick handler
                       >
                         {"> "}
                         <TextTypingEffectAnimation
                           className="text-xl font-medium"
                           skipOnRerender={true}
                           text={link.label}
+                          speed={120}
                         />
                         <span
                           className="absolute inset-0"
