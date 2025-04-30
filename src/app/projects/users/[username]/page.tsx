@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import { UserProfileLoadingState } from "@/components/LoadingState/UserProfileLoadingState";
 import { Button } from "@/components/ui/button";
 import { SignInButton } from "@clerk/nextjs";
+import { capitalizeNames } from "@/utils/stringUtils";
 
 interface PageProps {
   params: Promise<{ username: string }> | { username: string };
@@ -77,9 +78,11 @@ export default function UserProjectsPage({ params }: PageProps) {
                       <PageBanner
                         icon={<User className="h-8 w-8 text-primary" />}
                         userName={
-                          profileData?.full_name ||
-                          profileData?.username ||
-                          decodedUsername
+                          profileData?.full_name
+                            ? capitalizeNames(profileData.full_name)
+                            : profileData?.username ||
+                              decodedUsername ||
+                              "Anonymous User"
                         }
                         bannerTitle="Projects Showcase"
                         description={

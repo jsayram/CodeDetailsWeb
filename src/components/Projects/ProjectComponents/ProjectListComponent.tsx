@@ -335,18 +335,6 @@ export function ProjectList({
     }
   }, [projectToDelete, handleProjectDeleted, userId, setProjects]);
 
-  // Update filter handlers with proper typing
-  const handleFilterChange = useCallback(
-    (filter: keyof ProjectFilters, value: any) => {
-      const newFilters: Partial<ProjectFilters> = { [filter]: value, page: 1 };
-      setFilters(newFilters);
-      if (onPageChange) {
-        onPageChange(1);
-      }
-    },
-    [setFilters, onPageChange]
-  );
-
   // Category change handler with proper typing
   const handleCategoryChange = useCallback(
     (category: ProjectCategory | "all") => {
@@ -529,9 +517,9 @@ export function ProjectList({
       {projects.length === 0 ? (
         <>
           <div
-            className={`h-[700px] flex items-center justify-center text-center flex-col gap-4`}
+            className={`flex items-center justify-center text-center flex-col `}
           >
-            <div className="relative w-[800px] h-[800px] flex items-center justify-center px-4">
+            <div className="ralative w-[800px] h-[800px] flex items-center justify-center px-4">
               <CodeParticlesElement
                 quantity={"medium"}
                 speed={"fast"}
@@ -539,7 +527,7 @@ export function ProjectList({
                 containerClassName={"w-full h-full"}
                 includeEmojis={true}
                 includeSymbols={true}
-                includeKeywords={true}
+                includeKeywords={true} 
                 depth="layered"
                 opacityRange={[0.1, 0.3]}
                 lightModeOpacityRange={[0.1, 0.4]}
@@ -548,12 +536,13 @@ export function ProjectList({
               <Image
                 src="/images/mascot.png"
                 alt="code details mascot"
-                width={200}
-                height={200}
+                className="relative -top-40 "
+                width={300}
+                height={300}
               />
               </div>
 
-              <div className="text-2xl font-bold text-primary/90 dark:text-primary/80 -mt-50">
+              <div className="text-2xl font-bold text-primary/90 dark:text-primary/80 -mt-90 px-2 border-1 rounded-2xl p-5 backdrop-blur-sm shadow-lg">
                 {showDeletedOnly
                   ? "The Project Graveyard is Empty! 🪦"
                   : showFavoritesOnly
@@ -561,8 +550,8 @@ export function ProjectList({
                   : showUserProjectsOnly
                   ? "Time to Showcase Your Genius! 🚀"
                   : "Ready to Discover Amazing Projects! 💫"}
-              </div>
-              <p className="text-muted-foreground dark:text-muted-foreground/90">
+              
+              <p className="text-xl font-medium text-muted-foreground dark:text-muted-foreground/90">
                 {showDeletedOnly
                   ? "Looks like all projects are alive and kicking!"
                   : showFavoritesOnly
@@ -571,6 +560,7 @@ export function ProjectList({
                   ? "Share your coding adventures with the community"
                   : "Be the first to add something spectacular"}
               </p>
+              </div>
               {filter?.userId === userId && !showDeletedOnly && (
                 <Button variant="default" onClick={() => setShowAddForm(true)}>
                   Create Your First Project or Keep Exploring
