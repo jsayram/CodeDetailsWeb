@@ -527,51 +527,58 @@ export function ProjectList({
 
       {/* Projects Display */}
       {projects.length === 0 ? (
-        <div
-          className={`h-[500px] flex items-center justify-center text-center flex-col gap-4`}
-        >
-          <CodeParticlesElement 
-          quantity={"medium"}
-          speed={"slow"}
-          size={"large"}
-          containerClassName={"container flex "}
-          includeEmojis={true}
-          includeSymbols={true}
-          depth="layered"
-          opacityRange={[0.1, 0.5]}
-          lightModeOpacityRange={[0.1, 0.5]}
-          />
-        
-          <Image
-            src="/images/mascot.png"
-            alt="code details mascot"
-            width={200}
-            height={200}
-          />
-          <div className="text-xl font-bold text-primary/90 dark:text-primary/80 mb-2">
-            {showDeletedOnly
-              ? "The Project Graveyard is Empty! 🪦"
-              : showFavoritesOnly
-              ? "Your Collection Awaits! ⭐"
-              : showUserProjectsOnly
-              ? "Time to Showcase Your Genius! 🚀"
-              : "Ready to Discover Amazing Projects! 💫"}
-          </div>
-          <p className="text-muted-foreground dark:text-muted-foreground/90">
-            {showDeletedOnly
-              ? "Looks like all projects are alive and kicking!"
-              : showFavoritesOnly
-              ? "Start exploring and mark your favorite projects"
-              : showUserProjectsOnly
-              ? "Share your coding adventures with the community"
-              : "Be the first to add something spectacular"}
-          </p>
-          {filter?.userId === userId && !showDeletedOnly && (
-            <Button variant="default" onClick={() => setShowAddForm(true)}>
-              Create Your First Project or Keep Exploring
-            </Button>
-          )}
-        </div>
+        <>
+          <div
+            className={`h-[700px] flex items-center justify-center text-center flex-col gap-4`}
+          >
+            <div className="relative w-[800px] h-[800px] flex items-center justify-center px-4">
+              <CodeParticlesElement
+                quantity={"medium"}
+                speed={"fast"}
+                size={"large"}
+                containerClassName={"w-full h-full"}
+                includeEmojis={true}
+                includeSymbols={true}
+                includeKeywords={true}
+                depth="layered"
+                opacityRange={[0.1, 0.3]}
+                lightModeOpacityRange={[0.1, 0.4]}
+              />
+
+              <Image
+                src="/images/mascot.png"
+                alt="code details mascot"
+                width={200}
+                height={200}
+              />
+              </div>
+
+              <div className="text-2xl font-bold text-primary/90 dark:text-primary/80 -mt-50">
+                {showDeletedOnly
+                  ? "The Project Graveyard is Empty! 🪦"
+                  : showFavoritesOnly
+                  ? "Your Collection Awaits! ⭐"
+                  : showUserProjectsOnly
+                  ? "Time to Showcase Your Genius! 🚀"
+                  : "Ready to Discover Amazing Projects! 💫"}
+              </div>
+              <p className="text-muted-foreground dark:text-muted-foreground/90">
+                {showDeletedOnly
+                  ? "Looks like all projects are alive and kicking!"
+                  : showFavoritesOnly
+                  ? "Start exploring and mark your favorite projects"
+                  : showUserProjectsOnly
+                  ? "Share your coding adventures with the community"
+                  : "Be the first to add something spectacular"}
+              </p>
+              {filter?.userId === userId && !showDeletedOnly && (
+                <Button variant="default" onClick={() => setShowAddForm(true)}>
+                  Create Your First Project or Keep Exploring
+                </Button>
+              )}
+            </div>
+          
+        </>
       ) : (
         <>
           {viewMode === "card" || isMobile ? (
