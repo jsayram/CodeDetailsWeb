@@ -5,7 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Heart, Trash2, Edit, User, Undo2 } from "lucide-react";
+import {
+  ExternalLink,
+  Heart,
+  Trash2,
+  Edit,
+  User,
+  Undo2,
+  Share2,
+} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -27,6 +35,7 @@ interface ProjectCardProps {
   onDeleteProject?: (id: string, isPermanent?: boolean) => void;
   onUpdateProject?: (project: Project) => void;
   isFavorite?: boolean;
+  hideActions?: boolean;
 }
 
 export const ProjectCard = React.memo(
@@ -37,6 +46,7 @@ export const ProjectCard = React.memo(
     onDeleteProject,
     onUpdateProject,
     isFavorite = false,
+    hideActions = false,
   }: ProjectCardProps) {
     const { user } = useUser();
     const { userId } = useAuth();
@@ -145,10 +155,6 @@ export const ProjectCard = React.memo(
 
     // Display username logic
     const displayUsername = useMemo(() => {
-      if (isCurrentUserProject) {
-        return "YOUR PROFILE✨";
-      }
-
       // First try full name
       if (project.profile?.full_name) {
         return project.profile.full_name;
@@ -239,10 +245,25 @@ export const ProjectCard = React.memo(
       if (isNavigatingUser || !username) return;
       setIsNavigatingUser(true);
       try {
-         router.push(`/users/${encodeURIComponent(username)}`);
+        router.push(`/users/${encodeURIComponent(username)}`);
       } finally {
         setIsNavigatingUser(false);
       }
+    };
+
+    const handleShareClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const shareUrl = `${window.location.origin}/projects/${encodeURIComponent(
+        project.slug || ""
+      )}`;
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          toast.success("Share project link copied to clipboard!");
+        })
+        .catch(() => {
+          toast.error("Failed to copy share link");
+        });
     };
 
     return (
@@ -283,8 +304,8 @@ export const ProjectCard = React.memo(
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center ">
-              {!project.deleted_at ? (
+            <div className="flex items-center">
+              {!project.deleted_at && !hideActions ? (
                 <>
                   {isOwner && (
                     <div className="action-buttons-group">
@@ -313,20 +334,32 @@ export const ProjectCard = React.memo(
                           <Trash2 size={20} />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="action-button hover:text-purple-500"
+                        onClick={handleShareClick}
+                        aria-label="Share project"
+                      >
+                        <Share2 size={20} />
+                      </Button>
                     </div>
                   )}
-
-                  <FavoriteButton
-                    isFavorite={!!isFavorite}
-                    count={Number(project.total_favorites) || 0}
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      onToggleFavorite?.(project.id, !isFavorite);
-                    }}
-                    ariaLabel={
-                      isFavorite ? "Remove from favorites" : "Add to favorites"
-                    }
-                  />
+                  {!hideActions && (
+                    <FavoriteButton
+                      isFavorite={!!isFavorite}
+                      count={Number(project.total_favorites) || 0}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onToggleFavorite?.(project.id, !isFavorite);
+                      }}
+                      ariaLabel={
+                        isFavorite
+                          ? "Remove from favorites"
+                          : "Add to favorites"
+                      }
+                    />
+                  )}
                 </>
               ) : (
                 isOwner && (

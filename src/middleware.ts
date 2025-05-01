@@ -4,8 +4,14 @@ const isPublicRoute = createRouteMatcher([
         "/",  // Allow access to the root page
         "/sign-in(.*)", 
         "/sign-up(.*)",
+        "/shared-projects/(.*)",  // Added (.*) to handle any trailing segments
+        "/shared-projects/(.*)",  // Added (.*) to handle any trailing segments
         "/projects/:slug",
         "/projects/users/:username(.*)",  // Added (.*) to handle any trailing segments
+        "/api/shared-projects/(.*)",  // Added (.*) to handle any trailing segments
+        // Always run for shared projects
+        "/shared-projects/(.*)",  // Added (.*) to handle any trailing segments
+        // Always run for projects
         "/api/webhook/clerk", // Allow Clerk webhook endpoint
 ]);
 
