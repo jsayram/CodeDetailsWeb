@@ -73,12 +73,13 @@ export function SharedProjectsGrid({
         throw new Error("Invalid response format");
       }
 
-      setProjects(
-        result.data.map((project: Project) => ({
-          ...project,
-          tags: project.tags || [],
-        }))
-      );
+      // Ensure tags are always an array, handling null/undefined cases
+      setProjects(result.data.map((projectData: Project) => ({
+        ...projectData,
+        tags: projectData.tags || [],
+        category: projectData.category as ProjectCategory,
+        isFavorite: projectData.isFavorite || false,
+      })));
 
       setPagination({
         total: result.pagination?.total ?? 0,
