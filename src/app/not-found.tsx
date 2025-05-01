@@ -5,6 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
+import {
+  SignedIn,
+  SignedOut,
+
+} from "@clerk/nextjs";
+import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
 
 export default function NotFound() {
   return (
@@ -46,7 +52,7 @@ export default function NotFound() {
           {/* Speech bubble */}
           <div className="absolute -top-16 right-0 bg-card p-4 rounded-lg shadow-lg border border-border">
             <p className="text-sm font-medium text-foreground">
-            ... your life choices led you here.
+              ...you are so lost aren&apos;t you.
             </p>
             <div className="absolute -bottom-2 right-8 w-4 h-4 bg-card border-r border-b border-border transform rotate-45" />
           </div>
@@ -57,20 +63,29 @@ export default function NotFound() {
           Page Not Found
         </h2>
         <p className="text-muted-foreground mb-8 max-w-lg mx-auto text-2xl">
-        This page doesn&apos;t
-        exist, and frankly, neither do your life choices that led you here. 🥴
+        You&apos;ve reached a non-existent page.<br/> While the URL failed you, your life choices simply... led you here.<br/>Coincidence? Perhaps...<br/> Irony? Definitely!<br/> <span className="text-6xl">🤭</span>
         </p>
 
         {/* Home button */}
-        <Link href="/">
+        <SignedIn>
+          <Link href="/">
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90
+                     transition-all duration-300 hover:scale-105"
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
+        </SignedIn>
+        <SignedOut>
           <Button
             className="bg-primary text-primary-foreground hover:bg-primary/90
                      transition-all duration-300 hover:scale-105"
           >
-            <Home className="mr-2 h-4 w-4" />
-            Back to Home
+            <SignInButtonComponent text="Sign In" />
           </Button>
-        </Link>
+        </SignedOut>
       </div>
     </div>
   );

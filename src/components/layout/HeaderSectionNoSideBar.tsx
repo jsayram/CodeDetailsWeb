@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DarkModeButton } from "@/components/DarkModeButtonComponent";
 import { Logo } from "@/components/CodeDetailsLogoComponent";
 import { Menu } from "lucide-react";
+import { SignInButtonComponent } from "../auth/SignInButtonComponent";
 
 // Define the breadcrumb item interface
 interface BreadcrumbItemData {
@@ -93,26 +94,7 @@ export function HeaderSectionNoSideBar({
                 {/* Sign In button - conditionally visible based on showMobileMenu and showSignInButton */}
                 {showSignInButton && (
                   <div className={showMobileMenu ? "hidden sm:block" : "block"}>
-                    <SignInButton mode="modal">
-                      {/* Apply the glow effect wrapper */}
-                      <div className="relative group inline-block">
-                        {/* Glow effect */}
-                        <div
-                          className="absolute transition-all duration-1000 opacity-70 inset-0 
-                   bg-gradient-to-r from-primary/40 to-secondary/40 
-                   rounded-lg blur-lg filter 
-                   group-hover:opacity-100 group-hover:duration-200
-                   -z-10 -m-1"
-                        ></div>
-
-                        <Button
-                          size="sm"
-                          className="relative hover:scale-105 transition-transform"
-                        >
-                          Sign In
-                        </Button>
-                      </div>
-                    </SignInButton>
+                    <SignInButtonComponent text="Sign In" useTypingEffect={false} variant="plain" />
                   </div>
                 )}
               </SignedOut>
@@ -168,11 +150,7 @@ export function HeaderSectionNoSideBar({
                   </SignedIn>
 
                   <SignedOut>
-                    <SignInButton mode="modal">
-                      <Button size="sm" className="w-full">
-                        Sign In
-                      </Button>
-                    </SignInButton>
+                     <SignInButtonComponent text="Sign In" useTypingEffect={false} variant="plain" />
                   </SignedOut>
                 </div>
               </div>

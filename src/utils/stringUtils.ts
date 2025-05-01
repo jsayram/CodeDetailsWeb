@@ -37,3 +37,35 @@ export const getInitials = (name: string): string => {
     .join("")
     .toUpperCase();
 };
+
+/**
+ * Capitalizes the first letter of each name part in a full name
+ * @param fullName The full name to capitalize
+ * @returns The capitalized full name
+ */
+export function capitalizeNames(fullName: string): string {
+  // Split the name into parts
+  const names = fullName.trim().split(/\s+/);
+  
+  // If empty string or single word, just capitalize first letter
+  if (names.length <= 1) {
+      return names[0]?.charAt(0).toUpperCase() + names[0]?.slice(1).toLowerCase() || '';
+  }
+  
+  // Get first and last names
+  const firstName = names[0];
+  const lastName = names[names.length - 1];
+  
+  // Capitalize first letters
+  const capitalizedFirst = firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase();
+  const capitalizedLast = lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase();
+  
+  // Handle middle names if any
+  const middleNames = names.slice(1, -1).map(name => 
+      name.toLowerCase()
+  ).join(' ');
+  
+  return middleNames 
+      ? `${capitalizedFirst} ${middleNames} ${capitalizedLast}`
+      : `${capitalizedFirst} ${capitalizedLast}`;
+}

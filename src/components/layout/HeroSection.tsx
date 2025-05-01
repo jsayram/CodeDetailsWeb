@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
+import { capitalizeNames } from "@/utils/stringUtils";
 
 // Authentication (Clerk)
 import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
@@ -19,6 +20,11 @@ export const HeroSection = () => {
   const welcomeTextClassName = user
     ? "pb-10 text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-500 font-medium pt-[20%] sm:-mt-[15%] sm:pr-[40%] sm:text-4xl md:pr-[35%] md:text-5xl md:-ml-[8%] lg:md:-ml-[15%] lg:text-6xl xl:text-7xl xl:-mt-[20%]"
     : "pb-10 text-5xl bg-clip-text text-transparent bg-gradient-to-r from-primary to-fuchsia-500 font-medium pt-[20%] sm:-mt-[15%] sm:pr-[40%] sm:text-4xl md:pr-[35%] md:text-5xl md:-ml-[8%] lg:md:-ml-[15%] lg:text-6xl xl:text-7xl xl:-mt-[20%]";
+
+  // Add loading states
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [isLoadingLearn, setIsLoadingLearn] = useState(false);
+  const [isLoadingImplement, setIsLoadingImplement] = useState(false);
 
   // If not loaded yet, show loading state
   if (!isLoaded) {
@@ -206,22 +212,29 @@ export const HeroSection = () => {
               // Projects section - CLICKABLE
               {
                 href: "/projects",
-                label: "Community-Projects",
-                clickable: true,
-                visibleOn: "all", // Default if not specified
+                label: isLoadingProjects
+                  ? "Loading Projects..."
+                  : "Explore_Projects",
+                clickable: !isLoadingProjects,
+                visibleOn: "all",
+                onClick: () => setIsLoadingProjects(true),
               },
               {
                 href: "/learn",
-                label: "Learn",
-                clickable: true,
-                visibleOn: "all", // Default if not specified
+                label: isLoadingLearn ? "Loading Learn..." : "Learn",
+                clickable: !isLoadingLearn,
+                visibleOn: "all",
+                onClick: () => setIsLoadingLearn(true),
               },
               // Implement section - CLICKABLE
               {
                 href: "/implement",
-                label: "Implement",
-                clickable: true,
-                visibleOn: "all", // Default if not specified
+                label: isLoadingImplement
+                  ? "Loading Implement..."
+                  : "Implement",
+                clickable: !isLoadingImplement,
+                visibleOn: "all",
+                onClick: () => setIsLoadingImplement(true),
               },
             ]}
           />
@@ -242,7 +255,7 @@ export const HeroSection = () => {
                 <div className="flex flex-col items-center justify-center">
                   <p className="pr-5">{"Welcome"}</p>
                   <p className="bg-clip-text  bg-gradient-to-r from-primary  to-amber-400">
-                    {user?.fullName || "Code Minion!"}
+                    {capitalizeNames(user?.fullName || "Code Minion") + "!"}
                     <span className="bg-clip-text bg-gradient-to-r from-primary to-amber-400">
                       ✨
                     </span>
@@ -253,7 +266,7 @@ export const HeroSection = () => {
                 <div className="flex flex-col items-center justify-center ">
                   <p>{"Welcome"}</p>
                   <p className="bg-clip-text bg-gradient-to-r from-primary to-violet-400">
-                    {user?.fullName + "!" || "Code Minion!"}
+                    {capitalizeNames(user?.fullName || "Code Minion") + "!"}
                     <span className="bg-clip-text bg-gradient-to-r from-primary to-amber-400">
                       ✨
                     </span>

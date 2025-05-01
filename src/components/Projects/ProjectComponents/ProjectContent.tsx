@@ -1,6 +1,7 @@
 "use client";
 
-import { Project } from "@/types/models/project";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
@@ -8,14 +9,37 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Heart, Calendar, User, Clock, Tags } from "lucide-react";
 import { FormattedDate } from "@/lib/FormattedDate";
 import { Separator } from "@/components/ui/separator";
+import { SelectProject } from "@/db/schema/projects";
 
-interface ProjectContentProps {
-  project: Project | null;
-  error?: string;
+interface UserProfile extends SelectProject {
+  user_id: string;
+  username: string;
+  full_name: string;
+  profile_image_url: string;
+  tier: string;
+  email_address: string;
+  created_at: Date;
+  updated_at: Date;
 }
 
-export function ProjectContent({ project, error }: ProjectContentProps) {
-  if (!project || error) {
+interface ProjectContentProps {
+  project: SelectProject | null;
+  error?: string;
+  userProfile? : UserProfile | null;
+}
+
+export function ProjectContent({ project, error, userProfile }: ProjectContentProps): React.ReactElement {
+  const router = useRouter();
+  const [isNavigatingUser, setIsNavigatingUser] = useState(false);
+
+  const handleNavigateUser = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isNavigatingUser || !userProfile?.username) return;
+    setIsNavigatingUser(true);
+    router.push(`/users/${encodeURIComponent(userProfile.username)}`);
+  };
+
+  if (!project || !userProfile || error) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
@@ -32,8 +56,8 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
     );
   }
 
-  const displayName = project.profile?.full_name || 
-                     project.profile?.username?.split('@')[0] || 
+  const displayName = userProfile?.full_name || 
+                     userProfile?.username.split('@')[0] || 
                      "Anonymous User";
 
   return (
@@ -41,27 +65,47 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
       {/* Profile Header Section */}
       <div className="mb-6 bg-card rounded-lg p-6 shadow-lg">
         <div className="flex items-start gap-6">
-          <Avatar className="h-24 w-24 border-4 border-background">
-            {project.profile?.profile_image_url ? (
-              <AvatarImage
-                src={project.profile.profile_image_url}
-                alt={displayName}
-              />
-            ) : (
-              <AvatarFallback className="text-2xl">
-                <User className="h-12 w-12" />
-              </AvatarFallback>
+          <button
+            onClick={handleNavigateUser}
+            disabled={isNavigatingUser}
+            className={`relative ${isNavigatingUser ? 'cursor-wait' : 'cursor-pointer hover:opacity-80 transition-opacity'}`}
+            aria-label="View user profile"
+          >
+            <Avatar className="h-24 w-24 border-4 border-background">
+              {userProfile?.profile_image_url ? (
+                <AvatarImage
+                  src={userProfile?.profile_image_url}
+                  alt={displayName}
+                />
+              ) : (
+                <AvatarFallback className="text-2xl">
+                  <User className="h-12 w-12" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            {isNavigatingUser && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
             )}
-          </Avatar>
+          </button>
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold">{project.title}</h1>
-                <p className="text-muted-foreground">by {displayName}</p>
+                <button
+                  onClick={handleNavigateUser}
+                  disabled={isNavigatingUser}
+                  className={`text-muted-foreground ${
+                    isNavigatingUser ? 'cursor-wait opacity-70' : 'hover:text-primary hover:underline cursor-pointer'
+                  }`}
+                >
+                  by {displayName}
+                </button>
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="capitalize">
-                  {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                  {PROJECT_CATEGORIES[project.category as keyof typeof PROJECT_CATEGORIES]?.label || project.category}
                 </Badge>
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Heart className="h-5 w-5" />
@@ -156,7 +200,7 @@ export function ProjectContent({ project, error }: ProjectContentProps) {
                 <div>
                   <p className="text-sm font-medium">Category</p>
                   <p className="text-muted-foreground">
-                    {PROJECT_CATEGORIES[project.category]?.description || project.category}
+                    {PROJECT_CATEGORIES[project.category as keyof typeof PROJECT_CATEGORIES]?.description || project.category}
                   </p>
                 </div>
                 <Separator />

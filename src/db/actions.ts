@@ -6,7 +6,7 @@ import { profiles } from "./schema/profiles";
 import { project_tags } from "./schema/project_tags";
 import { tags } from "./schema/tags";
 import { favorites } from "./schema/favorites";
-import { InsertProject, SelectProject } from "./schema/projects";
+import { InsertProject, SelectProject, SelectUserWithProject } from "./schema/projects";
 import { eq, and, isNull, or, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
@@ -86,16 +86,56 @@ export async function getProjectBySlugServer(
 ): Promise<SelectProject | null> {
   return await executeQuery(async (db) => {
     const projectData = await db
-      .select()
+      .select({
+        project: {
+          id: projects.id,
+          title: projects.title,
+          slug: projects.slug,
+          description: projects.description,
+          category: projects.category,
+          user_id: projects.user_id,
+          total_favorites: projects.total_favorites,
+          created_at: projects.created_at,
+          updated_at: projects.updated_at,
+          deleted_at: projects.deleted_at
+        },
+        profile: {
+          id: profiles.id,
+          user_id: profiles.user_id,
+          username: profiles.username,
+          full_name: profiles.full_name,
+          profile_image_url: profiles.profile_image_url,
+          tier: profiles.tier,
+          email_address: profiles.email_address,
+          created_at: profiles.created_at,
+          updated_at: profiles.updated_at,
+        }
+      })
       .from(projects)
-      .where(eq(projects.slug, slug));
+      .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
+      .where(eq(projects.slug, slug))
+      .limit(1);
 
     if (!projectData.length) {
       return null;
     }
 
-    const tags = await getProjectTagNames(projectData[0].id);
-    return { ...projectData[0], tags };
+    const tags = await getProjectTagNames(projectData[0].project.id);
+
+    // Map the results to include owner information
+    return {
+      ...projectData[0].project,
+      tags,
+      owner_id: projectData[0].profile?.id || null,
+      owner_user_id: projectData[0].profile?.user_id || null,
+      owner_username: projectData[0].profile?.username || null,
+      owner_full_name: projectData[0].profile?.full_name || null,
+      owner_profile_image_url: projectData[0].profile?.profile_image_url || null,
+      owner_tier: projectData[0].profile?.tier || null,
+      owner_email_address: projectData[0].profile?.email_address || null,
+      owner_created_at: projectData[0].profile?.created_at || null,
+      owner_updated_at: projectData[0].profile?.updated_at || null
+    };
   });
 }
 
@@ -328,5 +368,49 @@ export async function isProjectOwner(
       .where(and(eq(projects.id, projectId), eq(projects.user_id, userId)));
 
     return result[0]?.count > 0;
+  });
+}
+
+/**
+ * Server-side function to get user information with their project details by project slug
+ */
+export async function getProjectUsersProfileBySlugServer(
+  slug: string
+): Promise<SelectUserWithProject | null> {
+  return await executeQuery(async (db) => {
+    // Join projects and profiles to get the profile information
+    const profileData = await db
+      .select({
+        id: profiles.id,
+        user_id: profiles.user_id,
+        username: profiles.username,
+        full_name: profiles.full_name,
+        profile_image_url: profiles.profile_image_url,
+        tier: profiles.tier,
+        email_address: profiles.email_address,
+        created_at: profiles.created_at,
+        updated_at: profiles.updated_at,
+      })
+      .from(projects)
+      .innerJoin(profiles, eq(profiles.user_id, projects.user_id))
+      .where(eq(projects.slug, slug))
+      .limit(1);
+
+    if (!profileData.length) {
+      return null;
+    }
+
+    // Return the profile data with proper typing
+    return {
+      id: profileData[0].id,
+      user_id: profileData[0].user_id,
+      username: profileData[0].username,
+      full_name: profileData[0].full_name,
+      profile_image_url: profileData[0].profile_image_url,
+      tier: profileData[0].tier,
+      email_address: profileData[0].email_address,
+      created_at: profileData[0].created_at,
+      updated_at: profileData[0].updated_at,
+    } as SelectUserWithProject;
   });
 }

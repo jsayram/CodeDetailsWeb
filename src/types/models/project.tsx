@@ -12,11 +12,14 @@ export interface Project extends DrizzleProject {
   isFavorite?: boolean; // UI state for user favorites
   displayBadge?: boolean; // UI presentation flag
   readableSlug?: string; // User-friendly version of the slug
-  
+
+  // Support for nested API response structure
+  project?: DrizzleProject;
+
   // Note: tags are fetched from the related tables (tags and project_tags)
   // The tags array is added to the project by the getProjectTagNames() function
   tags?: string[];
-  
+
   // Profile relationship fields
   profile?: {
     username: string | null;
@@ -52,7 +55,7 @@ export function mapDrizzleProjectToProject(
       full_name: drizzleProject.owner_full_name || null,
       first_name: drizzleProject.owner_first_name || null,
       last_name: drizzleProject.owner_last_name || null,
-    }
+    },
   };
 }
 
@@ -60,6 +63,7 @@ export function mapDrizzleProjectToProject(
 export function mapProjectToDrizzle(
   project: Project
 ): Omit<DrizzleProject, "id" | "created_at" | "updated_at" | "deleted_at"> {
-  const { formattedDate, isFavorite, displayBadge, readableSlug, ...dbFields } = project;
+  const { formattedDate, isFavorite, displayBadge, readableSlug, ...dbFields } =
+    project;
   return dbFields;
 }

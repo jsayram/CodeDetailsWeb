@@ -30,9 +30,11 @@ export interface ProjectFilters {
   showMyProjects: boolean;
   showFavorites: boolean;
   showDeleted: boolean;
+  showAll?: boolean;
   page: number;
   limit: number;
   tags?: string[];
+  username?: string; // Add username filter support
 }
 
 interface PageCache {
@@ -84,12 +86,13 @@ export function ProjectsProvider({
   children,
   token,
   userId,
-  isLoading: parentIsLoading,
-  initialFilters,
+  isLoading,
+  initialFilters = {},
 }: ProjectsProviderProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ProjectFilters>({
+    showAll: true, // Set showAll to true by default
     sortBy: "newest",
     category: "all",
     showMyProjects: false,
@@ -132,18 +135,22 @@ export function ProjectsProvider({
       return;
     }
 
+    // If this is a username filter and we're not logged in, we still want to fetch
+    const isAnonymousUsernameView = !userId && filters.username;
+
     const cacheKey = JSON.stringify({
       showAll: !filters.showMyProjects,
       userId: filters.showMyProjects || filters.showFavorites || filters.showDeleted
         ? userId
         : undefined,
+      username: filters.username,
       category: filters.category === "all" ? undefined : filters.category,
       showFavorites: filters.showFavorites,
       showDeleted: filters.showDeleted,
       sortBy: filters.sortBy,
       page: filters.page,
       limit: filters.limit,
-      tags: filters.tags, // Add tags to the cache key
+      tags: filters.tags,
     });
 
     const cached = pageCache[cacheKey];
@@ -164,19 +171,28 @@ export function ProjectsProvider({
     try {
       const params = {
         showAll: !filters.showMyProjects,
-        userId: userId ?? undefined, // Always include userId if available
+        userId: userId ?? undefined,
+        username: filters.username,
         category: filters.category === "all" ? undefined : filters.category,
         showFavorites: filters.showFavorites,
         showDeleted: filters.showDeleted,
         sortBy: filters.sortBy,
         page: filters.page,
         limit: filters.limit,
-        tags: filters.tags, // Add tags to the params
+        tags: filters.tags,
       };
 
       const url = API_ROUTES.PROJECTS.WITH_FILTERS(params);
+      console.log("🌐 Fetching from URL:", url);
 
       const response = await fetch(url);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Server responded with non-JSON content");
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -206,19 +222,17 @@ export function ProjectsProvider({
       lastFetchRef.current.timestamp = now;
     } catch (error) {
       console.error("❌ Error fetching projects:", error);
-      if (!projects.length) {
-        setProjects([]);
-        setPagination({
-          total: 0,
-          totalPages: 1,
-          currentPage: 1,
-        });
-      }
+      setProjects([]);
+      setPagination({
+        total: 0,
+        totalPages: 1,
+        currentPage: 1,
+      });
     } finally {
       setLoading(false);
       lastFetchRef.current.inProgress = false;
     }
-  }, [filters, userId, projects.length]);
+  }, [filters, userId, token]);
 
   const updateFilters = useCallback((newFilters: Partial<ProjectFilters>) => {
     setFilters((prev) => {
@@ -247,9 +261,13 @@ export function ProjectsProvider({
   }, [pagination.totalPages]);
 
   useEffect(() => {
-    if (!authReady || parentIsLoading) return;
-    fetchProjects();
-  }, [isAuthenticated, authReady, parentIsLoading, fetchProjects]);
+    if (!authReady || isLoading) return;
+    
+    // Allow fetching if authenticated or if there's a username filter
+    if (isAuthenticated || filters.username) {
+      fetchProjects();
+    }
+  }, [isAuthenticated, authReady, isLoading, fetchProjects, filters.username]);
 
   const handleProjectAdded = async (newProject: Project) => {
     console.log("➕ Adding new project:", newProject.title);

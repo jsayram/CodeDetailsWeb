@@ -5,7 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Heart, Trash2, Edit, User, Undo2 } from "lucide-react";
+import {
+  ExternalLink,
+  Heart,
+  Trash2,
+  Edit,
+  User,
+  Undo2,
+  Share2,
+} from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
@@ -27,6 +35,7 @@ interface ProjectCardProps {
   onDeleteProject?: (id: string, isPermanent?: boolean) => void;
   onUpdateProject?: (project: Project) => void;
   isFavorite?: boolean;
+  hideActions?: boolean;
 }
 
 export const ProjectCard = React.memo(
@@ -37,18 +46,21 @@ export const ProjectCard = React.memo(
     onDeleteProject,
     onUpdateProject,
     isFavorite = false,
+    hideActions = false,
   }: ProjectCardProps) {
     const { user } = useUser();
     const { userId } = useAuth();
     const router = useRouter();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isRestoring, setIsRestoring] = useState(false);
-    const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
+    const [showPermanentDeleteModal, setShowPermanentDeleteModal] =
+      useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const [loadingTag, setLoadingTag] = useState<string | null>(null);
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+    const [isNavigatingUser, setIsNavigatingUser] = useState(false);
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
@@ -143,50 +155,48 @@ export const ProjectCard = React.memo(
 
     // Display username logic
     const displayUsername = useMemo(() => {
-      if (isCurrentUserProject) {
-        return "Your Project";
-      }
-      
       // First try full name
       if (project.profile?.full_name) {
         return project.profile.full_name;
       }
-      
+
       // Then try to combine first and last name if either exists
       if (project.profile?.first_name || project.profile?.last_name) {
         return [project.profile.first_name, project.profile.last_name]
-          .filter(Boolean)  // Remove null/undefined values
+          .filter(Boolean) // Remove null/undefined values
           .join(" ")
           .trim();
       }
-      
+
       // Fall back to username or email
-      return project.profile?.username?.split("@")[0] ||
-             project.profile?.email_address?.split("@")[0] ||
-             "Unknown user";
+      return (
+        project.profile?.username?.split("@")[0] ||
+        project.profile?.email_address?.split("@")[0] ||
+        "Unknown user"
+      );
     }, [isCurrentUserProject, project.profile]);
 
     // Get initials for the avatar fallback
     const userInitials = useMemo(() => {
       // Try to get initials from full name first, then username, then email
       const nameForInitials =
-      project.profile?.full_name ||
-      project.profile?.username?.split("@")[0] ||
-      project.profile?.email_address?.split("@")[0] ||
+        project.profile?.full_name ||
+        project.profile?.username?.split("@")[0] ||
+        project.profile?.email_address?.split("@")[0] ||
         "??";
       return getInitials(nameForInitials);
     }, [project.profile]);
 
     const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.stopPropagation();
-      
+
       // Check if we're already on this tag page
       const currentPath = window.location.pathname;
       const tagPath = `/tags/${encodeURIComponent(tag)}`;
       if (currentPath === tagPath) {
         return; // Don't navigate if we're already on this tag
       }
-      
+
       if (loadingTag) return; // Prevent multiple tag clicks while loading
       setLoadingTag(tag);
       router.push(tagPath);
@@ -200,10 +210,12 @@ export const ProjectCard = React.memo(
     const handleCategoryClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Check if we're already on this category page
       const currentPath = window.location.pathname;
-      const categoryPath = `/categories/${encodeURIComponent(project.category)}`;
+      const categoryPath = `/categories/${encodeURIComponent(
+        project.category
+      )}`;
       if (currentPath === categoryPath) {
         return; // Don't navigate if we're already on this category
       }
@@ -227,11 +239,40 @@ export const ProjectCard = React.memo(
       router.push(`/projects/${project.slug}`);
     };
 
+    const handleNavigateUser = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const username = project.profile?.username;
+      if (isNavigatingUser || !username) return;
+      setIsNavigatingUser(true);
+      try {
+        router.push(`/users/${encodeURIComponent(username)}`);
+      } finally {
+        setIsNavigatingUser(false);
+      }
+    };
+
+    const handleShareClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const shareUrl = `${window.location.origin}/projects/${encodeURIComponent(
+        project.slug || ""
+      )}`;
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          toast.success("Share project link copied to clipboard!");
+        })
+        .catch(() => {
+          toast.error("Failed to copy share link");
+        });
+    };
+
     return (
       <>
         <Card
           className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02]
-            ${project.deleted_at ? "deleted" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+            ${project.deleted_at ? "deleted" : ""} ${
+            isNavigating ? "opacity-70 pointer-events-none" : ""
+          }`}
           onClick={handleCardClick}
         >
           {isNavigating && (
@@ -252,17 +293,19 @@ export const ProjectCard = React.memo(
                 {isCategoryLoading ? (
                   <span className="flex items-center gap-1">
                     <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    {PROJECT_CATEGORIES[project.category]?.label || project.category}
+                    {PROJECT_CATEGORIES[project.category]?.label ||
+                      project.category}
                   </span>
                 ) : (
-                  PROJECT_CATEGORIES[project.category]?.label || project.category
+                  PROJECT_CATEGORIES[project.category]?.label ||
+                  project.category
                 )}
               </Badge>
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center ">
-              {!project.deleted_at ? (
+            <div className="flex items-center">
+              {!project.deleted_at && !hideActions ? (
                 <>
                   {isOwner && (
                     <div className="action-buttons-group">
@@ -291,18 +334,32 @@ export const ProjectCard = React.memo(
                           <Trash2 size={20} />
                         </Button>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="action-button hover:text-purple-500"
+                        onClick={handleShareClick}
+                        aria-label="Share project"
+                      >
+                        <Share2 size={20} />
+                      </Button>
                     </div>
                   )}
-
-                  <FavoriteButton
-                    isFavorite={!!isFavorite}
-                    count={Number(project.total_favorites) || 0}
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      onToggleFavorite?.(project.id, !isFavorite);
-                    }}
-                    ariaLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  />
+                  {!hideActions && (
+                    <FavoriteButton
+                      isFavorite={!!isFavorite}
+                      count={Number(project.total_favorites) || 0}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        onToggleFavorite?.(project.id, !isFavorite);
+                      }}
+                      ariaLabel={
+                        isFavorite
+                          ? "Remove from favorites"
+                          : "Add to favorites"
+                      }
+                    />
+                  )}
                 </>
               ) : (
                 isOwner && (
@@ -341,11 +398,13 @@ export const ProjectCard = React.memo(
             >
               {project.title}
             </h3>
-            
+
             <div className="min-h-[3rem]">
               <p
                 className={`card-description text-xs sm:text-sm ${
-                  project.deleted_at ? "text-foreground dark:text-foreground/90" : ""
+                  project.deleted_at
+                    ? "text-foreground dark:text-foreground/90"
+                    : ""
                 }`}
               >
                 {project.description || "No description provided"}
@@ -357,33 +416,53 @@ export const ProjectCard = React.memo(
           <div className="flex flex-col">
             <div className="card-footer border-t">
               <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
-                  {project.profile?.profile_image_url ? (
-                    <AvatarImage
-                      src={project.profile.profile_image_url}
-                      alt={displayUsername}
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-muted text-xs font-medium">
-                      {userInitials || <User className="h-4 w-4" />}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <span
-                  className={`text-xs truncate max-w-[120px] ${
-                    project.deleted_at ? "text-red-400/50" : ""
-                  }`}
+                {/* Avatar navigates to user profile */}
+                <button
+                  type="button"
+                  disabled={isNavigatingUser}
+                  onClick={handleNavigateUser}
+                  className={
+                    isNavigatingUser
+                      ? "opacity-50 cursor-wait p-0"
+                      : "cursor-pointer p-0"
+                  }
+                >
+                  <Avatar className="h-8 w-8">
+                    {project.profile?.profile_image_url ? (
+                      <AvatarImage
+                        src={project.profile.profile_image_url}
+                        alt={displayUsername}
+                      />
+                    ) : (
+                      <AvatarFallback className="bg-muted text-xs font-medium">
+                        {userInitials || <User className="h-4 w-4" />}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                </button>
+                {/* Username navigates to user profile */}
+                <button
+                  type="button"
+                  disabled={isNavigatingUser}
+                  onClick={handleNavigateUser}
+                  className={`text-xs truncate max-w-[120px] cursor-pointer hover:underline ${
+                    isNavigatingUser ? "opacity-50 cursor-wait" : ""
+                  } ${project.deleted_at ? "text-red-400/50" : ""}`}
                   title={displayUsername}
                 >
                   {displayUsername}
-                </span>
+                </button>
               </div>
 
               <Button
                 variant="default"
                 size="sm"
                 onClick={handleViewDetailsClick}
-                className={`card-button ${project.deleted_at ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]" : ""} ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                className={`card-button ${
+                  project.deleted_at
+                    ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
+                    : ""
+                } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
                 disabled={isNavigating}
               >
                 {isNavigating ? (
@@ -402,25 +481,33 @@ export const ProjectCard = React.memo(
               <div className="flex flex-wrap gap-1.5">
                 {tags.length > 0 ? (
                   <>
-                    {(showAllTags ? tags : tags.slice(0, 3)).map((tag, index) => (
-                      <Badge
-                        key={index}
-                        variant="secondary"
-                        className={`${
-                          project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } ${loadingTag === tag ? "opacity-70 pointer-events-none" : ""}`}
-                        onClick={(e) => handleTagClick(e, tag)}
-                      >
-                        {loadingTag === tag ? (
-                          <span className="flex items-center gap-1">
-                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                            #{tag}
-                          </span>
-                        ) : (
-                          `#${tag}`
-                        )}
-                      </Badge>
-                    ))}
+                    {(showAllTags ? tags : tags.slice(0, 3)).map(
+                      (tag, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className={`${
+                            project.deleted_at
+                              ? "tag-badge-deleted"
+                              : "tag-badge"
+                          } ${
+                            loadingTag === tag
+                              ? "opacity-70 pointer-events-none"
+                              : ""
+                          }`}
+                          onClick={(e) => handleTagClick(e, tag)}
+                        >
+                          {loadingTag === tag ? (
+                            <span className="flex items-center gap-1">
+                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                              #{tag}
+                            </span>
+                          ) : (
+                            `#${tag}`
+                          )}
+                        </Badge>
+                      )
+                    )}
                     {!showAllTags && tags.length > 3 && (
                       <Badge
                         variant="secondary"
@@ -448,7 +535,9 @@ export const ProjectCard = React.memo(
                     )}
                   </>
                 ) : (
-                  <span className="text-xs text-muted-foreground">No tags added</span>
+                  <span className="text-xs text-muted-foreground">
+                    No tags added
+                  </span>
                 )}
               </div>
             </div>
