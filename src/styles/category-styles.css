@@ -1,5 +1,6 @@
 /* Category Cards and Badges Styling */
 
+
 /* Light Theme Category Styles */
 .category-web {
   --bg-light: theme('colors.blue.100');
@@ -100,9 +101,94 @@
   --border-dark: theme('colors.fuchsia.800/50');
 }
 
+.category-security {
+  --bg-light: theme('colors.red.100');
+  --bg-dark: theme('colors.red.950/50');
+  --text-light: theme('colors.red.700');
+  --text-dark: theme('colors.red.300');
+  --border-light: theme('colors.red.200');
+  --border-dark: theme('colors.red.800/50');
+}
+
+.category-blockchain-web3 {
+  --bg-light: theme('colors.orange.100');
+  --bg-dark: theme('colors.orange.950/50');
+  --text-light: theme('colors.orange.700');
+  --text-dark: theme('colors.orange.300');
+  --border-light: theme('colors.orange.200');
+  --border-dark: theme('colors.orange.800/50');
+}
+
+.category-ar-vr-xr {
+  --bg-light: theme('colors.lime.100');
+  --bg-dark: theme('colors.lime.950/50');
+  --text-light: theme('colors.lime.700');
+  --text-dark: theme('colors.lime.300');
+  --border-light: theme('colors.lime.200');
+  --border-dark: theme('colors.lime.800/50');
+}
+
+.category-multimedia {
+  --bg-light: theme('colors.pink.100');
+  --bg-dark: theme('colors.pink.950/50');
+  --text-light: theme('colors.pink.700');
+  --text-dark: theme('colors.pink.300');
+  --border-light: theme('colors.pink.200');
+  --border-dark: theme('colors.pink.800/50');
+}
+
+.category-automation-scripting {
+  --bg-light: theme('colors.sky.100');
+  --bg-dark: theme('colors.sky.950/50');
+  --text-light: theme('colors.sky.700');
+  --text-dark: theme('colors.sky.300');
+  --border-light: theme('colors.sky.200');
+  --border-dark: theme('colors.sky.800/50');
+}
+
+.category-database-storage {
+  --bg-light: theme('colors.zinc.100');
+  --bg-dark: theme('colors.zinc.950/50');
+  --text-light: theme('colors.zinc.700');
+  --text-dark: theme('colors.zinc.300');
+  --border-light: theme('colors.zinc.200');
+  --border-dark: theme('colors.zinc.800/50');
+}
+
+.category-testing-qa {
+  --bg-light: theme('colors.neutral.100');
+  --bg-dark: theme('colors.neutral.950/50');
+  --text-light: theme('colors.neutral.700');
+  --text-dark: theme('colors.neutral.300');
+  --border-light: theme('colors.neutral.200');
+  --border-dark: theme('colors.neutral.800/50');
+}
+
+.category-other {
+  --bg-light: theme('colors.stone.100');
+  --bg-dark: theme('colors.stone.950/50');
+  --text-light: theme('colors.stone.700');
+  --text-dark: theme('colors.stone.300');
+  --border-light: theme('colors.stone.200');
+  --border-dark: theme('colors.stone.800/50');
+}
+
+
+[class*="category-"]:hover {
+  border-color: var(--text-light);
+}
+
+.dark [class*="category-"]:hover {
+  border-color: var(--text-dark);
+}
+
+
+
+
+
 /* Category Badge Base Styles */
 .category-badge {
-  @apply rounded-lg px-2 py-1.5 border;
+  @apply rounded-lg px-3 py-2 border;
 }
 
 /* Light/Dark Mode Styles */

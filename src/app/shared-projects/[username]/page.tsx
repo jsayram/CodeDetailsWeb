@@ -8,6 +8,7 @@ import { PageBanner } from "@/components/ui/page-banner";
 import { Share2 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { SharedProjectsGrid } from "@/components/Projects/SharedProjectsGrid";
+import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
 
 export default function SharedProjects() {
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
@@ -22,7 +23,7 @@ export default function SharedProjects() {
 
   return (
     <div>
-      <HeaderSection />
+      <HeaderSectionNoSideBar showMobileMenu={false} showSignInButton={true} />
       <div className="flex justify-center w-full mb-20">
         <div className="w-full max-w-7xl px-4">
           <div className="flex flex-col gap-4 mb-6 py-3">
@@ -30,8 +31,11 @@ export default function SharedProjects() {
               <div className="flex flex-col space-y-4">
                 <PageBanner
                   icon={<Share2 className="h-8 w-8 text-purple-500" />}
-                  userName={decodedUsername}
-                  bannerTitle={`${decodedUsername}'s Projects`}
+                  userName={`${decodedUsername}`}
+                  bannerTitle={`Shared Projects`}
+                  description={
+                    "Explore the projects shared by this user. You can find a variety of projects that showcase their skills and creativity."
+                  }
                   gradientFrom="purple-900"
                   gradientVia="indigo-800"
                   gradientTo="violet-800"

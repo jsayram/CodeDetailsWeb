@@ -335,13 +335,14 @@
   grid-template-columns: repeat(1, minmax(0, 1fr));
   justify-items: stretch;
   align-items: stretch;
+  justify-content: center;
 }
 
 /* Mobile and Responsive breakpoints */
 @media (max-width: 767px) {
   .project-card {
     min-height: 380px;
-    max-height: none; /* Allow cards to expand on mobile */
+    max-height: 400px; /* Allow cards to expand on mobile */
   }
   
   .card-content {
@@ -385,9 +386,38 @@
 }
 
 /* Tablet - Adjusted to snap to 2 columns sooner */
-@media (min-width: 768px) and (max-width: 1279px) {
+/* Mobile and Responsive breakpoints */
+@media (max-width: 767px) {
+  /* Your existing mobile styles */
+}
+
+/* Tablet - Adjusted to handle sidebar open cases */
+@media (min-width: 800px) and (max-width: 1279px) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+  }
+  
+  .project-card {
+    min-height: 400px;
+    max-height: 600px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+  
+  /* If screen width is in the range where sidebar would cause overflow */
+  /* @media (max-width: 1100px) {
+    .project-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  } */
+}
+/* Account for sidebar on medium-large screens */
+@media (min-width: 820px) and (max-width: 1100px) {
+  /* When sidebar is likely open and could cause overflow */
+  .has-sidebar .project-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }
 
@@ -395,5 +425,12 @@
 @media (min-width: 1280px) {
   .project-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  
+  /* Handle sidebar open case on smaller desktop screens */
+  @media (max-width: 1440px) {
+    .has-sidebar .project-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 }

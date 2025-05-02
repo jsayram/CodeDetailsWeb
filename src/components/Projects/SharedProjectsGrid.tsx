@@ -73,14 +73,18 @@ export function SharedProjectsGrid({
         throw new Error("Invalid response format");
       }
 
-      // Ensure tags are always an array, handling null/undefined cases
-      setProjects(result.data.map((projectData: Project) => ({
-        ...projectData,
-        tags: projectData.tags || [],
-        category: projectData.category as ProjectCategory,
-        isFavorite: projectData.isFavorite || false,
-      })));
-
+      setProjects(
+        result.data.map((projectData: any) => {
+          const category = projectData.project.category || "other";
+          return {
+            ...projectData.project,
+            tags: projectData.tags || [],
+            category: category as ProjectCategory,
+            isFavorite: projectData.project.isFavorite || false,
+            profile: projectData.profile,
+          };
+        })
+      );
       setPagination({
         total: result.pagination?.total ?? 0,
         totalPages: result.pagination?.totalPages ?? 1,
@@ -109,6 +113,12 @@ export function SharedProjectsGrid({
   const handleSortChange = (value: string) => {
     setSortBy(value);
   };
+  const hasCategoryProjects = (categoryKey: string) => {
+    const hasProjects = projects.some(
+      (project) => project.category === categoryKey
+    );
+    return hasProjects;
+  };
 
   if (loading) {
     return <ProjectListLoadingState />;
@@ -131,11 +141,23 @@ export function SharedProjectsGrid({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {Object.entries(PROJECT_CATEGORIES).map(([key, { label }]) => (
-                  <SelectItem key={key} value={key}>
-                    {label}
-                  </SelectItem>
-                ))}
+                {Object.entries(PROJECT_CATEGORIES).map(([key, { label }]) => {
+                  const hasProjects = hasCategoryProjects(key);
+                  return (
+                    <SelectItem
+                      key={key}
+                      value={key}
+                      disabled={!hasProjects}
+                      className={
+                        !hasProjects
+                          ? "text-muted-foreground cursor-not-allowed"
+                          : ""
+                      }
+                    >
+                      {label}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
 

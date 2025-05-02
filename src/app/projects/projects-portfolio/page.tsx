@@ -49,9 +49,11 @@ export default function MyProjectsShowcase() {
                       <div className="mb-8">
                         <div className="flex flex-col space-y-4">
                           <PageBanner
-                            icon={<GemIcon className="h-8 w-8 text-indigo-500" />}
+                            icon={
+                              <GemIcon className="h-8 w-8 text-indigo-500" />
+                            }
                             userName={user?.fullName || "User"}
-                            bannerTitle="Project Showcase"
+                            bannerTitle="Projects Portfolio"
                             userTier={userTier}
                             isUserBanner={true}
                             gradientFrom="indigo-900"

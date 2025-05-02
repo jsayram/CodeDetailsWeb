@@ -65,44 +65,47 @@ export function PaginationControls({
     if (paginationRef.current) {
       const rect = paginationRef.current.getBoundingClientRect();
       const isInViewport = rect.top >= 0 && rect.bottom <= window.innerHeight;
-      
+
       if (!isInViewport) {
         paginationRef.current.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
+          behavior: "smooth",
+          block: "center",
         });
       }
     }
   }, []);
 
-  const handlePageChange = useCallback((newPage: number) => {
-    // If trying to go to a page beyond total, stay on last valid page
-    if (newPage > totalPages) {
-      onPageChange(previousPageRef.current);
-      return;
-    }
+  const handlePageChange = useCallback(
+    (newPage: number) => {
+      // If trying to go to a page beyond total, stay on last valid page
+      if (newPage > totalPages) {
+        onPageChange(previousPageRef.current);
+        return;
+      }
 
-    // Don't allow invalid pages or same page navigation
-    if (newPage < 1 || newPage === activePageState) {
-      return;
-    }
+      // Don't allow invalid pages or same page navigation
+      if (newPage < 1 || newPage === activePageState) {
+        return;
+      }
 
-    // Store current scroll position
-    const currentPosition = window.scrollY;
+      // Store current scroll position
+      const currentPosition = window.scrollY;
 
-    // Update active state immediately for smooth transition
-    setActivePageState(newPage);
-    visitedPagesRef.current.add(newPage);
-    onPageChange(newPage);
+      // Update active state immediately for smooth transition
+      setActivePageState(newPage);
+      visitedPagesRef.current.add(newPage);
+      onPageChange(newPage);
 
-    // Restore scroll position after a short delay to allow for content update
-    requestAnimationFrame(() => {
-      window.scrollTo({
-        top: currentPosition,
-        behavior: 'instant'
+      // Restore scroll position after a short delay to allow for content update
+      requestAnimationFrame(() => {
+        window.scrollTo({
+          top: currentPosition,
+          behavior: "instant",
+        });
       });
-    });
-  }, [activePageState, totalPages, onPageChange]);
+    },
+    [activePageState, totalPages, onPageChange]
+  );
 
   // Generate visible page numbers with ellipsis
   const getVisiblePages = useCallback(() => {
@@ -114,7 +117,11 @@ export function PaginationControls({
     range.push(1);
 
     // Calculate the range around current page
-    for (let i = Math.max(2, activePageState - delta); i <= Math.min(totalPages - 1, activePageState + delta); i++) {
+    for (
+      let i = Math.max(2, activePageState - delta);
+      i <= Math.min(totalPages - 1, activePageState + delta);
+      i++
+    ) {
       range.push(i);
     }
 
@@ -130,7 +137,7 @@ export function PaginationControls({
           rangeWithDots.push(prev + 1);
           visitedPagesRef.current.add(prev + 1); // Add intermediate pages to visited
         } else if (i - prev > 2) {
-          rangeWithDots.push('...');
+          rangeWithDots.push("...");
         }
       }
       rangeWithDots.push(i);
@@ -167,7 +174,7 @@ export function PaginationControls({
             </span>
           ) : (
             visiblePages.map((page, index) => {
-              if (page === '...') {
+              if (page === "...") {
                 return (
                   <PaginationItem key={`ellipsis-${index}`}>
                     <span className="px-4">...</span>
@@ -178,19 +185,19 @@ export function PaginationControls({
               const pageNum = page as number;
               const isVisited = visitedPagesRef.current.has(pageNum);
               const isActive = activePageState === pageNum;
-              
+
               return (
                 <PaginationItem key={pageNum}>
                   <PaginationLink
                     isActive={isActive}
                     onClick={() => handlePageChange(pageNum)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`pagination-item-text flex items-center justify-center h-10 w-10 transition-all duration-200 ${
-                      isActive 
-                        ? "ring-2 ring-primary/50 bg-accent text-accent-foreground" 
+                    className={`pagination-item-text bg-transparent flex items-center justify-center h-10 w-10 transition-all duration-200 ${
+                      isActive
+                        ? "ring-1 ring-primary/50 bg-primary text-accent-foreground"
                         : isVisited
-                        ? "text-foreground hover:bg-accent/80" 
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
+                        ? "text-foreground hover:bg-primary/80"
+                        : "text-muted-foreground hover:text-card hover:bg-primary/60"
                     }`}
                   >
                     {pageNum}
@@ -202,7 +209,9 @@ export function PaginationControls({
 
           <PaginationItem>
             <PaginationNext
-              onClick={() => handlePageChange(Math.min(totalPages, activePageState + 1))}
+              onClick={() =>
+                handlePageChange(Math.min(totalPages, activePageState + 1))
+              }
               className={`${
                 activePageState === totalPages
                   ? "opacity-50 cursor-not-allowed"

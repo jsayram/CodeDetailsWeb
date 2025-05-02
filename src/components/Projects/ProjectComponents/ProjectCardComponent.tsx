@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Project } from "@/types/models/project";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,13 @@ import { RestoreProjectConfirmationModal } from "./RestoreProjectConfirmationMod
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { getInitials } from "@/utils/stringUtils";
 import { FavoriteButton } from "./FavoriteButton";
+import Image from "next/image";
+import { API_ROUTES } from "@/constants/api-routes";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ProjectCardProps {
   project: Project;
@@ -61,14 +68,27 @@ export const ProjectCard = React.memo(
     const [loadingTag, setLoadingTag] = useState<string | null>(null);
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
     const [isNavigatingUser, setIsNavigatingUser] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
 
-    // Prevent event bubbling for interactive elements inside the card
-    const handleChildClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-    };
+    useEffect(() => {
+      const checkScreenSize = () => {
+        setIsMobile(window.innerWidth < 400);
+      };
+
+      checkScreenSize();
+      window.addEventListener("resize", checkScreenSize);
+      return () => window.removeEventListener("resize", checkScreenSize);
+    }, []);
+
+    // This is the number of tags that will be shown on the card
+    // If there are more than this number of tags, a "+N" button will be displayed
+    let tagShowLimitOnCard = 5;
+    if (isMobile) {
+      tagShowLimitOnCard = 2;
+    }
 
     // Handle permanent deletion
     const handlePermanentDelete = async (e: React.MouseEvent) => {
@@ -90,9 +110,33 @@ export const ProjectCard = React.memo(
           if (onDeleteProject) {
             onDeleteProject(project.id, true);
           }
-          toast.success("Project permanently deleted");
+          toast.dismiss();
+          toast.success(
+            <div className="relative flex flex-row items-center gap-2">
+              <Image
+                src="/images/mascot.png"
+                alt="Code Minion"
+                width={50}
+                height={50}
+                className="relative rounded-md"
+              />
+              <p>Project permanently deleted!</p>
+            </div>
+          );
         } else {
-          toast.error(result.error || "Failed to delete project permanently");
+          toast.dismiss();
+          toast.error(
+            <div className="relative flex flex-row items-center gap-2">
+              <Image
+                src="/images/mascot.png"
+                alt="Code Minion"
+                width={50}
+                height={50}
+                className="relative rounded-md"
+              />
+              <p>{result.error || "Failed to delete project permanently"}</p>
+            </div>
+          );
         }
       } catch (error) {
         console.error("Error permanently deleting project:", error);
@@ -122,7 +166,19 @@ export const ProjectCard = React.memo(
           if (onDeleteProject) {
             onDeleteProject(project.id, true);
           }
-          toast.success("Project restored successfully");
+          toast.dismiss();
+          toast.success(
+            <div className="relative flex flex-row items-center gap-2">
+              <Image
+                src="/images/mascot.png"
+                alt="Code Details Mascot"
+                width={50}
+                height={50}
+                className="relative rounded-md"
+              />
+              <p>Project restored successfully </p>
+            </div>
+          );
         } else {
           toast.error(result.error || "Failed to restore project");
         }
@@ -188,16 +244,54 @@ export const ProjectCard = React.memo(
     }, [project.profile]);
 
     const handleTagClick = async (e: React.MouseEvent, tag: string) => {
+      e.preventDefault();
       e.stopPropagation();
 
-      // Check if we're already on this tag page
+      if (!user) {
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            <p>You have to sign in to browse projects by tags silly</p>
+          </div>
+        );
+        return;
+      }
+
+      // Rest of the existing tag click logic
       const currentPath = window.location.pathname;
       const tagPath = `/tags/${encodeURIComponent(tag)}`;
       if (currentPath === tagPath) {
-        return; // Don't navigate if we're already on this tag
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            <div>
+              {"You are already looking at projects tagged with "}
+              <Badge>
+                {"#"}
+                {tag}
+              </Badge>
+              {" you silly goose"}
+            </div>
+          </div>
+        );
+        return;
       }
 
-      if (loadingTag) return; // Prevent multiple tag clicks while loading
+      if (loadingTag) return;
       setLoadingTag(tag);
       router.push(tagPath);
     };
@@ -210,17 +304,52 @@ export const ProjectCard = React.memo(
     const handleCategoryClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-
-      // Check if we're already on this category page
+      if (!user) {
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            <p>You have to sign in to browse projects by categories silly</p>
+          </div>
+        );
+        return;
+      }
       const currentPath = window.location.pathname;
       const categoryPath = `/categories/${encodeURIComponent(
         project.category
       )}`;
       if (currentPath === categoryPath) {
-        return; // Don't navigate if we're already on this category
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            {
+              <div>
+                {"You are already looking at projects in the "}
+                <Badge className="bg-muted-foreground button-ghost">
+                  {PROJECT_CATEGORIES[project.category]?.label}
+                </Badge>
+                {" category you silly goose"}
+              </div>
+            }
+          </div>
+        );
+        return;
       }
 
-      if (isCategoryLoading) return; // Prevent multiple clicks while loading
+      if (isCategoryLoading) return;
       setIsCategoryLoading(true);
       router.push(categoryPath);
     };
@@ -241,6 +370,22 @@ export const ProjectCard = React.memo(
 
     const handleNavigateUser = async (e: React.MouseEvent) => {
       e.stopPropagation();
+      if (!user) {
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            <p>{`You have to sign in to view ${project.profile?.full_name}'s profile page`}</p>
+          </div>
+        );
+        return;
+      }
       const username = project.profile?.username;
       if (isNavigatingUser || !username) return;
       setIsNavigatingUser(true);
@@ -259,7 +404,31 @@ export const ProjectCard = React.memo(
       navigator.clipboard
         .writeText(shareUrl)
         .then(() => {
-          toast.success("Share project link copied to clipboard!");
+          toast.dismiss();
+          toast.success(
+            <div className="abosolute flex flex-row items-center justify-items-center gap-2 p-1 hover:p-1 w-auto">
+              <Image
+                src="/images/mascot.png"
+                alt="Code Minion"
+                width={50}
+                height={50}
+                className="relative flex item-center"
+              />
+              <div className="flex flex-col w-auto">
+                <p className="text-foreground w-full">
+                  {"Project copied to your clipboard!"}
+                </p>
+                <p className="text-muted-foreground w-full">{`"${shareUrl}"`}</p>
+              </div>
+              <ExternalLink
+                size={30}
+                className="text-muted-foreground ml-2 hover:cursor-pointer"
+                onClick={() => {
+                  window.open(`/projects/${project.slug}`, "_blank");
+                }}
+              />
+            </div>
+          );
         })
         .catch(() => {
           toast.error("Failed to copy share link");
@@ -269,7 +438,9 @@ export const ProjectCard = React.memo(
     return (
       <>
         <Card
-          className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02]
+          className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
+            project.category
+          }
             ${project.deleted_at ? "deleted" : ""} ${
             isNavigating ? "opacity-70 pointer-events-none" : ""
           }`}
@@ -282,10 +453,12 @@ export const ProjectCard = React.memo(
           )}
           <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
             {/* Category Badge */}
-            <div className={`category-badge category-${project.category}`}>
+            <div className={` category-${project.category} border-0`}>
               <Badge
                 variant={project.deleted_at ? "outline" : "secondary"}
-                className={`capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)] ${
+                className={`category-${
+                  project.category
+                } border-0 category-badge capitalize text-sm cursor-pointer hover:bg-[var(--bg-light)] dark:hover:bg-[var(--bg-dark)] ${
                   isCategoryLoading ? "opacity-70 pointer-events-none" : ""
                 }`}
                 onClick={handleCategoryClick}
@@ -304,53 +477,53 @@ export const ProjectCard = React.memo(
             </div>
 
             {/* Action buttons */}
-            <div className="flex items-center">
+            <div className="flex items-center gap-1">
               {!project.deleted_at && !hideActions ? (
                 <>
                   {isOwner && (
-                    <div className="action-buttons-group">
+                    <div className="action-buttons-group flex gap-0.5">
                       {onUpdateProject && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="action-button hover:text-blue-500"
+                          className="action-button hover:text-blue-500 h-7 w-7 sm:h-8 sm:w-8 p-0"
                           onClick={(e) => {
                             e.stopPropagation();
                             onUpdateProject?.(project);
                           }}
                           aria-label="Update project"
                         >
-                          <Edit size={20} />
+                          <Edit size={16} className="sm:hidden" />
+                          <Edit size={18} className="hidden sm:inline" />
                         </Button>
                       )}
                       {onDeleteProject && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="action-button hover:text-red-500"
+                          className="action-button hover:text-red-500 h-7 w-7 sm:h-8 sm:w-8 p-0"
                           onClick={handleDeleteClick}
                           aria-label="Delete project"
                         >
-                          <Trash2 size={20} />
+                          <Trash2 size={16} className="sm:hidden" />
+                          <Trash2 size={18} className="hidden sm:inline" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="action-button hover:text-purple-500"
-                        onClick={handleShareClick}
-                        aria-label="Share project"
-                      >
-                        <Share2 size={20} />
-                      </Button>
+                      {/* Share button moved to footer */}
                     </div>
                   )}
-                  {!hideActions && (
+                  {!hideActions && user && (
                     <FavoriteButton
                       isFavorite={!!isFavorite}
                       count={Number(project.total_favorites) || 0}
                       onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
+                        if (!user) {
+                          toast.info(
+                            "You have to sign in to favorite projects silly"
+                          );
+                          return;
+                        }
                         onToggleFavorite?.(project.id, !isFavorite);
                       }}
                       ariaLabel={
@@ -359,6 +532,18 @@ export const ProjectCard = React.memo(
                           : "Add to favorites"
                       }
                     />
+                  )}
+                  {!user && Number(project.total_favorites) > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Heart
+                        size={20}
+                        fill="currentColor"
+                        className={"text-red-500"}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {Number(project.total_favorites)}
+                      </span>
+                    </div>
                   )}
                 </>
               ) : (
@@ -392,14 +577,14 @@ export const ProjectCard = React.memo(
           <div className="card-content mx-2">
             {/* Project title and description */}
             <h3
-              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 ${
+              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 min-h-[3rem] ${
                 project.deleted_at ? "text-foreground dark:text-foreground" : ""
               }`}
             >
               {project.title}
             </h3>
 
-            <div className="min-h-[3rem]">
+            <div className="min-h-[4rem]">
               <p
                 className={`card-description text-xs sm:text-sm ${
                   project.deleted_at
@@ -454,61 +639,80 @@ export const ProjectCard = React.memo(
                 </button>
               </div>
 
-              <Button
-                variant="default"
-                size="sm"
-                onClick={handleViewDetailsClick}
-                className={`card-button ${
-                  project.deleted_at
-                    ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
-                    : ""
-                } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
-                disabled={isNavigating}
-              >
-                {isNavigating ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    Loading...
-                  </div>
-                ) : (
-                  "View Project Details"
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Share button moved to the left of View Project button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0"
+                      onClick={handleShareClick}
+                      aria-label="Share project"
+                    >
+                      <Share2 size={18} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Copy project link to clipboard</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={handleViewDetailsClick}
+                  className={`card-button ${
+                    project.deleted_at
+                      ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
+                      : ""
+                  } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                  disabled={isNavigating}
+                >
+                  {isNavigating ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                      Loading...
+                    </div>
+                  ) : (
+                    "View Project"
+                  )}
+                </Button>
+              </div>
             </div>
 
             {/* Tags section below footer with minimum height */}
-            <div className="px-6 py-3 border-t bg-muted/5 min-h-[3rem] relative">
+            <div className="px-6 py-6 border-t bg-muted/5 min-h-[4rem] relative">
               <div className="flex flex-wrap gap-1.5">
                 {tags.length > 0 ? (
                   <>
-                    {(showAllTags ? tags : tags.slice(0, 3)).map(
-                      (tag, index) => (
-                        <Badge
-                          key={index}
-                          variant="secondary"
-                          className={`${
-                            project.deleted_at
-                              ? "tag-badge-deleted"
-                              : "tag-badge"
-                          } ${
-                            loadingTag === tag
-                              ? "opacity-70 pointer-events-none"
-                              : ""
-                          }`}
-                          onClick={(e) => handleTagClick(e, tag)}
-                        >
-                          {loadingTag === tag ? (
-                            <span className="flex items-center gap-1">
-                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                              #{tag}
-                            </span>
-                          ) : (
-                            `#${tag}`
-                          )}
-                        </Badge>
-                      )
-                    )}
-                    {!showAllTags && tags.length > 3 && (
+                    {(showAllTags
+                      ? tags
+                      : tags.slice(0, tagShowLimitOnCard)
+                    ).map((tag, index) => (
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className={`${
+                          project.deleted_at ? "tag-badge-deleted" : "tag-badge"
+                        } ${
+                          loadingTag === tag
+                            ? "opacity-70 pointer-events-none"
+                            : ""
+                        }`}
+                        onClick={(e) => handleTagClick(e, tag)}
+                      >
+                        {loadingTag === tag ? (
+                          <span className="flex items-center gap-1">
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            #{tag}
+                          </span>
+                        ) : (
+                          `#${tag}`
+                        )}
+                      </Badge>
+                    ))}
+                    {!showAllTags && tags.length > tagShowLimitOnCard && (
                       <Badge
                         variant="secondary"
                         className={`${
@@ -516,10 +720,10 @@ export const ProjectCard = React.memo(
                         } hover:bg-accent cursor-pointer`}
                         onClick={handleTagExpandClick}
                       >
-                        +{tags.length - 3}
+                        +{tags.length - tagShowLimitOnCard}
                       </Badge>
                     )}
-                    {showAllTags && tags.length > 3 && (
+                    {showAllTags && tags.length > tagShowLimitOnCard && (
                       <Badge
                         variant="secondary"
                         className={`${
