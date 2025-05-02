@@ -41,6 +41,11 @@ export function NavMain({
   const [loadingPath, setLoadingPath] = useState<string | null>(null);
 
   const handleNavigation = (url: string) => {
+    // Don't navigate or show loading if we're already on this page
+    if (pathname === url) {
+      setLoadingPath(null);
+      return;
+    }
     setLoadingPath(url);
     router.push(url);
   };
@@ -50,25 +55,34 @@ export function NavMain({
       <SidebarGroupLabel>Administrator</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
-          const hasActiveChild = item.items?.some(subItem => pathname.startsWith(subItem.url));
-          const isActive = pathname === item.url || (hasActiveChild && pathname.startsWith(item.url));
+          const hasActiveChild = item.items?.some((subItem) =>
+            pathname.startsWith(subItem.url)
+          );
+          const isActive =
+            pathname === item.url ||
+            (hasActiveChild && pathname.startsWith(item.url));
           const isLoading = loadingPath === item.url;
 
           return (
             <Collapsible key={item.title} asChild defaultOpen={hasActiveChild}>
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  tooltip={item.title} 
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
                   isActive={isActive}
-                  size="lg"
+                  size="default"
                   className={cn(
                     "transition-colors cursor-default py-2.5 relative group",
-                    hasActiveChild ? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" : "",
+                    hasActiveChild
+                      ? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      : "",
                     isLoading ? "data-[loading=true]" : ""
                   )}
                 >
-                  <button onClick={() => handleNavigation(item.url)} className="w-full flex items-center">
+                  <button
+                    onClick={() => handleNavigation(item.url)}
+                    className="w-full flex items-center"
+                  >
                     <item.icon className="size-5" />
                     <span>{item.title}</span>
                     {isLoading && <SidebarLoaderSpinner />}
@@ -77,9 +91,7 @@ export function NavMain({
                 {item.items?.length ? (
                   <>
                     <CollapsibleTrigger asChild>
-                      <SidebarMenuAction 
-                        className="data-[state=open]:rotate-90 transition-transform duration-200 cursor-pointer size-6 after:-inset-3"
-                      >
+                      <SidebarMenuAction className="data-[state=open]:rotate-90 transition-transform duration-200 cursor-pointer size-6 after:-inset-3">
                         <ChevronRight className="size-5" />
                         <span className="sr-only">Toggle</span>
                       </SidebarMenuAction>
@@ -87,26 +99,38 @@ export function NavMain({
                     <CollapsibleContent>
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => {
-                          const isSubItemActive = pathname.startsWith(subItem.url);
+                          const isSubItemActive =
+                            pathname === subItem.url ||
+                            (pathname.startsWith(subItem.url) &&
+                              !item.items?.some(
+                                (other) =>
+                                  other !== subItem &&
+                                  pathname.startsWith(other.url)
+                              ));
                           const isSubItemLoading = loadingPath === subItem.url;
 
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
-                              <SidebarMenuSubButton 
-                                asChild 
-                                isActive={isSubItemActive} 
-                                className={cn(
-                                  "cursor-default py-2 relative group",
-                                  isSubItemLoading ? "data-[loading=true]" : ""
-                                )}
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={isSubItemActive}
+                                className="cursor-default py-2 relative group"
                                 size="md"
                               >
-                                <button 
+                                <button
                                   onClick={() => handleNavigation(subItem.url)}
-                                  className="cursor-pointer w-full flex items-center"
+                                  className="cursor-pointer w-full flex items-center justify-between"
+                                  disabled={
+                                    isSubItemLoading || pathname === item.url
+                                  }
                                 >
                                   <span>{subItem.title}</span>
-                                  {isSubItemLoading && <SidebarLoaderSpinner />}
+                                  {isSubItemLoading &&
+                                    pathname !== item.url && (
+                                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-sidebar-foreground/20 border-t-sidebar-foreground" />
+                                      </div>
+                                    )}
                                 </button>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>

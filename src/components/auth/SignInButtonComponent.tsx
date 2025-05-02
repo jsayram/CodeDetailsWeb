@@ -14,32 +14,36 @@ export const SignInButtonComponent = ({
   text = "sudo --authenticate user",
   animationSpeed = 120,
   useTypingEffect = true,
-  variant = "terminal"
+  variant = "terminal",
 }: SignInButtonProps) => {
   return (
     <SignInButton
       mode="modal"
       appearance={{
         elements: {
-          card: "shadow-lg bg-card/95 border-1 mt-30 rounded-lg",
+          card: "shadow-lg bg-card/95 border-1 border-primary mt-30 rounded-lg",
           headerTitle: "text-foreground",
           headerSubtitle: "text-muted-foreground",
-          socialButtonsBlockButton: "bg-primary hover:bg-secondary/90 text-secondary-foreground",
-          formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-none",
+          socialButtonsBlockButton:
+            "bg-primary hover:bg-secondary/90 text-secondary-foreground",
+          formButtonPrimary:
+            "bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-none",
           formButtonReset: "text-muted-foreground hover:text-foreground",
           formFieldLabel: "text-foreground",
-          formFieldInput: "bg-background border-border focus:border-primary text-foreground placeholder:text-muted-foreground",
+          formFieldInput:
+            "bg-background border-border focus:border-primary text-foreground placeholder:text-muted-foreground",
           dividerLine: "bg-border",
           dividerText: "text-muted-foreground",
           logoBox: "flex items-center justify-center mb-4 mt-4",
-          logoImage: "w-29 h-29 object-contain",
-          organizationSwitcherTrigger: "bg-background border-border hover:bg-muted"
+          logoImage: "w-20 h-20 object-contain",
+          organizationSwitcherTrigger:
+            "bg-background border-border hover:bg-muted",
         },
         layout: {
           showOptionalFields: true,
           logoPlacement: "inside",
-          logoImageUrl: "/images/CodeDetails_IconLogo.png"
-        }
+          logoImageUrl: "/images/CodeDetails_IconLogo.png",
+        },
       }}
     >
       {variant === "terminal" ? (
@@ -68,10 +72,7 @@ export const SignInButtonComponent = ({
           )}
         >
           {useTypingEffect ? (
-            <TextTypingEffectAnimation
-              text={text}
-              speed={animationSpeed}
-            />
+            <TextTypingEffectAnimation text={text} speed={animationSpeed} />
           ) : (
             text
           )}

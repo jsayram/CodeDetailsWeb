@@ -6,7 +6,11 @@ import { profiles } from "./schema/profiles";
 import { project_tags } from "./schema/project_tags";
 import { tags } from "./schema/tags";
 import { favorites } from "./schema/favorites";
-import { InsertProject, SelectProject, SelectUserWithProject } from "./schema/projects";
+import {
+  InsertProject,
+  SelectProject,
+  SelectUserWithProject,
+} from "./schema/projects";
 import { eq, and, isNull, or, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 
@@ -97,7 +101,7 @@ export async function getProjectBySlugServer(
           total_favorites: projects.total_favorites,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
-          deleted_at: projects.deleted_at
+          deleted_at: projects.deleted_at,
         },
         profile: {
           id: profiles.id,
@@ -109,7 +113,7 @@ export async function getProjectBySlugServer(
           email_address: profiles.email_address,
           created_at: profiles.created_at,
           updated_at: profiles.updated_at,
-        }
+        },
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
@@ -130,12 +134,42 @@ export async function getProjectBySlugServer(
       owner_user_id: projectData[0].profile?.user_id || null,
       owner_username: projectData[0].profile?.username || null,
       owner_full_name: projectData[0].profile?.full_name || null,
-      owner_profile_image_url: projectData[0].profile?.profile_image_url || null,
+      owner_profile_image_url:
+        projectData[0].profile?.profile_image_url || null,
       owner_tier: projectData[0].profile?.tier || null,
       owner_email_address: projectData[0].profile?.email_address || null,
       owner_created_at: projectData[0].profile?.created_at || null,
-      owner_updated_at: projectData[0].profile?.updated_at || null
+      owner_updated_at: projectData[0].profile?.updated_at || null,
     };
+  });
+}
+/**
+ * Server-side function to get a user by ID
+ */
+export async function getUserById(userId: string) {
+  return await executeQuery(async (db) => {
+    // Get the user profile
+    const [user] = await db
+      .select({
+        id: profiles.id,
+        user_id: profiles.user_id,
+        username: profiles.username,
+        full_name: profiles.full_name,
+        profile_image_url: profiles.profile_image_url,
+        tier: profiles.tier,
+        email_address: profiles.email_address,
+        created_at: profiles.created_at,
+        updated_at: profiles.updated_at,
+      })
+      .from(profiles)
+      .where(eq(profiles.user_id, userId))
+      .limit(1);
+
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+
+    return user;
   });
 }
 
@@ -147,9 +181,9 @@ export async function deleteProjectServer(id: string): Promise<SelectProject> {
     // Update the project to set deleted_at timestamp
     const [updatedProject] = await db
       .update(projects)
-      .set({ 
+      .set({
         deleted_at: new Date(),
-        updated_at: new Date()
+        updated_at: new Date(),
       })
       .where(eq(projects.id, id))
       .returning();
@@ -159,9 +193,7 @@ export async function deleteProjectServer(id: string): Promise<SelectProject> {
     }
 
     // Remove all favorites for this project since it's being sent to graveyard
-    await db
-      .delete(favorites)
-      .where(eq(favorites.project_id, id));
+    await db.delete(favorites).where(eq(favorites.project_id, id));
 
     // Get the tags associated with the project
     const tags = await getProjectTagNames(id);
@@ -252,7 +284,7 @@ export async function getAccessibleProjectsServer(
           total_favorites: projects.total_favorites,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
-          deleted_at: projects.deleted_at
+          deleted_at: projects.deleted_at,
         },
         profile: {
           id: profiles.id,
@@ -265,7 +297,7 @@ export async function getAccessibleProjectsServer(
           created_at: profiles.created_at,
           updated_at: profiles.updated_at,
         },
-        tags: sql<string[]>`array_agg(distinct ${tags.name})`
+        tags: sql<string[]>`array_agg(distinct ${tags.name})`,
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
@@ -298,7 +330,7 @@ export async function getAccessibleProjectsServer(
       owner_tier: profile?.tier || null,
       owner_email_address: profile?.email_address || null,
       owner_created_at: profile?.created_at || null,
-      owner_updated_at: profile?.updated_at || null
+      owner_updated_at: profile?.updated_at || null,
     }));
   });
 }
@@ -325,16 +357,25 @@ export async function getUserProjectsServer(
           created_at: profiles.created_at,
           updated_at: profiles.updated_at,
         },
-        tags: sql<string[]>`array_agg(${tags.name})`
+        tags: sql<string[]>`array_agg(${tags.name})`,
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
       .leftJoin(tags, eq(tags.id, project_tags.tag_id))
       .where(eq(projects.user_id, userId))
-      .groupBy(projects.id, profiles.id, profiles.user_id, profiles.username, profiles.full_name,
-               profiles.profile_image_url, profiles.tier, profiles.email_address,
-               profiles.created_at, profiles.updated_at)
+      .groupBy(
+        projects.id,
+        profiles.id,
+        profiles.user_id,
+        profiles.username,
+        profiles.full_name,
+        profiles.profile_image_url,
+        profiles.tier,
+        profiles.email_address,
+        profiles.created_at,
+        profiles.updated_at
+      )
       .orderBy(desc(projects.created_at));
 
     // Map the results to the expected format
@@ -349,7 +390,7 @@ export async function getUserProjectsServer(
       owner_tier: profile?.tier || null,
       owner_email_address: profile?.email_address || null,
       owner_created_at: profile?.created_at || null,
-      owner_updated_at: profile?.updated_at || null
+      owner_updated_at: profile?.updated_at || null,
     }));
   });
 }

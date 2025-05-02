@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "../CodeDetailsLogoComponent";
 import { API_ROUTES } from "../../constants/api-routes";
 import { SignInButtonComponent } from "../auth/SignInButtonComponent";
+import { is } from "drizzle-orm";
 
 const data = {
   navMain: [
@@ -66,8 +67,9 @@ const data = {
     },
     {
       title: "Browse",
-      url: "",
+      url: "#",
       icon: Search,
+      isActive: false,
       items: [
         {
           title: "Categories",
@@ -85,7 +87,7 @@ const data = {
     },
     {
       title: "Projects",
-      url: "",
+      url: "#",
       icon: Folder,
       items: [
         {
@@ -93,8 +95,8 @@ const data = {
           url: "/projects",
         },
         {
-          title: "My Projects Showcase",
-          url: "/projects/projects-showcase",
+          title: "My Projects Portfolio",
+          url: "/projects/projects-portfolio",
         },
         {
           title: "My Favorites",
@@ -254,7 +256,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SignedIn>
           {/* <NavUser user={userData} /> */}
           <SignOutButton>
-            <Button size="sm" className="hover:scale-105 transition-transform cursor-pointer">
+            <Button
+              size="sm"
+              className="hover:scale-105 transition-transform cursor-pointer"
+            >
               Sign out
             </Button>
           </SignOutButton>
@@ -263,7 +268,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
-                 <SignInButtonComponent text="Sign In" useTypingEffect={false} variant="plain" />
+                <SignInButtonComponent
+                  text="Sign In"
+                  useTypingEffect={false}
+                  variant="plain"
+                />
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

@@ -3,6 +3,8 @@
 import { LucideIcon } from "lucide-react";
 import React from "react";
 import Image from "next/image";
+import { SignIn, SignInButton, useUser } from "@clerk/nextjs";
+import { SignInButtonComponent } from "../auth/SignInButtonComponent";
 
 interface PageBannerProps {
   icon?: React.ReactNode; // Made icon optional
@@ -12,8 +14,8 @@ interface PageBannerProps {
   userTier?: string; // Made optional for community banners
   gradientFrom: string;
   gradientVia?: string;
-  gradientTo: string;
-  borderColor: string;
+  gradientTo?: string;
+  borderColor?: string;
   tierBgColor?: string; // Made optional since it's only needed for user tiers
   textGradient: string;
   isUserBanner?: boolean; // New prop to determine if it's a user banner
@@ -42,7 +44,11 @@ export function PageBanner({
 }: PageBannerProps) {
   return (
     <div className="flex justify-between items-center mb-4">
-      <div className={`flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-${gradientFrom} ${gradientVia ? `via-${gradientVia}` : ''} to-${gradientTo} rounded-2xl shadow-lg px-6 py-4 w-full border ${borderColor}`}>
+      <div
+        className={`flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-${gradientFrom} ${
+          gradientVia ? `via-${gradientVia}` : ""
+        } to-${gradientTo} rounded-2xl shadow-lg px-6 py-4 w-full border ${borderColor}`}
+      >
         <div className="flex items-center gap-4">
           {icon && icon} {/* Only render icon if it exists */}
           {logo && (
@@ -62,23 +68,31 @@ export function PageBanner({
             {isUserBanner ? (
               <>
                 {userName}&apos;s{" "}
-                <span className={`bg-gradient-to-r ${textGradient} bg-clip-text text-transparent animate-gradient-x`}>
+                <span
+                  className={`bg-gradient-to-r ${textGradient} bg-clip-text text-transparent animate-gradient-x`}
+                >
                   {bannerTitle}
                 </span>
               </>
             ) : (
-              <span className={`bg-gradient-to-r ${textGradient} bg-clip-text text-transparent animate-gradient-x`}>
+              <span
+                className={`bg-gradient-to-r ${textGradient} bg-clip-text text-transparent animate-gradient-x`}
+              >
                 {bannerTitle}
               </span>
             )}
           </h2>
           {description && (
-            <p className="text-sm text-muted-foreground dark:text-slate-300/90 mt-2">{description}</p>
+            <p className="text-sm text-foreground mt-2">
+              {description}
+            </p>
           )}
         </div>
         {isUserBanner && userTier && tierBgColor && (
           <div className="ml-0 md:ml-auto mt-2 md:mt-0 w-full md:w-auto flex justify-center md:block">
-            <span className={`inline-block px-4 py-2 rounded-xl ${tierBgColor} text-indigo-100 font-mono text-xs tracking-widest shadow`}>
+            <span
+              className={`inline-block px-4 py-2 rounded-xl ${tierBgColor} text-indigo-100 font-mono text-xs tracking-widest shadow`}
+            >
               {userTier} member
             </span>
           </div>

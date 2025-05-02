@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
-import { GridIcon, TableIcon, Plus } from "lucide-react";
+import { GridIcon, TableIcon, Plus, ExternalLink } from "lucide-react";
 import { ProjectCardView } from "./ProjectCardViewComponent";
 import { ProjectTableView } from "./ProjectTableViewComponent";
 import { ProjectForm } from "../ProjectComponents/ProjectFormComponent";
@@ -43,6 +43,8 @@ import { ProjectFilters } from "@/providers/projects-provider";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
+import ShareProjectsButton from "../ShareProjectsButton";
+import { useSession } from "@clerk/nextjs";
 
 interface ProjectListProps {
   currentPage: number;
@@ -102,6 +104,7 @@ export function ProjectList({
     title: string;
   } | null>(null);
   const [isUnfavoriting, setIsUnfavoriting] = useState(false);
+  const user = useSession();
 
   // Check for mobile screen size
   useEffect(() => {
@@ -416,7 +419,11 @@ export function ProjectList({
           height={128}
         />
         <p>Please sign in to view projects 🔐</p>
-         <SignInButtonComponent text="Sign In" useTypingEffect={false} variant="plain" />
+        <SignInButtonComponent
+          text="Sign In"
+          useTypingEffect={false}
+          variant="plain"
+        />
       </div>
     );
   }
@@ -445,6 +452,10 @@ export function ProjectList({
                 Create Project
               </Button>
             )}
+            {/* Share Projects Button - only show for authenticated users */}
+            {userId && showUserProjectsOnly && (
+              <ShareProjectsButton userId={userId} />
+            )}
           </div>
 
           {/* Right side controls */}
@@ -470,7 +481,7 @@ export function ProjectList({
                     handleCategoryChange(value as ProjectCategory | "all")
                   }
                 >
-                  <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectTrigger className="w-full sm:w-auto">
                     <SelectValue placeholder="Filter by category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -515,41 +526,39 @@ export function ProjectList({
       {/* Projects Display */}
       {projects.length === 0 ? (
         <>
+          <CodeParticlesElement
+            quantity={"medium"}
+            speed={"fast"}
+            size={"large"}
+            containerClassName={"w-full h-[800px] relative top-0 "}
+            includeEmojis={true}
+            includeSymbols={true}
+            includeKeywords={true}
+            depth="layered"
+            opacityRange={[0.1, 0.3]}
+            lightModeOpacityRange={[0.1, 0.4]}
+          />
           <div
-            className={`flex items-center justify-center text-center flex-col `}
+            className={`aboslute flex items-center justify-center text-center flex-col `}
           >
-            <div className="ralative w-[800px] h-[800px] flex items-center justify-center px-4">
-              <CodeParticlesElement
-                quantity={"medium"}
-                speed={"fast"}
-                size={"large"}
-                containerClassName={"w-full h-full"}
-                includeEmojis={true}
-                includeSymbols={true}
-                includeKeywords={true} 
-                depth="layered"
-                opacityRange={[0.1, 0.3]}
-                lightModeOpacityRange={[0.1, 0.4]}
-              />
-
+            <div className="absolute w-[800px] h-[800px] flex items-center justify-center px-4">
               <Image
                 src="/images/mascot.png"
                 alt="code details mascot"
-                className="relative -top-40 "
+                className="absolute -top-55"
                 width={300}
                 height={300}
               />
-              </div>
+            </div>
+            <div className="text-2xl font-bold text-primary/90 dark:text-primary/80 -mt-90 px-2 border-1 rounded-2xl p-5 backdrop-blur-sm shadow-lg">
+              {showDeletedOnly
+                ? "The Project Graveyard is Empty! 🪦"
+                : showFavoritesOnly
+                ? "Your Collection Awaits! ⭐"
+                : showUserProjectsOnly
+                ? "Time to Showcase Your Genius! 🚀"
+                : "It's your time to shine! 💫"}
 
-              <div className="text-2xl font-bold text-primary/90 dark:text-primary/80 -mt-90 px-2 border-1 rounded-2xl p-5 backdrop-blur-sm shadow-lg">
-                {showDeletedOnly
-                  ? "The Project Graveyard is Empty! 🪦"
-                  : showFavoritesOnly
-                  ? "Your Collection Awaits! ⭐"
-                  : showUserProjectsOnly
-                  ? "Time to Showcase Your Genius! 🚀"
-                  : "Ready to Discover Amazing Projects! 💫"}
-              
               <p className="text-xl font-medium text-muted-foreground dark:text-muted-foreground/90">
                 {showDeletedOnly
                   ? "Looks like all projects are alive and kicking!"
@@ -557,16 +566,15 @@ export function ProjectList({
                   ? "Start exploring and mark your favorite projects"
                   : showUserProjectsOnly
                   ? "Share your coding adventures with the community"
-                  : "Be the first to add something spectacular"}
+                  : "Be the creator and let the world see your brilliance!"}
               </p>
-              </div>
-              {filter?.userId === userId && !showDeletedOnly && (
-                <Button variant="default" onClick={() => setShowAddForm(true)}>
-                  Create Your First Project or Keep Exploring
-                </Button>
-              )}
             </div>
-          
+            {filter?.userId === userId && !showDeletedOnly && (
+              <Button variant="default" onClick={() => setShowAddForm(true)}>
+                Create Your First Project or Keep Exploring
+              </Button>
+            )}
+          </div>
         </>
       ) : (
         <>
