@@ -97,8 +97,11 @@ export function ProjectContent({
   }>({});
 
   // Tag submissions for the project
-  const { pendingTags, refreshPendingTags, isLoading: isLoadingPendingTags } =
-    useProjectTagSubmissions(project?.id || "");
+  const {
+    pendingTags,
+    refreshPendingTags,
+    isLoading: isLoadingPendingTags,
+  } = useProjectTagSubmissions(project?.id || "");
 
   // Refs
   const formInitializedRef = useRef(false);
@@ -376,9 +379,47 @@ export function ProjectContent({
 
   const renderContent = () => (
     <div className="container mx-auto px-4 py-8">
+      <div className="flex items-row justify-between mb-4">
+      {!create && (
+        <div className="flex items-between gap-2">
+          {isOwner && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEditModeToggle}
+              className="flex items-center gap-2 hover:cursor-pointer"
+            >
+              {isEditMode ? (
+                <>
+                  <Eye className="h-4 w-4" />
+                  View Mode
+                </>
+              ) : (
+                <>
+                  <Edit className="h-4 w-4" />
+                  Edit Project
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-5">
+        <Badge variant="secondary" className="capitalize">
+          {PROJECT_CATEGORIES[
+            project.category as keyof typeof PROJECT_CATEGORIES
+          ]?.label || project.category}
+        </Badge>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Heart className="h-5 w-5" />
+          <span>{project.total_favorites || 0}</span>
+        </div>
+      </div>
+      </div>
       {/* Profile Header Section */}
       <div className="mb-6 bg-card rounded-lg p-6 shadow-lg">
-        <div className="flex items-start gap-6">
+        <div className="flex items-col gap-6">
           {!create && (
             <button
               onClick={handleNavigateUser}
@@ -410,7 +451,7 @@ export function ProjectContent({
             </button>
           )}
           <div className="flex-1">
-            <div className="flex items-center justify-between">
+            <div className="flex items-col justify-between">
               <div>
                 <h1 className="text-3xl font-bold">
                   {create ? "Create New Project" : project.title}
@@ -429,41 +470,6 @@ export function ProjectContent({
                   </button>
                 )}
               </div>
-              {!create && (
-                <div className="flex items-center gap-2">
-                  {isOwner && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleEditModeToggle}
-                      className="flex items-center gap-2 hover:cursor-pointer"
-                    >
-                      {isEditMode ? (
-                        <>
-                          <Eye className="h-4 w-4" />
-                          View Mode
-                        </>
-                      ) : (
-                        <>
-                          <Edit className="h-4 w-4" />
-                          Edit Project
-                        </>
-                      )}
-                    </Button>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="capitalize">
-                      {PROJECT_CATEGORIES[
-                        project.category as keyof typeof PROJECT_CATEGORIES
-                      ]?.label || project.category}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Heart className="h-5 w-5" />
-                      <span>{project.total_favorites || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
