@@ -441,7 +441,7 @@ export function ProjectList({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => setShowAddForm(true)}
+                onClick={() => router.push("/projects/new")}
                 className="w-full sm:w-auto hover:bg-primary/90 cursor-pointer"
               >
                 <Plus size={16} className="mr-2" />
