@@ -19,7 +19,6 @@ import {
 } from "@/app/actions/projects";
 import { toast } from "sonner";
 import { Project } from "@/types/models/project";
-import { UpdateProjectModal } from "./UpdateProjectModal";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { UnfavoriteConfirmationModal } from "./UnfavoriteConfirmationModal";
 import { useAuth, SignInButton } from "@clerk/nextjs";
@@ -45,6 +44,7 @@ import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement
 import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
 import ShareProjectsButton from "../ShareProjectsButton";
 import { useSession } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 interface ProjectListProps {
   currentPage: number;
@@ -88,6 +88,7 @@ export function ProjectList({
   } = useProjects();
 
   const { userId } = useAuth();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState("card");
   const [isMobile, setIsMobile] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -96,8 +97,6 @@ export function ProjectList({
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(
     null
   );
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [showUnfavoriteModal, setShowUnfavoriteModal] = useState(false);
   const [unfavoritingProject, setUnfavoritingProject] = useState<{
     id: string;
@@ -297,15 +296,12 @@ export function ProjectList({
     [projects, handleProjectDeleted]
   );
 
-  const handleUpdateProject = useCallback((project: Project) => {
-    setEditingProject(project);
-    setIsUpdateModalOpen(true);
-  }, []);
-
-  const handleModalClose = useCallback(() => {
-    setIsUpdateModalOpen(false);
-    setTimeout(() => setEditingProject(null), 300);
-  }, []);
+  const handleUpdateProject = useCallback(
+    (project: Project) => {
+      router.push(`/projects/${project.slug}?edit=true`);
+    },
+    [router]
+  );
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!projectToDelete || !userId) return;
@@ -630,13 +626,6 @@ export function ProjectList({
           />
         </DialogContent>
       </Dialog>
-
-      <UpdateProjectModal
-        project={editingProject}
-        isOpen={isUpdateModalOpen}
-        onClose={handleModalClose}
-        onProjectUpdated={handleProjectUpdated}
-      />
 
       <DeleteConfirmationModal
         isOpen={showDeleteDialog}
