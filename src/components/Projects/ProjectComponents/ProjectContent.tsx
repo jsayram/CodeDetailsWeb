@@ -46,6 +46,8 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { slugify } from "@/utils/stringUtils";
+import { ProjectTagSubmissionButton } from "./ProjectTagSubmissionButton";
+import { useProjectTagSubmissions } from "@/hooks/use-project-tag-submissions";
 
 interface UserProfile extends SelectProject {
   user_id: string;
@@ -93,6 +95,10 @@ export function ProjectContent({
     category?: string;
     slug?: string;
   }>({});
+
+  // Tag submissions for the project
+  const { pendingTags, refreshPendingTags, isLoading: isLoadingPendingTags } =
+    useProjectTagSubmissions(project?.id || "");
 
   // Refs
   const formInitializedRef = useRef(false);
@@ -430,7 +436,7 @@ export function ProjectContent({
                       variant="outline"
                       size="sm"
                       onClick={handleEditModeToggle}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 hover:cursor-pointer"
                     >
                       {isEditMode ? (
                         <>
@@ -660,26 +666,67 @@ export function ProjectContent({
             {/* Tags Card */}
             <Card>
               <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Tags className="h-5 w-5" />
-                  <CardTitle>Tags</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Tags className="h-5 w-5" />
+                    <CardTitle>Tags</CardTitle>
+                  </div>
+
+                  {/* Add the tag suggestion button here if not in edit mode and user is the owner */}
+                  {!isEditMode && !create && isOwner && (
+                    <ProjectTagSubmissionButton
+                      projectId={project.id || ""}
+                      projectTitle={project.title}
+                      currentTags={project.tags || []}
+                      pendingTags={pendingTags}
+                      onSubmit={refreshPendingTags}
+                      variant="outline"
+                      size="sm"
+                    />
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
                 {!isEditMode ? (
-                  project.tags && project.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {project.tags.map((tag) => (
-                        <Badge key={tag} variant="outline">
-                          #{tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">
-                      No tags added
-                    </p>
-                  )
+                  <>
+                    {project.tags && project.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {project.tags.map((tag) => (
+                          <Badge key={tag} variant="outline">
+                            #{tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm mb-3">
+                        No tags added yet
+                      </p>
+                    )}
+
+                    {/* Display pending tag submissions */}
+                    {pendingTags && pendingTags.length > 0 && (
+                      <div className="mt-4">
+                        <div className="rounded-md bg-muted/50 p-3 space-y-2">
+                          <p className="text-sm font-medium">
+                            Pending Tag Submissions:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {pendingTags.map((submission) => (
+                              <span
+                                key={submission.id}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              >
+                                {submission.tag_name}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            These tags will appear on the project once approved.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : null}
               </CardContent>
             </Card>
