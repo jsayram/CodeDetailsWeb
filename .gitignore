@@ -44,3 +44,18 @@ coverage/
 public/sw.js
 public/workbox-*.js
 public/workbox-*.json
+
+# Ignore build artifacts
+build/
+dist/
+# Ignore test artifacts
+test/
+
+# python artifacts
+*.pyc
+__pycache__/
+*.pyo
+
+# python virtual environments
+venv/
+.env/

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,15 +18,21 @@ import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/providers/projects-provider";
-import { ClientOnly } from "@/components/ClientOnly";
-import { searchTagsAction } from "@/app/actions/tags";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { Tag as TagIcon } from "lucide-react";
+import { ClientOnly } from "@/components/ClientOnly";
+import { SelectTagSubmission } from "@/db/schema/tag_submissions";
 
-interface TagSubmissionModalProps {
+interface ProjectTagSubmissionButtonProps {
   projectId: string;
-  onSubmit?: () => void;
-  isOwner?: boolean; // Add this prop
+  projectTitle: string;
+  currentTags: string[];
+  pendingTags?: SelectTagSubmission[];
+  onSubmit?: () => Promise<void>;
+  variant?: "default" | "outline" | "secondary" | "ghost";
+  size?: "default" | "sm" | "lg" | "icon";
+  className?: string;
 }
 
 // Validation function for tag names
@@ -63,13 +69,17 @@ const validateTagName = async (
   return { isValid: true };
 };
 
-export function TagSubmissionModal({
+export function ProjectTagSubmissionButton({
   projectId,
+  projectTitle,
+  currentTags,
+  pendingTags = [],
   onSubmit,
-  isOwner = false, // Default to false for safety
-}: TagSubmissionModalProps) {
+  variant = "default",
+  size = "default",
+  className,
+}: ProjectTagSubmissionButtonProps) {
   const { user, isLoaded } = useUser();
-  const { projects } = useProjects();
   const { refreshCache } = useTagCache();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,7 +87,6 @@ export function TagSubmissionModal({
   const [email, setEmail] = useState("");
   const [description, setDescription] = useState("");
   const [tagError, setTagError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [processedTags, setProcessedTags] = useState<
     Array<{
       name: string;
@@ -87,20 +96,17 @@ export function TagSubmissionModal({
     }>
   >([]);
 
-  // Get project details
-  const project = projects?.find((p) => p.id === projectId);
-  const currentTagCount = project?.tags?.length || 0;
+  // Calculate tag slots
+  const currentTagCount = currentTags.length;
   const remainingTagSlots = MAX_PROJECT_TAGS - currentTagCount;
+  const isOwner = user !== null;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && isLoaded && user?.primaryEmailAddress?.emailAddress) {
+  // Set user email when loaded
+  React.useEffect(() => {
+    if (isLoaded && user?.primaryEmailAddress?.emailAddress) {
       setEmail(user.primaryEmailAddress.emailAddress);
     }
-  }, [user, isLoaded, mounted]);
+  }, [user, isLoaded]);
 
   // Reset form when dialog is closed
   const handleOpenChange = (newOpen: boolean) => {
@@ -114,6 +120,12 @@ export function TagSubmissionModal({
   };
 
   const processTagInput = async (input: string) => {
+    if (!input.trim()) {
+      setProcessedTags([]);
+      setTagError(null);
+      return true;
+    }
+    
     setProcessedTags([]); // Clear existing tags while processing
 
     // Keep track of normalized tags we've seen
@@ -137,6 +149,26 @@ export function TagSubmissionModal({
       })
       .map(async ({ normalized }, index) => {
         const validation = await validateTagName(normalized);
+
+        // Check if tag already exists in current tags
+        if (currentTags.map(t => t.toLowerCase()).includes(normalized)) {
+          return {
+            name: normalized,
+            isValid: false,
+            message: "Tag already exists on this project",
+            willBeSubmitted: false
+          };
+        }
+        
+        // Check if tag is already pending approval
+        if (pendingTags.some(pt => pt.tag_name.toLowerCase() === normalized)) {
+          return {
+            name: normalized,
+            isValid: false,
+            message: "Tag already pending approval",
+            willBeSubmitted: false
+          };
+        }
 
         // Mark which tags will be submitted based on remaining slots
         const willBeSubmitted = index < remainingTagSlots;
@@ -191,8 +223,9 @@ export function TagSubmissionModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOwner) {
-      toast.error("You are not authorized to request a tag for this project.");
+
+    if (!user) {
+      toast.error("You must be signed in to submit tags");
       return;
     }
 
@@ -266,7 +299,7 @@ export function TagSubmissionModal({
         toast.success(
           `${autoApproved.join(", ")} ${
             autoApproved.length === 1 ? "has" : "have"
-          } been automatically added to your project`
+          } been automatically added to your project refresh your page`
         );
       }
 
@@ -288,7 +321,9 @@ export function TagSubmissionModal({
         setTagError(null);
 
         // Call onSubmit callback to refresh pending tags and project tags
-        await onSubmit?.();
+        if (onSubmit) {
+          await onSubmit();
+        }
 
         // Close modal after everything is done
         setOpen(false);
@@ -301,46 +336,57 @@ export function TagSubmissionModal({
     }
   };
 
-  if (!mounted) return null;
-
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        {isOwner ? (
+      <DialogTrigger asChild>
+        <Button
+          variant={variant}
+          size={size}
+          disabled={!isLoaded || remainingTagSlots <= 0}
+          title={
+            remainingTagSlots <= 0
+              ? "Maximum tags reached. Please refresh the page after removing tags to request new ones."
+              : "Suggest tags for this project"
+          }
+          className={`hover:cursor-pointer ${className}`}
+        >
+          <TagIcon className="mr-2 h-4 w-4" />
+          Suggest Tags
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        {user ? (
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Submit New Tag</DialogTitle>
+              <DialogTitle>Suggest Tags</DialogTitle>
               <DialogDescription asChild>
                 <div className="space-y-2">
                   <p>
-                    Propose new tags for this project.{" "}
+                    Suggest new tags for this project.{" "}
                     <span className="font-medium">
                       ({currentTagCount}/{MAX_PROJECT_TAGS} tags used)
                     </span>
                   </p>
                   {remainingTagSlots > 0 ? (
                     <p className="text-sm bg-muted/50 p-2 rounded-md">
-                      You can request up to{" "}
+                      You can suggest up to{" "}
                       <span className="font-medium">{remainingTagSlots}</span>{" "}
                       more tag{remainingTagSlots !== 1 ? "s" : ""}.
                       {remainingTagSlots < MAX_PROJECT_TAGS &&
-                        ` Any additional tag requests will be automatically rejected.`}
+                        ` Any additional tag suggestions will be automatically rejected.`}
                     </p>
                   ) : (
                     <p className="text-sm bg-destructive/10 text-destructive p-2 rounded-md">
                       This project has reached the maximum limit of{" "}
-                      {MAX_PROJECT_TAGS} tags. Remove some existing tags before
-                      requesting new ones.
+                      {MAX_PROJECT_TAGS} tags.
                     </p>
                   )}
                   <ClientOnly>
-                    {project && (
-                      <p className="bg-muted/50 p-2 rounded-md text-sm">
-                        <Badge variant="outline" className="mb-1">
-                          {project.title}
-                        </Badge>
-                      </p>
-                    )}
+                    <p className="bg-muted/50 p-2 rounded-md text-sm">
+                      <Badge variant="outline" className="mb-1">
+                        {projectTitle}
+                      </Badge>
+                    </p>
                   </ClientOnly>
                   <p className="text-xs text-muted-foreground">
                     You can submit multiple tags by separating them with commas.
@@ -401,7 +447,7 @@ export function TagSubmissionModal({
                 />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="description">Description (Optional)</label>
+                <label htmlFor="description">Why suggest this tag? (Optional)</label>
                 <Textarea
                   id="description"
                   placeholder="Why should these tags be added to this project?"
@@ -420,13 +466,13 @@ export function TagSubmissionModal({
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting || !!tagError}>
-                {isSubmitting ? "Submitting..." : "Submit Tag"}
+                {isSubmitting ? "Submitting..." : "Submit Tags"}
               </Button>
             </DialogFooter>
           </form>
         ) : (
-          <div className="text-sm text-muted-foreground">
-            You are not authorized to request a tag for this project.
+          <div className="text-sm text-muted-foreground p-4 text-center">
+            You must be signed in to suggest tags for this project.
           </div>
         )}
       </DialogContent>

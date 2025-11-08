@@ -11,6 +11,7 @@ import {
 import { ProjectContent } from "@/components/Projects/ProjectComponents/ProjectContent";
 import { notFound } from "next/navigation";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { LogIn } from "lucide-react";
 import {
   SelectProjectWithOwner,
@@ -18,6 +19,8 @@ import {
 } from "@/db/schema/projects";
 import { PageBanner } from "@/components/ui/page-banner";
 import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideBar";
+import { ProjectsProvider } from "@/providers/projects-provider";
+import { cookies } from "next/headers";
 
 type Props = {
   params: Promise<{ slug: string }> | { slug: string };
@@ -37,6 +40,12 @@ export default async function ProjectPage({
   const user = (await getProjectUsersProfileBySlugServer(
     resolvedParams.slug
   )) as SelectUserWithProject;
+
+  // Get auth data
+  const { userId } = await auth();
+  // For server components, we'll use the JWT directly from cookies //NEED TO REVISIT THIS INCASE THERE AUTH IS NOT SET
+  const cookieStore = await cookies();
+  const token = cookieStore.get("__supabase_auth_token")?.value || null;
 
   if (!project) {
     notFound();
@@ -72,19 +81,21 @@ export default async function ProjectPage({
             </div>
           </SignedOut>
         </div>
-        <Suspense
-          fallback={
-            <div className="container mx-auto px-4 py-8">
-              <ProjectListLoadingState />
-            </div>
-          }
-        >
-          <ProjectContent
-            project={project}
-            error={undefined}
-            userProfile={user}
-          />
-        </Suspense>
+        <ProjectsProvider token={token} userId={userId} isLoading={false}>
+          <Suspense
+            fallback={
+              <div className="container mx-auto px-4 py-8">
+                <ProjectListLoadingState />
+              </div>
+            }
+          >
+            <ProjectContent
+              project={project}
+              error={undefined}
+              userProfile={user}
+            />
+          </Suspense>
+        </ProjectsProvider>
         <FooterSection />
       </SidebarInset>
     </SidebarProvider>

@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect, KeyboardEvent } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  KeyboardEvent,
+  useMemo,
+} from "react";
 import { Loader2 } from "lucide-react";
 import { Tag } from "./tag";
 import { TagInfo } from "@/db/operations/tag-operations";
@@ -33,6 +39,9 @@ export function TagInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Use memoization to prevent unnecessary renders
+  const displayTags = useMemo(() => tags || [], [tags]);
+
   // Search for tag suggestions when input changes
   useEffect(() => {
     const search = async () => {
@@ -43,7 +52,7 @@ export function TagInput({
           const results = await searchTags(inputValue);
           // Filter out tags that are already selected
           const filteredResults = results.filter(
-            suggestion => !tags.some(tag => tag.id === suggestion.id)
+            (suggestion) => !displayTags.some((tag) => tag.id === suggestion.id)
           );
           setSuggestions(filteredResults);
           setShowSuggestions(filteredResults.length > 0);
@@ -64,12 +73,15 @@ export function TagInput({
     // Use a longer debounce timeout to reduce API calls
     const timeoutId = setTimeout(search, 500);
     return () => clearTimeout(timeoutId);
-  }, [inputValue, searchTags, tags]);
+  }, [inputValue, searchTags, displayTags]);
 
   // Close suggestions on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -87,15 +99,13 @@ export function TagInput({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setSelectedSuggestionIndex(prev => 
+        setSelectedSuggestionIndex((prev) =>
           prev < suggestions.length - 1 ? prev + 1 : prev
         );
         break;
       case "ArrowUp":
         e.preventDefault();
-        setSelectedSuggestionIndex(prev => 
-          prev > 0 ? prev - 1 : -1
-        );
+        setSelectedSuggestionIndex((prev) => (prev > 0 ? prev - 1 : -1));
         break;
       case "Enter":
         e.preventDefault();
@@ -110,20 +120,25 @@ export function TagInput({
   };
 
   const handleSelectTag = async (tag: TagInfo) => {
-    await onAddTag(tag.id);
-    setInputValue("");
-    setSuggestions([]);
-    setShowSuggestions(false);
-    inputRef.current?.focus();
+    try {
+      await onAddTag(tag.id);
+      setInputValue("");
+      setSuggestions([]);
+      setShowSuggestions(false);
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error("Error adding tag:", error);
+      setError("Failed to add tag. Please try again.");
+    }
   };
 
   return (
     <div className={cn("w-full space-y-2", className)} {...props}>
       {/* Display selected tags */}
       <div className="flex flex-wrap gap-2 mb-2">
-        {tags.map(tag => (
-          <Tag 
-            key={tag.id}
+        {displayTags.map((tag) => (
+          <Tag
+            key={tag.id || tag.name}
             variant="default"
             size="md"
             removable
@@ -133,7 +148,7 @@ export function TagInput({
           </Tag>
         ))}
       </div>
-      
+
       {/* Tag input with suggestions */}
       <div className="relative" ref={containerRef}>
         <div className="flex w-full items-center gap-2">
@@ -157,9 +172,7 @@ export function TagInput({
           </div>
         </div>
 
-        {error && (
-          <p className="mt-1 text-sm text-red-500">{error}</p>
-        )}
+        {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
