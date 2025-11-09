@@ -46,7 +46,7 @@ export function extractClerkUserData(data: any) {
       data.email_addresses?.[0]?.email_address?.split("@")[0] || 
       `user_${data.id.slice(-8)}`,
     profile_image_url: data.image_url || data.profile_image_url || null,
-    role: data.public_metadata?.role || "user",
+    role: data.public_metadata?.role || "authenticated",
     tier: data.public_metadata?.tier || "free",
   };
 }
