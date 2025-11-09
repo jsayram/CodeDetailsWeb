@@ -28,18 +28,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check cache to avoid redundant sync attempts
-    const cachedTimestamp = recentlyVerifiedUsers.get(targetUserId);
-    const now = Date.now();
-
-    if (cachedTimestamp && now - cachedTimestamp < CACHE_TTL) {
-      console.log(`🔍 User ${targetUserId} was recently verified, skipping sync`);
-      return NextResponse.json({
-        status: "cached",
-        message: "User recently verified, profile in sync",
-      });
-    }
-
     // User doesn't exist or cache expired - fetch from Clerk and sync
     console.log(`🔄 Syncing user ${targetUserId} to database (client-side sync)`);
     
@@ -77,13 +65,7 @@ export async function POST(request: Request) {
     // Use shared utility to create/update user
     const result = await createOrUpdateUserProfile(clerkUserData);
 
-    // Update cache
-    recentlyVerifiedUsers.set(targetUserId, now);
-    if (recentlyVerifiedUsers.size > 100) {
-      cleanupCache();
-    }
-
-        console.log(`✅ User ${targetUserId} synced successfully (client-side): ${result.status}`);
+    console.log(`✅ User ${targetUserId} synced successfully (client-side): ${result.status}`);
     
     return NextResponse.json(result);
   } catch (error) {
