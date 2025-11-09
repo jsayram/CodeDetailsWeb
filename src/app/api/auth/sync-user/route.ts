@@ -29,7 +29,11 @@ export async function POST(request: Request) {
     }
 
     // User doesn't exist or cache expired - fetch from Clerk and sync
-    console.log(`🔄 Syncing user ${targetUserId} to database (client-side sync)`);
+    const targetEmail = userId 
+      ? (await currentUser())?.emailAddresses[0]?.emailAddress 
+      : (await (await clerkClient()).users.getUser(targetUserId))?.emailAddresses[0]?.emailAddress;
+    
+    console.log(`🔄 Syncing user ${targetUserId} (${targetEmail || 'no email'}) to database (client-side sync)`);
     
     // Fetch user data from Clerk - use clerkClient if called from middleware, currentUser if authenticated
     let user;
