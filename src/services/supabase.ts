@@ -8,35 +8,57 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing required Supabase environment variables");
 }
 
-// Use a global variable to store the Supabase client instance
-let supabaseClient: SupabaseClient | null = null;
+/**
+ * Creates a Supabase client with Clerk authentication.
+ * Uses the new native Clerk Supabase integration (replaces deprecated JWT template).
+ * @param {() => Promise<string | null>} getToken - Function that returns Clerk token
+ * @returns {SupabaseClient} - The Supabase client instance with Clerk auth
+ */
+export function createClerkSupabaseClient(
+  getToken: () => Promise<string | null>
+): SupabaseClient {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      fetch: async (url, options = {}) => {
+        const clerkToken = await getToken();
+
+        // Insert the Clerk token into the headers
+        const headers = new Headers(options?.headers);
+        headers.set("Authorization", `Bearer ${clerkToken}`);
+
+        return fetch(url, {
+          ...options,
+          headers,
+        });
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+}
 
 /**
- * Returns a Supabase client, optionally with an authentication token.
- * Uses a single global instance to avoid multiple client initializations.
- * @param {string | null} token - Optional JWT token for authentication.
- * @returns {SupabaseClient} - The Supabase client instance.
+ * DEPRECATED: Old token-based client for backward compatibility.
+ * Use createClerkSupabaseClient instead for new code.
  */
 const getSupabaseClient = (token?: string | null): SupabaseClient => {
-  // Initialize the client only once if it doesn't exist
-  if (!supabaseClient) {
-    supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false, // Disable auto-refresh
-        persistSession: false, // Disable session persistence
-      },
-    });
-  }
-  // Set or clear the session based on token presence
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
   if (token) {
-    supabaseClient.auth.setSession({
+    client.auth.setSession({
       access_token: token,
       refresh_token: "",
     });
-  } else {
-    supabaseClient.auth.signOut();
   }
-  return supabaseClient;
+
+  return client;
 };
 
 /**

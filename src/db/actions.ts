@@ -165,8 +165,10 @@ export async function getUserById(userId: string) {
       .where(eq(profiles.user_id, userId))
       .limit(1);
 
+    // Return null instead of throwing to allow graceful handling
     if (!user) {
-      throw new Error(`User with ID ${userId} not found`);
+      console.warn(`User with ID ${userId} not found in database`);
+      return null;
     }
 
     return user;

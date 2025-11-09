@@ -113,7 +113,8 @@ export function useSupabaseToken() {
       // Create new global promise
       globalTokenPromise = (async () => {
         try {
-          const newToken = await session.getToken({ template: "supabase" });
+          // Native Clerk Supabase integration - no template needed
+          const newToken = await session.getToken();
 
           // Clear existing timeout if any
           if (globalTokenTimeout) {

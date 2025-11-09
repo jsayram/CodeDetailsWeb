@@ -18,11 +18,15 @@ export const ShareProjectsButton = ({ userId }: ShareProjectButtonProps) => {
     const fetchUsername = async () => {
       try {
         const user = await getUserById(userId); // Use your existing action
-        if (!user) throw new Error("User not found");
+        if (!user) {
+          console.warn("User not found in database, may need sync from Clerk");
+          setUsername(null);
+          return;
+        }
         setUsername(user.username);
       } catch (error) {
         console.error("Error fetching username:", error);
-        toast.error("Could not load user information");
+        setUsername(null);
       }
     };
 
@@ -34,7 +38,9 @@ export const ShareProjectsButton = ({ userId }: ShareProjectButtonProps) => {
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!username) {
-      toast.error("Cannot share: username not found");
+      toast.error("Cannot share: User profile not synced yet", {
+        description: "Please try again in a moment",
+      });
       return;
     }
     const shareUrl = `${
@@ -82,9 +88,10 @@ export const ShareProjectsButton = ({ userId }: ShareProjectButtonProps) => {
       variant="default"
       size="sm"
       className="inline-flex items-center gap-2 hover:cursor-pointer"
+      disabled={!username}
     >
       <ExternalLink className="h-4 w-4" />
-      Copy Share Projects Link
+      {username ? "Copy Share Projects Link" : "Loading..."}
     </Button>
   );
 };
