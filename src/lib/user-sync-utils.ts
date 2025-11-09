@@ -7,6 +7,7 @@
 
 import { clerkClient } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
+import { ClerkUserData } from "@/types/models/clerkUserData";
 
 // Create a Supabase client with service role (bypasses RLS)
 const supabaseServer = createClient(
@@ -28,26 +29,96 @@ export function cleanupCache() {
   }
 }
 
+// /**
+//  * Extract and normalize user data from Clerk (Simple Extraction version)
+//  */
+// export function extractClerkUserData(data: any) {
+//   return {
+//     user_id: data.id,
+//     email_address: data.email_addresses?.[0]?.email_address || null,
+//     first_name: data.first_name || null,
+//     last_name: data.last_name || null,
+//     full_name: 
+//       data.first_name && data.last_name
+//         ? `${data.first_name} ${data.last_name}`
+//         : data.first_name || data.last_name || null,
+//     username: 
+//       data.username || 
+//       data.email_addresses?.[0]?.email_address?.split("@")[0] || 
+//       `user_${data.id.slice(-8)}`,
+//     profile_image_url: data.image_url || data.profile_image_url || null,
+//     role: data.public_metadata?.role || "authenticated",
+//     tier: data.public_metadata?.tier || "free",
+//   };
+// }
+
 /**
- * Extract and normalize user data from Clerk
+ * Extract and normalize user data from Clerk (Custom Extraction version with fallbacks)
  */
-export function extractClerkUserData(data: any) {
+async function extractClerkUserData(data: ClerkUserData) {
+  const user_id = data.id; // unique Clerk user ID
+  const email_address = data.email_addresses?.[0]?.email_address || "";
+  const first_name = data.first_name || "Code";
+  const last_name = data.last_name || "Minion";
+  const full_name =
+    data.full_name || // Use Clerk-provided full name if available
+    data.first_name ||
+    data.last_name // If either name part exists
+      ? `${data.first_name || ""} ${data.last_name || ""}`.trim() // Combine available parts
+      : `_${
+          data.email_addresses?.[0]?.email_address?.split("@")[0] ||
+          "FN_user-" + data.id.substring(5, 15)
+        }`;
+  const username =
+    data.username ||
+    data.email_addresses?.[0]?.email_address ||
+    "Code_User-" +
+      (data.first_name ? data.first_name.substring(0, 3) : "") +
+      "_" +
+      (data.last_name || data.id.substring(5, 10)); // use email or generate username from first and last name if not provided
+  // optional metadata
+  const profile_image_url = data.profile_image_url;
+  const role = data.public_metadata?.role || "authenticated";
+
+  // Get tier from metadata if provided
+  let tier = data.public_metadata?.tier;
+
+  // If tier is not provided, try to get it from the database
+  if (!tier && user_id) {
+    try {
+      // Try to get the existing user data from the database
+      const { data: existingUser } = await supabaseServer
+        .from("profiles")
+        .select("tier")
+        .eq("user_id", user_id)
+        .single();
+
+      // If the user exists, use their current tier
+      if (existingUser && existingUser.tier) {
+        console.log(
+          `🎫 Using existing tier from database: ${existingUser.tier} for user ${user_id}`
+        );
+        tier = existingUser.tier;
+      } else {
+        // For new users, default to 'free'
+        tier = "free";
+      }
+    } catch (error) {
+      console.log("Could not fetch existing tier, defaulting to 'free'");
+      tier = "free";
+    }
+  }
+
   return {
-    user_id: data.id,
-    email_address: data.email_addresses?.[0]?.email_address || null,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
-    full_name: 
-      data.first_name && data.last_name
-        ? `${data.first_name} ${data.last_name}`
-        : data.first_name || data.last_name || null,
-    username: 
-      data.username || 
-      data.email_addresses?.[0]?.email_address?.split("@")[0] || 
-      `user_${data.id.slice(-8)}`,
-    profile_image_url: data.image_url || data.profile_image_url || null,
-    role: data.public_metadata?.role || "authenticated",
-    tier: data.public_metadata?.tier || "free",
+    user_id,
+    email_address,
+    first_name,
+    last_name,
+    full_name,
+    username,
+    profile_image_url,
+    role,
+    tier: tier || "free",
   };
 }
 
@@ -56,7 +127,7 @@ export function extractClerkUserData(data: any) {
  * This is the main sync function used by both webhooks and middleware
  */
 export async function createOrUpdateUserProfile(data: any) {
-  const userData = extractClerkUserData(data);
+  const userData = await extractClerkUserData(data);
   const { user_id } = userData;
 
   console.log(`🔄 Syncing user ${user_id} to Supabase profiles`);
