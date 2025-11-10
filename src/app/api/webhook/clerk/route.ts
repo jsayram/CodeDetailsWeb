@@ -63,7 +63,7 @@ async function handleUserUpdated(data: ClerkUserData) {
   }
 }
 
-// Handle user.deleted
+// TODO: Need to handle this more grcefully , disabled for now in Clerk.Handle user.deleted
 async function handleUserDeleted(data: ClerkUserData) {
   const { id: user_id } = data;
 
