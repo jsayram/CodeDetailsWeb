@@ -91,7 +91,22 @@ interface DashboardStats {
       total_favorites: number;
     }>;
   };
-  submissions: Array<any>; // Type from getPendingTagSubmissions
+  submissions: Array<{
+    tag_name: string;
+    count: number;
+    submissions: Array<{
+      id: string;
+      tag_name: string;
+      project_id: string;
+      submitter_email: string;
+      description: string | null;
+      status: string;
+      created_at: Date | null;
+      updated_at: Date | null;
+      admin_notes: string | null;
+      reviewed_at: Date | null;
+    }>;
+  }>;
 }
 
 // Loading skeleton for stats card
@@ -360,6 +375,7 @@ function DashboardContent() {
           </CardContent>
         </Card>
       </div>
+      
       <div className="mt-6">
         <Card>
           <CardHeader>

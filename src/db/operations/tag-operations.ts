@@ -22,6 +22,8 @@ export interface TagInfo {
 
 // Cache structure for tag queries with improved typing
 const tagQueryCache = new Map<string, { tags: TagInfo[]; timestamp: number }>();
+// Promise cache to prevent duplicate queries (cache stampede fix)
+const pendingQueries = new Map<string, Promise<TagInfo[]>>();
 const CACHE_DURATION = 30 * 1000; // 30 seconds instead of 5 minutes
 
 // Helper to get cached tags or fetch from database
@@ -34,7 +36,14 @@ async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
     return cached.tags;
   }
 
-  const tags = await executeQuery(async (db) => {
+  // Check if query is already pending (prevents cache stampede)
+  const pending = pendingQueries.get(cacheKey);
+  if (pending) {
+    return pending;
+  }
+
+  // Create and cache the query promise
+  const queryPromise = executeQuery(async (db) => {
     const baseQuery = db
       .select({
         id: tagsTable.id,
@@ -45,17 +54,30 @@ async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
       .leftJoin(project_tags, eq(project_tags.tag_id, tagsTable.id))
       .leftJoin(projects, eq(project_tags.project_id, projects.id))
       .groupBy(tagsTable.id, tagsTable.name)
-      .orderBy(desc(sql<number>`COUNT(DISTINCT CASE WHEN ${project_tags.project_id} IS NOT NULL AND projects.deleted_at IS NULL THEN ${project_tags.project_id} ELSE NULL END)`), desc(tagsTable.name));
+      .orderBy(desc(sql<number>`COUNT(DISTINCT CASE WHEN ${project_tags.project_id} IS NOT NULL AND projects.deleted_at IS NULL THEN ${project_tags.project_id} ELSE NULL END)`), desc(tagsTable.name))
+      .limit(100); // Limit results to prevent returning thousands of tags
 
     if (query) {
       return await baseQuery.where(sql`${tagsTable.name} ILIKE ${`%${query}%`}`);
     }
     
     return await baseQuery;
+  }).then(tags => {
+    // Update cache with results
+    tagQueryCache.set(cacheKey, { tags, timestamp: Date.now() });
+    // Remove from pending queries
+    pendingQueries.delete(cacheKey);
+    return tags;
+  }).catch(error => {
+    // Remove from pending queries on error
+    pendingQueries.delete(cacheKey);
+    throw error;
   });
 
-  tagQueryCache.set(cacheKey, { tags, timestamp: now });
-  return tags;
+  // Store pending query
+  pendingQueries.set(cacheKey, queryPromise);
+  
+  return queryPromise;
 }
 
 // Optimized tag search with caching
@@ -77,96 +99,105 @@ export async function getTagsForContent(
       .from(tagsTable)
       .innerJoin(project_tags, eq(project_tags.tag_id, tagsTable.id))
       .where(eq(project_tags.project_id, contentId))
-      .orderBy(desc(tagsTable.name));
+      .orderBy(desc(tagsTable.name))
+      .limit(100); // Limit results per content
   });
 }
 
 // Helper to find or create tags in batch
 export async function findOrCreateTags(tagNames: string[]): Promise<TagInfo[]> {
   return await executeQuery(async (db) => {
-    const uniqueNames = [...new Set(tagNames.map(name => name.trim()))];
-    
-    // First, try to find existing tags
-    const existingTags = await db
-      .select({
-        id: tagsTable.id,
-        name: tagsTable.name,
-      })
-      .from(tagsTable)
-      .where(inArray(tagsTable.name, uniqueNames));
-
-    const existingTagNames = new Set(existingTags.map(tag => tag.name));
-    const newTagNames = uniqueNames.filter(name => !existingTagNames.has(name));
-
-    // Create new tags in batch if needed
-    if (newTagNames.length > 0) {
-      const newTags = await db
-        .insert(tagsTable)
-        .values(newTagNames.map(name => ({ name })))
-        .returning({
+    return await db.transaction(async (tx) => {
+      const uniqueNames = [...new Set(tagNames.map(name => name.trim()))];
+      
+      // First, try to find existing tags
+      const existingTags = await tx
+        .select({
           id: tagsTable.id,
           name: tagsTable.name,
-        });
+        })
+        .from(tagsTable)
+        .where(inArray(tagsTable.name, uniqueNames))
+        .limit(100); // Limit batch size
 
-      // Combine existing and new tags
-      return [...existingTags, ...newTags];
-    }
+      const existingTagNames = new Set(existingTags.map(tag => tag.name));
+      const newTagNames = uniqueNames.filter(name => !existingTagNames.has(name));
 
-    return existingTags;
+      // Create new tags in batch if needed
+      if (newTagNames.length > 0) {
+        const newTags = await tx
+          .insert(tagsTable)
+          .values(newTagNames.map(name => ({ name })))
+          .returning({
+            id: tagsTable.id,
+            name: tagsTable.name,
+          });
+
+        // Combine existing and new tags
+        return [...existingTags, ...newTags];
+      }
+
+      return existingTags;
+    });
   });
 }
 
-// Optimized replace content tags using batch operations
+// Optimized replace content tags using batch operations with transaction
 export async function replaceContentTags(
   contentType: ContentType,
   contentId: string,
   tagIds: string[]
 ): Promise<void> {
   await executeQuery(async (db) => {
-    // Delete existing associations
-    await db
-      .delete(project_tags)
-      .where(eq(project_tags.project_id, contentId));
+    // Use transaction to ensure atomicity
+    await db.transaction(async (tx) => {
+      // Delete existing associations
+      await tx
+        .delete(project_tags)
+        .where(eq(project_tags.project_id, contentId));
 
-    // Create new associations in batch
-    if (tagIds.length > 0) {
-      await db.insert(project_tags).values(
-        tagIds.map(tagId => ({
-          project_id: contentId,
-          tag_id: tagId,
-        }))
-      );
-    }
+      // Create new associations in batch
+      if (tagIds.length > 0) {
+        await tx.insert(project_tags).values(
+          tagIds.map(tagId => ({
+            project_id: contentId,
+            tag_id: tagId,
+          }))
+        );
+      }
+    });
   });
 
   // Clear cache after modification
   tagQueryCache.clear();
 }
 
-// Add a single tag to content
+// Add a single tag to content with transaction
 export async function addTagToContent(
   contentType: ContentType,
   contentId: string,
   tagId: string
 ): Promise<void> {
   await executeQuery(async (db) => {
-    const existing = await db
-      .select()
-      .from(project_tags)
-      .where(
-        and(
-          eq(project_tags.project_id, contentId),
-          eq(project_tags.tag_id, tagId)
+    await db.transaction(async (tx) => {
+      const existing = await tx
+        .select()
+        .from(project_tags)
+        .where(
+          and(
+            eq(project_tags.project_id, contentId),
+            eq(project_tags.tag_id, tagId)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (existing.length === 0) {
-      await db.insert(project_tags).values({
-        project_id: contentId,
-        tag_id: tagId,
-      });
-    }
+      if (existing.length === 0) {
+        await tx.insert(project_tags).values({
+          project_id: contentId,
+          tag_id: tagId,
+        });
+      }
+    });
   });
 
   tagQueryCache.clear();

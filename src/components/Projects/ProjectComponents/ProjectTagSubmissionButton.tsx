@@ -268,8 +268,8 @@ export function ProjectTagSubmissionButton({
           } else {
             results.push(result);
           }
-        } catch (error: any) {
-          const errorMessage = error?.message || "Unknown error occurred";
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
           errors.push(`${tag.name}: ${errorMessage}`);
           console.error(`Error submitting tag ${tag.name}:`, error);
         }
