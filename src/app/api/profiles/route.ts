@@ -19,6 +19,8 @@ export async function GET() {
           created_at: profiles.created_at,
           updated_at: profiles.updated_at,
           project_count: sql<number>`COUNT(CASE WHEN ${projects.deleted_at} IS NULL THEN ${projects.id} END)`,
+          total_favorites: sql<number>`COALESCE(SUM(CASE WHEN ${projects.deleted_at} IS NULL THEN ${projects.total_favorites}::numeric ELSE 0 END), 0)`,
+          last_activity_date: sql<Date | null>`MAX(CASE WHEN ${projects.deleted_at} IS NULL THEN GREATEST(${projects.updated_at}, ${projects.created_at}) END)`,
         })
         .from(profiles)
         .leftJoin(projects, eq(profiles.user_id, projects.user_id))

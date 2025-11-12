@@ -12,12 +12,15 @@ import { Search, Hash, Folder, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
 
 function SearchContent() {
   const router = useRouter();
@@ -25,6 +28,29 @@ function SearchContent() {
   const { tags: allTags, isLoading: tagsLoading } = useTagCache();
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [profilesLoading, setProfilesLoading] = useState(true);
+  const [usersOpen, setUsersOpen] = useState(true);
+  const [tagsOpen, setTagsOpen] = useState(true);
+  const [categoriesOpen, setCategoriesOpen] = useState(true);
+
+  // Fetch all user profiles
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      try {
+        setProfilesLoading(true);
+        const response = await fetch("/api/profiles");
+        if (!response.ok) throw new Error("Failed to fetch profiles");
+        const data = await response.json();
+        setAllProfiles(data);
+      } catch (error) {
+        console.error("Error fetching profiles:", error);
+      } finally {
+        setProfilesLoading(false);
+      }
+    };
+    fetchProfiles();
+  }, []);
 
   // Filter categories
   const categoryCounts = useMemo(() => {
@@ -91,37 +117,137 @@ function SearchContent() {
     return [...top30Active, ...additionalTags];
   }, [allTags, searchQuery]);
 
-  // Filter users (get unique usernames from projects)
-  const filteredUsers = useMemo(() => {
+  // Filter users (get ALL users from profiles API and enhance with project data)
+  const { activeUsers, inactiveUsers, totalInactiveCount } = useMemo(() => {
+    if (profilesLoading || !allProfiles.length) {
+      return { activeUsers: [], inactiveUsers: [], totalInactiveCount: 0 };
+    }
+
     const searchLower = searchQuery.toLowerCase().trim();
-    const userMap = new Map<string, { username: string; projectCount: number }>();
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
+    // Build a map of username -> project tags for tag-based search
+    const userTagsMap = new Map<string, Set<string>>();
+    projects.forEach((project) => {
+      if (!project.deleted_at && project.profile?.username && project.tags) {
+        const username = project.profile.username;
+        if (!userTagsMap.has(username)) {
+          userTagsMap.set(username, new Set());
+        }
+        const tagSet = userTagsMap.get(username)!;
+        project.tags.forEach((tag) => {
+          tagSet.add(tag.toLowerCase());
+        });
+      }
+    });
+
+    // Build user data from profiles and enhance with project stats
+    const projectStatsMap = new Map<string, {
+      projectCount: number;
+      totalFavorites: number;
+      lastActivityDate: Date | null;
+    }>();
+
     projects.forEach((project) => {
       if (!project.deleted_at && project.profile?.username) {
         const username = project.profile.username;
-        const existing = userMap.get(username);
+        const existing = projectStatsMap.get(username);
+        const projectDate = new Date(project.updated_at || project.created_at || Date.now());
+        const favorites = Number(project.total_favorites) || 0;
+        
         if (existing) {
           existing.projectCount++;
+          existing.totalFavorites += favorites;
+          if (!existing.lastActivityDate || projectDate > existing.lastActivityDate) {
+            existing.lastActivityDate = projectDate;
+          }
         } else {
-          userMap.set(username, {
-            username: username,
+          projectStatsMap.set(username, {
             projectCount: 1,
+            totalFavorites: favorites,
+            lastActivityDate: projectDate,
           });
         }
       }
     });
+
+    // Map all profiles to user objects
+    const allUsers = allProfiles.map(profile => {
+      const stats = projectStatsMap.get(profile.username) || {
+        projectCount: 0,
+        totalFavorites: 0,
+        lastActivityDate: null,
+      };
+      
+      const lastActivity = stats.lastActivityDate || (profile.last_activity_date ? new Date(profile.last_activity_date) : null);
+      const isActive = lastActivity ? lastActivity >= sevenDaysAgo : false;
+      // Heavy weight on projects and favorites, minimal weight on recent activity
+      // Projects: 100 points each, Favorites: 50 points each, Active: 5 points
+      const score = (stats.projectCount * 100) + (stats.totalFavorites * 50) + (isActive ? 5 : 0);
+
+      return {
+        username: profile.username,
+        email: profile.email_address || null,
+        profileImage: profile.profile_image_url || null,
+        fullName: profile.full_name || null,
+        projectCount: stats.projectCount,
+        totalFavorites: stats.totalFavorites,
+        lastActivityDate: lastActivity,
+        isActive,
+        score,
+        createdAt: profile.created_at ? new Date(profile.created_at) : null,
+      };
+    });
     
-    const users = Array.from(userMap.values());
+    // Separate active and inactive users
+    const active = allUsers.filter(user => user.projectCount > 0);
+    const inactive = allUsers.filter(user => user.projectCount === 0);
     
-    // Sort by project count
-    const sortedUsers = users.sort((a, b) => b.projectCount - a.projectCount);
+    // Sort active by score descending
+    const sortedActive = active.sort((a, b) => b.score - a.score);
     
-    if (!searchLower) return sortedUsers.slice(0, 20);
+    // Sort inactive by creation date (newest first)
+    const sortedInactive = inactive.sort((a, b) => {
+      if (!a.createdAt) return 1;
+      if (!b.createdAt) return -1;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
     
-    return sortedUsers
-      .filter((user) => user.username.toLowerCase().includes(searchLower))
-      .slice(0, 20);
-  }, [projects, searchQuery]);
+    // Apply search filter with enhanced tag-based matching
+    const matchesSearch = (user: typeof allUsers[0]) => {
+      if (!searchLower) return true;
+      
+      // Check username, fullName, email
+      const basicMatch = 
+        user.username.toLowerCase().includes(searchLower) ||
+        (user.fullName?.toLowerCase().includes(searchLower)) ||
+        (user.email?.toLowerCase().includes(searchLower));
+      
+      if (basicMatch) return true;
+      
+      // Check if user has any project tags matching the search
+      const userTags = userTagsMap.get(user.username);
+      if (userTags) {
+        for (const tag of userTags) {
+          if (tag.includes(searchLower)) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    };
+
+    const filteredActive = sortedActive.filter(matchesSearch);
+    const filteredInactive = sortedInactive.filter(matchesSearch);
+    
+    return {
+      activeUsers: filteredActive.slice(0, 30),
+      inactiveUsers: filteredInactive, // Show ALL inactive users (no limit)
+      totalInactiveCount: filteredInactive.length
+    };
+  }, [allProfiles, profilesLoading, projects, searchQuery]);
 
   const handleCategoryClick = (key: string, count: number) => {
     if (count === 0) return;
@@ -140,7 +266,9 @@ function SearchContent() {
   };
 
   const activeTags = filteredTags.filter((tag) => (tag.count ?? 0) > 0);
-  const totalResults = filteredCategories.length + filteredTags.length + filteredUsers.length;
+  const totalResults = filteredCategories.length + filteredTags.length + activeUsers.length + inactiveUsers.length;
+
+  const isLoading = loading || tagsLoading || profilesLoading;
 
   return (
     <div className="flex justify-center w-full mb-20">
@@ -171,6 +299,13 @@ function SearchContent() {
             />
           </div>
 
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="space-y-6">
+              <GenericLoadingState type="card" itemsCount={6} />
+            </div>
+          ) : (
+            <>
           {/* Results Summary */}
           {searchQuery && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -182,7 +317,7 @@ function SearchContent() {
                 {filteredTags.length} tags
               </Badge>
               <Badge variant="secondary" className="font-mono">
-                {filteredUsers.length} users
+                {activeUsers.length + inactiveUsers.length} users
               </Badge>
             </div>
           )}
@@ -198,53 +333,111 @@ function SearchContent() {
 
             {/* All Results Tab */}
             <TabsContent value="all" className="space-y-6 mt-6">
-              {/* Categories */}
-              {filteredCategories.length > 0 && (
+              {/* Users - First */}
+              {(activeUsers.length > 0 || inactiveUsers.length > 0) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Folder className="h-5 w-5" />
-                      Categories
-                      <Badge variant="secondary">{filteredCategories.length}</Badge>
+                      <Users className="h-5 w-5" />
+                      Users
+                      <Badge variant="secondary">{activeUsers.length + inactiveUsers.length}</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {filteredCategories.map(([key, category]) => {
-                        const count = categoryCounts[key] || 0;
-                        const isLoading = loadingItem === `category-${key}`;
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {activeUsers.map((user) => {
+                        const isLoading = loadingItem === `user-${user.username}`;
                         return (
                           <div
-                            key={key}
-                            className={`p-4 rounded-lg border transition-all cursor-pointer hover:bg-accent ${
-                              count === 0 ? "opacity-50 cursor-not-allowed" : ""
+                            key={user.username}
+                            className={`p-4 rounded-lg border transition-all cursor-pointer hover:bg-accent hover:shadow-md ${
+                              isLoading ? "opacity-50" : ""
                             }`}
-                            onClick={() => handleCategoryClick(key, count)}
+                            onClick={() => handleUserClick(user.username)}
                           >
-                            <div className="flex items-start justify-between mb-2">
-                              <h3 className="font-semibold">{category.label}</h3>
-                              <Badge variant={count > 0 ? "secondary" : "outline"}>
-                                {count}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {category.description}
-                            </p>
-                            {isLoading && (
-                              <div className="mt-2 flex items-center gap-2 text-sm">
-                                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                Loading...
+                            <div className="flex items-start gap-4 relative">
+                              {isLoading && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg">
+                                  <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                              )}
+                              {user.profileImage ? (
+                                <img
+                                  src={user.profileImage}
+                                  alt={user.username}
+                                  className="w-12 h-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-background"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold ring-2 ring-offset-2 ring-offset-background">
+                                  {user.username[0]?.toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <h3 className="font-medium truncate">{user.username}</h3>
+                                </div>
+                                {user.fullName && (
+                                  <p className="text-sm text-muted-foreground truncate">
+                                    {user.fullName}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                  <Badge variant="secondary" className="text-xs">
+                                    {user.projectCount} {user.projectCount === 1 ? "project" : "projects"}
+                                  </Badge>
+                                  {user.totalFavorites > 0 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      ⭐ {user.totalFavorites}
+                                    </Badge>
+                                  )}
+                                  {user.isActive && (
+                                    <Badge variant="default" className="text-xs bg-green-600">
+                                      Active
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
-                            )}
+                            </div>
                           </div>
                         );
                       })}
+                      {inactiveUsers.map((user) => (
+                        <div
+                          key={user.username}
+                          className="p-4 rounded-lg border cursor-not-allowed opacity-40"
+                        >
+                          <div className="flex items-start gap-4">
+                            {user.profileImage ? (
+                              <img
+                                src={user.profileImage}
+                                alt={user.username}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                                {user.username[0]?.toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-medium truncate">{user.username}</h3>
+                              {user.fullName && (
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {user.fullName}
+                                </p>
+                              )}
+                              <Badge variant="outline" className="text-xs mt-2">
+                                No projects
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Tags */}
+              {/* Tags - Second */}
               {filteredTags.length > 0 && (
                 <Card>
                   <CardHeader>
@@ -292,35 +485,38 @@ function SearchContent() {
                 </Card>
               )}
 
-              {/* Users */}
-              {filteredUsers.length > 0 && (
+              {/* Categories - Third */}
+              {filteredCategories.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Users
-                      <Badge variant="secondary">{filteredUsers.length}</Badge>
+                      <Folder className="h-5 w-5" />
+                      Categories
+                      <Badge variant="secondary">{filteredCategories.length}</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {filteredUsers.map((user) => {
-                        const isLoading = loadingItem === `user-${user.username}`;
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {filteredCategories.map(([key, category]) => {
+                        const count = categoryCounts[key] || 0;
+                        const isLoading = loadingItem === `category-${key}`;
                         return (
                           <div
-                            key={user.username}
-                            className="p-4 rounded-lg border transition-all cursor-pointer hover:bg-accent"
-                            onClick={() => handleUserClick(user.username)}
+                            key={key}
+                            className={`p-4 rounded-lg border transition-all cursor-pointer hover:bg-accent ${
+                              count === 0 ? "opacity-50 cursor-not-allowed" : ""
+                            }`}
+                            onClick={() => handleCategoryClick(key, count)}
                           >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-medium">{user.username}</span>
-                              </div>
-                              <Badge variant="secondary" className="text-xs">
-                                {user.projectCount} {user.projectCount === 1 ? "project" : "projects"}
+                            <div className="flex items-start justify-between mb-2">
+                              <h3 className="font-semibold">{category.label}</h3>
+                              <Badge variant={count > 0 ? "secondary" : "outline"}>
+                                {count}
                               </Badge>
                             </div>
+                            <p className="text-sm text-muted-foreground">
+                              {category.description}
+                            </p>
                             {isLoading && (
                               <div className="mt-2 flex items-center gap-2 text-sm">
                                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -436,38 +632,229 @@ function SearchContent() {
             </TabsContent>
 
             {/* Users Only Tab */}
-            <TabsContent value="users" className="mt-6">
-              {filteredUsers.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {filteredUsers.map((user) => {
-                    const isLoading = loadingItem === `user-${user.username}`;
-                    return (
-                      <Card
-                        key={user.username}
-                        className="cursor-pointer transition-all hover:shadow-lg"
-                        onClick={() => handleUserClick(user.username)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Users className="h-5 w-5 text-muted-foreground" />
-                              <span className="font-medium">{user.username}</span>
+            <TabsContent value="users" className="mt-6 space-y-6">
+              {activeUsers.length > 0 || inactiveUsers.length > 0 ? (
+                <>
+                  {/* Top 3 Contributors */}
+                  {activeUsers.length > 0 && (
+                    <div>
+                      <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-transparent bg-clip-text">
+                        Top Contributors
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {activeUsers.slice(0, 3).map((user, index) => {
+                          const isLoading = loadingItem === `user-${user.username}`;
+                          const getLeaderboardBadge = (position: number) => {
+                            const medals = ['🥇', '🥈', '🥉'];
+                            const titles = ['1st Place', '2nd Place', '3rd Place'];
+                            return (
+                              <div
+                                className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center"
+                                title={titles[position]}
+                              >
+                                <span className="text-xl" role="img">
+                                  {medals[position]}
+                                </span>
+                              </div>
+                            );
+                          };
+                          
+                          const getLeaderboardCardStyle = (position: number) => {
+                            const styles = [
+                              'border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-transparent dark:from-yellow-950/20',
+                              'border-2 border-gray-300 bg-gradient-to-br from-gray-50 to-transparent dark:from-gray-950/20',
+                              'border-2 border-amber-600 bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20'
+                            ];
+                            return styles[position] || '';
+                          };
+
+                          return (
+                            <Card
+                              key={user.username}
+                              className={`p-4 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${
+                                isLoading ? "opacity-50" : ""
+                              } ${getLeaderboardCardStyle(index)}`}
+                              onClick={() => handleUserClick(user.username)}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="relative">
+                                  {isLoading && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full z-10">
+                                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                  )}
+                                  {user.profileImage ? (
+                                    <div className="relative">
+                                      <img
+                                        src={user.profileImage}
+                                        alt={user.username}
+                                        className="w-12 h-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-background"
+                                      />
+                                      {getLeaderboardBadge(index)}
+                                    </div>
+                                  ) : (
+                                    <div className="relative">
+                                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                                        {user.username[0]?.toUpperCase()}
+                                      </div>
+                                      {getLeaderboardBadge(index)}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-medium truncate">{user.username}</h3>
+                                  {user.fullName && (
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      {user.fullName}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                    <Badge variant="secondary" className="text-xs">
+                                      {user.projectCount} {user.projectCount === 1 ? "project" : "projects"}
+                                    </Badge>
+                                    {user.totalFavorites > 0 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        ⭐ {user.totalFavorites}
+                                      </Badge>
+                                    )}
+                                    {user.isActive && (
+                                      <Badge variant="default" className="text-xs bg-green-600">
+                                        Active
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Honorable Mentions */}
+                  {activeUsers.length > 3 && (
+                    <>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            ⭐️ Honorable Mentions ⭐️
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {activeUsers.slice(3).map((user) => {
+                          const isLoading = loadingItem === `user-${user.username}`;
+                          return (
+                            <Card
+                              key={user.username}
+                              className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                                isLoading ? "opacity-50" : ""
+                              }`}
+                              onClick={() => handleUserClick(user.username)}
+                            >
+                              <div className="flex items-center gap-4 relative">
+                                {isLoading && (
+                                  <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10 rounded-lg">
+                                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                  </div>
+                                )}
+                                {user.profileImage ? (
+                                  <img
+                                    src={user.profileImage}
+                                    alt={user.username}
+                                    className="w-12 h-12 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                                    {user.username[0]?.toUpperCase()}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-medium truncate">{user.username}</h3>
+                                  {user.fullName && (
+                                    <p className="text-sm text-muted-foreground truncate">
+                                      {user.fullName}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                    <Badge variant="secondary" className="text-xs">
+                                      {user.projectCount} {user.projectCount === 1 ? "project" : "projects"}
+                                    </Badge>
+                                    {user.totalFavorites > 0 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        ⭐ {user.totalFavorites}
+                                      </Badge>
+                                    )}
+                                    {user.isActive && (
+                                      <Badge variant="default" className="text-xs bg-green-600">
+                                        Active
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Inactive Users */}
+                  {inactiveUsers.length > 0 && (
+                    <>
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                          <span className="bg-background px-2 text-muted-foreground">
+                            Inactive Users (showing {totalInactiveCount} total)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {inactiveUsers.map((user) => (
+                          <Card
+                            key={user.username}
+                            className="p-4 cursor-not-allowed opacity-40"
+                          >
+                            <div className="flex items-center gap-4">
+                              {user.profileImage ? (
+                                <img
+                                  src={user.profileImage}
+                                  alt={user.username}
+                                  className="w-12 h-12 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                                  {user.username[0]?.toUpperCase()}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-medium truncate">{user.username}</h3>
+                                {user.fullName && (
+                                  <p className="text-sm text-muted-foreground truncate">
+                                    {user.fullName}
+                                  </p>
+                                )}
+                                <Badge variant="outline" className="text-xs mt-2">
+                                  No projects
+                                </Badge>
+                              </div>
                             </div>
-                            <Badge variant="secondary">
-                              {user.projectCount}
-                            </Badge>
-                          </div>
-                          {isLoading && (
-                            <div className="mt-2 flex items-center gap-2 text-sm">
-                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                              Loading...
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   No users found
@@ -475,6 +862,8 @@ function SearchContent() {
               )}
             </TabsContent>
           </Tabs>
+            </>
+          )}
         </div>
       </div>
     </div>
