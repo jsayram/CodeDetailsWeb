@@ -107,71 +107,74 @@ const data = {
         },
       ],
     },
-    {
-      title: "Documentation",
-      url: "/docs",
-      icon: BookOpen,
-      items: [
-        {
-          title: "API Reference",
-          url: "/docs/api",
-        },
-        {
-          title: "Guides",
-          url: "/docs/guides",
-        },
-        {
-          title: "Examples",
-          url: "/docs/examples",
-        },
-      ],
-    },
-    {
-      title: "AI Assistant",
-      url: "/ai",
-      icon: Bot,
-      items: [
-        {
-          title: "Code Generation",
-          url: "/ai/generate",
-        },
-        {
-          title: "Refactoring",
-          url: "/ai/refactor",
-        },
-        {
-          title: "Explanations",
-          url: "/ai/explain",
-        },
-        {
-          title: "History",
-          url: "/ai/history",
-        },
-      ],
-    },
-    {
-      title: "Collaboration",
-      url: "/collaborate",
-      icon: Send,
-      items: [
-        {
-          title: "Team Projects",
-          url: "/collaborate/teams",
-        },
-        {
-          title: "Shared Code",
-          url: "/collaborate/shared",
-        },
-        {
-          title: "Pull Requests",
-          url: "/collaborate/pull-requests",
-        },
-        {
-          title: "Comments",
-          url: "/collaborate/comments",
-        },
-      ],
-    },
+    // ====================================================================
+    // COMMENTED OUT: Future Features - Pages not yet implemented
+    // ====================================================================
+    // {
+    //   title: "Documentation",
+    //   url: "/docs",
+    //   icon: BookOpen,
+    //   items: [
+    //     {
+    //       title: "API Reference",
+    //       url: "/docs/api",
+    //     },
+    //     {
+    //       title: "Guides",
+    //       url: "/docs/guides",
+    //     },
+    //     {
+    //       title: "Examples",
+    //       url: "/docs/examples",
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: "AI Assistant",
+    //   url: "/ai",
+    //   icon: Bot,
+    //   items: [
+    //     {
+    //       title: "Code Generation",
+    //       url: "/ai/generate",
+    //     },
+    //     {
+    //       title: "Refactoring",
+    //       url: "/ai/refactor",
+    //     },
+    //     {
+    //       title: "Explanations",
+    //       url: "/ai/explain",
+    //     },
+    //     {
+    //       title: "History",
+    //       url: "/ai/history",
+    //     },
+    //   ],
+    // },
+    // {
+    //   title: "Collaboration",
+    //   url: "/collaborate",
+    //   icon: Send,
+    //   items: [
+    //     {
+    //       title: "Team Projects",
+    //       url: "/collaborate/teams",
+    //     },
+    //     {
+    //       title: "Shared Code",
+    //       url: "/collaborate/shared",
+    //     },
+    //     {
+    //       title: "Pull Requests",
+    //       url: "/collaborate/pull-requests",
+    //     },
+    //     {
+    //       title: "Comments",
+    //       url: "/collaborate/comments",
+    //     },
+    //   ],
+    // },
   ],
   navSecondary: [
     {
@@ -190,41 +193,45 @@ const data = {
       icon: Map,
     },
   ],
-  projects: [
-    {
-      title: "React Portfolio",
-      name: "React Portfolio",
-      owner: "Personal",
-      lastUpdated: "Today",
-      isNew: true,
-      url: "/projects/react-portfolio",
-      icon: Code,
-    },
-    {
-      title: "TypeScript API",
-      name: "TypeScript API",
-      owner: "Work Team",
-      lastUpdated: "Yesterday",
-      url: "/projects/typescript-api",
-      icon: FileCode,
-    },
-    {
-      title: "E-Commerce Backend",
-      name: "E-Commerce Backend",
-      owner: "Client Project",
-      lastUpdated: "2 days ago",
-      url: "/projects/ecommerce-backend",
-      icon: Database,
-    },
-    {
-      title: "Mobile App",
-      name: "Mobile App",
-      owner: "Collaboration",
-      lastUpdated: "Last week",
-      url: "/projects/mobile-app",
-      icon: Smartphone,
-    },
-  ],
+  // ====================================================================
+  // COMMENTED OUT: Sample Projects - Not actual project routes
+  // These are placeholder projects, not real pages. Remove or replace with dynamic user projects.
+  // ====================================================================
+  // projects: [
+  //   {
+  //     title: "React Portfolio",
+  //     name: "React Portfolio",
+  //     owner: "Personal",
+  //     lastUpdated: "Today",
+  //     isNew: true,
+  //     url: "/projects/react-portfolio",
+  //     icon: Code,
+  //   },
+  //   {
+  //     title: "TypeScript API",
+  //     name: "TypeScript API",
+  //     owner: "Work Team",
+  //     lastUpdated: "Yesterday",
+  //     url: "/projects/typescript-api",
+  //     icon: FileCode,
+  //   },
+  //   {
+  //     title: "E-Commerce Backend",
+  //     name: "E-Commerce Backend",
+  //     owner: "Client Project",
+  //     lastUpdated: "2 days ago",
+  //     url: "/projects/ecommerce-backend",
+  //     icon: Database,
+  //   },
+  //   {
+  //     title: "Mobile App",
+  //     name: "Mobile App",
+  //     owner: "Collaboration",
+  //     lastUpdated: "Last week",
+  //     url: "/projects/mobile-app",
+  //     icon: Smartphone,
+  //   },
+  // ],
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -248,7 +255,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        {/* COMMENTED OUT: NavProjects - Sample projects not linked to real pages */}
+        {/* <NavProjects projects={data.projects} /> */}
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
