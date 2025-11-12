@@ -12,7 +12,7 @@ import { Search, Hash, Folder, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { useTagCache } from "@/hooks/use-tag-cache";
@@ -27,30 +27,47 @@ function SearchContent() {
   const { projects, loading } = useProjects();
   const { tags: allTags, isLoading: tagsLoading } = useTagCache();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
-  const [profilesLoading, setProfilesLoading] = useState(true);
-  const [usersOpen, setUsersOpen] = useState(true);
-  const [tagsOpen, setTagsOpen] = useState(true);
-  const [categoriesOpen, setCategoriesOpen] = useState(true);
+  const [profilesLoading, setProfilesLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
-  // Fetch all user profiles
+  // Debounce search query
   useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        setProfilesLoading(true);
-        const response = await fetch("/api/profiles");
-        if (!response.ok) throw new Error("Failed to fetch profiles");
-        const data = await response.json();
-        setAllProfiles(data);
-      } catch (error) {
-        console.error("Error fetching profiles:", error);
-      } finally {
-        setProfilesLoading(false);
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      if (searchQuery.trim()) {
+        setHasSearched(true);
       }
-    };
-    fetchProfiles();
-  }, []);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch profiles only when user searches or switches to Users tab
+  const fetchProfiles = useCallback(async () => {
+    if (profilesLoading || allProfiles.length > 0) return; // Don't fetch if already loading or loaded
+    
+    try {
+      setProfilesLoading(true);
+      const response = await fetch("/api/profiles");
+      if (!response.ok) throw new Error("Failed to fetch profiles");
+      const data = await response.json();
+      setAllProfiles(data);
+    } catch (error) {
+      console.error("Error fetching profiles:", error);
+    } finally {
+      setProfilesLoading(false);
+    }
+  }, [profilesLoading, allProfiles.length]);
+
+  // Trigger profile fetch when user searches or switches to users tab
+  useEffect(() => {
+    if (debouncedSearchQuery.trim() || hasSearched) {
+      fetchProfiles();
+    }
+  }, [debouncedSearchQuery, hasSearched, fetchProfiles]);
 
   // Filter categories
   const categoryCounts = useMemo(() => {
@@ -64,7 +81,7 @@ function SearchContent() {
   }, [projects]);
 
   const filteredCategories = useMemo(() => {
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = debouncedSearchQuery.toLowerCase().trim();
     const allCategories = Object.entries(PROJECT_CATEGORIES);
     
     if (!searchLower) return allCategories.slice(0, 20);
@@ -78,11 +95,11 @@ function SearchContent() {
         );
       })
       .slice(0, 20);
-  }, [searchQuery]);
+  }, [debouncedSearchQuery]);
 
   // Filter tags
   const filteredTags = useMemo(() => {
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = debouncedSearchQuery.toLowerCase().trim();
     const tags = allTags || [];
     
     // Separate tags with projects (active) and without (inactive)
@@ -115,15 +132,15 @@ function SearchContent() {
     const remainingSlots = 30 - top30Active.length;
     const additionalTags = remainingSlots > 0 ? filteredInactive.slice(0, remainingSlots) : [];
     return [...top30Active, ...additionalTags];
-  }, [allTags, searchQuery]);
+  }, [allTags, debouncedSearchQuery]);
 
   // Filter users (get ALL users from profiles API and enhance with project data)
   const { activeUsers, inactiveUsers, totalInactiveCount } = useMemo(() => {
-    if (profilesLoading || !allProfiles.length) {
+    if (!allProfiles.length) {
       return { activeUsers: [], inactiveUsers: [], totalInactiveCount: 0 };
     }
 
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = debouncedSearchQuery.toLowerCase().trim();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
@@ -247,7 +264,7 @@ function SearchContent() {
       inactiveUsers: filteredInactive, // Show ALL inactive users (no limit)
       totalInactiveCount: filteredInactive.length
     };
-  }, [allProfiles, profilesLoading, projects, searchQuery]);
+  }, [allProfiles, projects, debouncedSearchQuery]);
 
   const handleCategoryClick = (key: string, count: number) => {
     if (count === 0) return;
@@ -268,7 +285,9 @@ function SearchContent() {
   const activeTags = filteredTags.filter((tag) => (tag.count ?? 0) > 0);
   const totalResults = filteredCategories.length + filteredTags.length + activeUsers.length + inactiveUsers.length;
 
-  const isLoading = loading || tagsLoading || profilesLoading;
+  const isSearching = debouncedSearchQuery !== searchQuery;
+  const isLoadingData = (debouncedSearchQuery.trim() && profilesLoading);
+  const showEmptyState = !hasSearched && !debouncedSearchQuery.trim();
 
   return (
     <div className="flex justify-center w-full mb-20">
@@ -297,17 +316,31 @@ function SearchContent() {
               className="pl-10 text-base"
               autoFocus
             />
+            {isSearching && (
+              <div className="absolute right-3 top-2.5">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
           </div>
 
-          {/* Loading State */}
-          {isLoading ? (
+          {/* Empty State - No search yet */}
+          {showEmptyState ? (
+            <div className="text-center py-20">
+              <Search className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Start Searching</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Type in the search box above to find categories, tags, or users. 
+                Search by name, description, or even project tags!
+              </p>
+            </div>
+          ) : isLoadingData ? (
             <div className="space-y-6">
               <GenericLoadingState type="card" itemsCount={6} />
             </div>
           ) : (
             <>
           {/* Results Summary */}
-          {searchQuery && (
+          {debouncedSearchQuery && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Found {totalResults} results</span>
               <Badge variant="secondary" className="font-mono">
@@ -532,7 +565,7 @@ function SearchContent() {
               )}
 
               {/* No Results */}
-              {searchQuery && totalResults === 0 && (
+              {debouncedSearchQuery && totalResults === 0 && (
                 <div className="text-center py-12">
                   <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No results found</h3>
