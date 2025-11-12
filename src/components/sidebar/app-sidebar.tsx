@@ -66,10 +66,9 @@ const data = {
       ],
     },
     {
-      title: "Browse",
-      url: "#",
+      title: "Search",
+      url: "/search",
       icon: Search,
-      isActive: false,
       items: [
         {
           title: "Categories",
