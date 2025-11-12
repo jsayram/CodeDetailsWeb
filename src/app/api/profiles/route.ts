@@ -4,6 +4,9 @@ import { profiles } from "@/db/schema/profiles";
 import { projects } from "@/db/schema/projects";
 import { desc, sql, eq, isNull } from "drizzle-orm";
 
+// Next.js Route Segment Config - Cache for 5 minutes, revalidate in background
+export const revalidate = 300; // 5 minutes in seconds
+
 export async function GET() {
   try {
     const allProfiles = await executeQuery(async (db) =>
@@ -19,6 +22,8 @@ export async function GET() {
           created_at: profiles.created_at,
           updated_at: profiles.updated_at,
           project_count: sql<number>`COUNT(CASE WHEN ${projects.deleted_at} IS NULL THEN ${projects.id} END)`,
+          total_favorites: sql<number>`COALESCE(SUM(CASE WHEN ${projects.deleted_at} IS NULL THEN ${projects.total_favorites}::numeric ELSE 0 END), 0)`,
+          last_activity_date: sql<Date | null>`MAX(CASE WHEN ${projects.deleted_at} IS NULL THEN GREATEST(${projects.updated_at}, ${projects.created_at}) END)`,
         })
         .from(profiles)
         .leftJoin(projects, eq(profiles.user_id, projects.user_id))
@@ -26,7 +31,12 @@ export async function GET() {
         .orderBy(desc(profiles.created_at))
     );
 
-    return NextResponse.json(allProfiles);
+    // Return with explicit cache headers for browser/CDN caching
+    return NextResponse.json(allProfiles, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error("Error fetching profiles:", error);
     return NextResponse.json(

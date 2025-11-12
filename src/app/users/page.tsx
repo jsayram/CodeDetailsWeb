@@ -28,7 +28,7 @@ export default function UsersIndexPage() {
                 <PageBanner
                   icon={<Users className="h-8 w-8 text-primary" />}
                   bannerTitle="Browse by Users"
-                  description="Find projects by their creators"
+                  description="Discover projects by their creators and contributors"
                   isUserBanner={false}
                   gradientFrom="indigo-900"
                   gradientVia="blue-800"
@@ -39,7 +39,10 @@ export default function UsersIndexPage() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>All Users</CardTitle>
+                    <CardTitle>All Contributing Users</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Users who have shared projects with the community
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <UserList />

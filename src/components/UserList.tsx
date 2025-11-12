@@ -9,6 +9,8 @@ import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingSta
 
 type UserWithProjectCount = SelectProfile & {
   project_count: number;
+  total_favorites: number;
+  last_activity_date: Date | null;
 };
 
 export function UserList() {
@@ -44,11 +46,23 @@ export function UserList() {
 
   // First sort all active users to determine the true leaders (before filtering)
   const sortedActiveUsers = [...activeUsers].sort((a, b) => {
-    // Sort by project count first
-    if (b.project_count !== a.project_count) {
-      return b.project_count - a.project_count;
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    // Calculate scores with heavy weight on projects and favorites
+    const aIsActive = a.last_activity_date && new Date(a.last_activity_date) >= sevenDaysAgo;
+    const bIsActive = b.last_activity_date && new Date(b.last_activity_date) >= sevenDaysAgo;
+    
+    // Projects: 100 points each, Favorites: 50 points each, Active: 5 points
+    const aScore = (a.project_count * 100) + (a.total_favorites * 50) + (aIsActive ? 5 : 0);
+    const bScore = (b.project_count * 100) + (b.total_favorites * 50) + (bIsActive ? 5 : 0);
+    
+    // Sort by score descending
+    if (bScore !== aScore) {
+      return bScore - aScore;
     }
-    // If project counts are equal, sort by updated_at date
+    
+    // If scores are equal, sort by updated_at date
     return (
       new Date(b.updated_at ?? 0).getTime() -
       new Date(a.updated_at ?? 0).getTime()
@@ -193,56 +207,74 @@ export function UserList() {
                     .toLowerCase()
                     .includes(searchQuery.toLowerCase())
               )
-              .map((user, index) => (
-                <Card
-                  key={user.id}
-                  className={`p-4 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${
-                    loadingUserId === user.id ? "opacity-50" : ""
-                  } ${getLeaderboardCardStyle(index)}`}
-                  onClick={() => handleUserClick(user)}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="relative">
-                      {loadingUserId === user.id ? (
-                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full z-10">
-                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                        </div>
-                      ) : null}
-                      {user.profile_image_url ? (
-                        <div className="relative">
-                          <img
-                            src={user.profile_image_url}
-                            alt={user.username}
-                            className="w-12 h-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-background"
-                          />
-                          {getLeaderboardBadge(index)}
-                        </div>
-                      ) : (
-                        <div className="relative">
-                          <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
-                            {user.username?.[0]?.toUpperCase()}
+              .map((user, index) => {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const isActive =
+                  user.last_activity_date &&
+                  new Date(user.last_activity_date) >= sevenDaysAgo;
+
+                return (
+                  <Card
+                    key={user.id}
+                    className={`p-4 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${
+                      loadingUserId === user.id ? "opacity-50" : ""
+                    } ${getLeaderboardCardStyle(index)}`}
+                    onClick={() => handleUserClick(user)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="relative">
+                        {loadingUserId === user.id ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full z-10">
+                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                           </div>
-                          {getLeaderboardBadge(index)}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{user.username}</h3>
-                        <span className="text-sm text-muted-foreground">
-                          {user.project_count}{" "}
-                          {user.project_count === 1 ? "project" : "projects"}
-                        </span>
+                        ) : null}
+                        {user.profile_image_url ? (
+                          <div className="relative">
+                            <img
+                              src={user.profile_image_url}
+                              alt={user.username}
+                              className="w-12 h-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-background"
+                            />
+                            {getLeaderboardBadge(index)}
+                          </div>
+                        ) : (
+                          <div className="relative">
+                            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                              {user.username?.[0]?.toUpperCase()}
+                            </div>
+                            {getLeaderboardBadge(index)}
+                          </div>
+                        )}
                       </div>
-                      {user.full_name && (
-                        <p className="text-sm text-muted-foreground">
-                          {user.full_name}
-                        </p>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">{user.username}</h3>
+                        {user.full_name && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {user.full_name}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
+                          <span className="text-sm text-muted-foreground px-2 py-0.5 bg-accent rounded-md whitespace-nowrap">
+                            {user.project_count}{" "}
+                            {user.project_count === 1 ? "project" : "projects"}
+                          </span>
+                          {user.total_favorites > 0 && (
+                            <span className="text-sm text-amber-600 dark:text-amber-400 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 rounded-md whitespace-nowrap">
+                              ⭐ {user.total_favorites}
+                            </span>
+                          )}
+                          {isActive && (
+                            <span className="text-sm text-green-600 dark:text-green-400 px-2 py-0.5 bg-green-100 dark:bg-green-950 rounded-md whitespace-nowrap">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
           </div>
         </div>
       )}
@@ -265,48 +297,66 @@ export function UserList() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredActiveUsers
               .filter((user) => !leaderIds.has(user.id))
-              .map((user) => (
-                <Card
-                  key={user.id}
-                  className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                    loadingUserId === user.id ? "opacity-50" : ""
-                  }`}
-                  onClick={() => handleUserClick(user)}
-                >
-                  <div className="flex items-center gap-4">
-                    {loadingUserId === user.id ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-                        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                      </div>
-                    ) : null}
-                    {user.profile_image_url ? (
-                      <img
-                        src={user.profile_image_url}
-                        alt={user.username}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
-                        {user.username?.[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{user.username}</h3>
-                        <span className="text-sm text-muted-foreground">
-                          {user.project_count}{" "}
-                          {user.project_count === 1 ? "project" : "projects"}
-                        </span>
-                      </div>
-                      {user.full_name && (
-                        <p className="text-sm text-muted-foreground">
-                          {user.full_name}
-                        </p>
+              .map((user) => {
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                const isActive =
+                  user.last_activity_date &&
+                  new Date(user.last_activity_date) >= sevenDaysAgo;
+
+                return (
+                  <Card
+                    key={user.id}
+                    className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                      loadingUserId === user.id ? "opacity-50" : ""
+                    }`}
+                    onClick={() => handleUserClick(user)}
+                  >
+                    <div className="flex items-center gap-4">
+                      {loadingUserId === user.id ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      ) : null}
+                      {user.profile_image_url ? (
+                        <img
+                          src={user.profile_image_url}
+                          alt={user.username}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                          {user.username?.[0]?.toUpperCase()}
+                        </div>
                       )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium truncate">{user.username}</h3>
+                        {user.full_name && (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {user.full_name}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 flex-wrap mt-2">
+                          <span className="text-sm text-muted-foreground px-2 py-0.5 bg-accent rounded-md whitespace-nowrap">
+                            {user.project_count}{" "}
+                            {user.project_count === 1 ? "project" : "projects"}
+                          </span>
+                          {user.total_favorites > 0 && (
+                            <span className="text-sm text-amber-600 dark:text-amber-400 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 rounded-md whitespace-nowrap">
+                              ⭐ {user.total_favorites}
+                            </span>
+                          )}
+                          {isActive && (
+                            <span className="text-sm text-green-600 dark:text-green-400 px-2 py-0.5 bg-green-100 dark:bg-green-950 rounded-md whitespace-nowrap">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
 
             {/* Inactive Users - only shown when not searching */}
             {!searchQuery &&
@@ -323,18 +373,16 @@ export function UserList() {
                         className="w-12 h-12 rounded-full object-cover"
                       />
                     )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{user.username}</h3>
-                        <span className="text-sm text-muted-foreground">
-                          No projects
-                        </span>
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium truncate">{user.username}</h3>
                       {user.full_name && (
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground truncate">
                           {user.full_name}
                         </p>
                       )}
+                      <span className="text-sm text-muted-foreground px-2 py-0.5 bg-accent rounded-md whitespace-nowrap inline-block mt-2">
+                        No projects
+                      </span>
                     </div>
                   </div>
                 </Card>

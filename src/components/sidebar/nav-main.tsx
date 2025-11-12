@@ -72,20 +72,27 @@ export function NavMain({
                   isActive={isActive}
                   size="default"
                   className={cn(
-                    "transition-colors cursor-default py-2.5 relative group",
+                    "transition-colors cursor-pointer py-2.5 relative group hover:cursor-pointer",
                     hasActiveChild
                       ? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      : "",
-                    isLoading ? "data-[loading=true]" : ""
+                      : ""
                   )}
                 >
                   <button
                     onClick={() => handleNavigation(item.url)}
-                    className="w-full flex items-center"
+                    className={cn(
+                      "w-full flex items-center cursor-pointer gap-2",
+                      isLoading && "opacity-50"
+                    )}
+                    disabled={isLoading}
                   >
                     <item.icon className="size-5" />
                     <span>{item.title}</span>
-                    {isLoading && <SidebarLoaderSpinner />}
+                    {isLoading && (
+                      <div className="ml-auto">
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-sidebar-foreground/20 border-t-sidebar-foreground" />
+                      </div>
+                    )}
                   </button>
                 </SidebarMenuButton>
                 {item.items?.length ? (
@@ -114,23 +121,20 @@ export function NavMain({
                               <SidebarMenuSubButton
                                 asChild
                                 isActive={isSubItemActive}
-                                className="cursor-default py-2 relative group"
+                                className="cursor-pointer py-2 relative group"
                                 size="md"
                               >
                                 <button
                                   onClick={() => handleNavigation(subItem.url)}
                                   className="cursor-pointer w-full flex items-center justify-between"
-                                  disabled={
-                                    isSubItemLoading || pathname === item.url
-                                  }
+                                  disabled={isSubItemLoading}
                                 >
                                   <span>{subItem.title}</span>
-                                  {isSubItemLoading &&
-                                    pathname !== item.url && (
-                                      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-sidebar-foreground/20 border-t-sidebar-foreground" />
-                                      </div>
-                                    )}
+                                  {isSubItemLoading && (
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-sidebar-foreground/20 border-t-sidebar-foreground" />
+                                    </div>
+                                  )}
                                 </button>
                               </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
