@@ -4,6 +4,9 @@ import { profiles } from "@/db/schema/profiles";
 import { projects } from "@/db/schema/projects";
 import { desc, sql, eq, isNull } from "drizzle-orm";
 
+// Next.js Route Segment Config - Cache for 5 minutes, revalidate in background
+export const revalidate = 300; // 5 minutes in seconds
+
 export async function GET() {
   try {
     const allProfiles = await executeQuery(async (db) =>
@@ -28,7 +31,12 @@ export async function GET() {
         .orderBy(desc(profiles.created_at))
     );
 
-    return NextResponse.json(allProfiles);
+    // Return with explicit cache headers for browser/CDN caching
+    return NextResponse.json(allProfiles, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error("Error fetching profiles:", error);
     return NextResponse.json(
