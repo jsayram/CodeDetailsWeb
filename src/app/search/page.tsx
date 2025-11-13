@@ -33,6 +33,9 @@ function SearchContent() {
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+
+//TODO: need to add more detailed descriptions for categories and tags to improve search relevanceand what is actually returend what is beeing seen
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
