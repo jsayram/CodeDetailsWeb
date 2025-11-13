@@ -194,7 +194,7 @@ export function ProjectList({
 
   // Handlers
   const handleViewDetails = useCallback((id: string) => {
-    console.log(`View details for project ${id}`);
+    // TODO: View details handler - currently unused but kept for future implementation
   }, []);
 
   const handleToggleFavorite = useCallback(

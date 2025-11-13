@@ -63,7 +63,21 @@ async function handleUserUpdated(data: ClerkUserData) {
   }
 }
 
-// TODO: Need to handle this more grcefully , disabled for now in Clerk.Handle user.deleted
+/**
+ * Handle user deletion from Clerk
+ * 
+ * IMPORTANT: This event is currently DISABLED in Clerk dashboard to prevent accidental data loss.
+ * 
+ * When re-enabling this feature, consider implementing:
+ * 1. Soft delete (set deleted_at timestamp) instead of hard delete
+ * 2. Cascade deletion of user's projects, favorites, and related data
+ * 3. Archive user data for compliance/audit purposes
+ * 4. Send notification to user about account deletion
+ * 5. Implement grace period (30 days) before permanent deletion
+ * 6. Add logging and audit trail for deletion events
+ * 
+ * Current implementation performs immediate hard delete - use with caution!
+ */
 async function handleUserDeleted(data: ClerkUserData) {
   const { id: user_id } = data;
 
