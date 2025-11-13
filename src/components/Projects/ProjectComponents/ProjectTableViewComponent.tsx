@@ -169,9 +169,6 @@ export function ProjectTableView({
     e.preventDefault();
     e.stopPropagation();
 
-    // For debugging
-    console.log("Tag clicked:", tag);
-
     if (!userId) {
       toast.info(
         <div className="relative flex flex-row items-center gap-2">
