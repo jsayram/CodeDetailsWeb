@@ -102,14 +102,27 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
+            {/* TODO: Implement pricing page before enabling upgrade flow
+                - Create /pricing route with tier comparison table
+                - Integrate Stripe checkout or payment provider
+                - Add tier upgrade logic and webhook handlers
+                Priority: MEDIUM - Revenue-critical but requires payment setup
+            */}
+            {/* <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles className="mr-2 h-4 w-4" />
                 Upgrade to Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
+            <DropdownMenuSeparator /> */}
+            {/* TODO: Implement user management pages
+                - /user/account: Profile settings, email/password management (integrate with Clerk)
+                - /user/billing: Subscription management, payment methods, invoices (integrate with Stripe)
+                - /user/notifications: Notification preferences, email settings, push notifications
+                Priority: MEDIUM - Important for user experience
+                Dependencies: Clerk user management, Stripe customer portal, notification system
+            */}
+            {/* <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <a href="/user/account">
                   <BadgeCheck className="mr-2 h-4 w-4" />
@@ -128,7 +141,7 @@ export function NavUser({
                   Notifications
                 </a>
               </DropdownMenuItem>
-            </DropdownMenuGroup>
+            </DropdownMenuGroup> */}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />

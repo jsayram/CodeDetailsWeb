@@ -186,13 +186,21 @@ export default function ProtectedPage({
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center sm:gap-4">
-              <Link
+              {/* TODO: Implement /pricing page before enabling tier upgrades
+                  - Create pricing page with tier comparison (free, pro, diamond)
+                  - Display feature differences and pricing details
+                  - Integrate payment flow (Stripe/checkout)
+                  - Add tier upgrade confirmation and success handling
+                  Priority: HIGH - Users see this when hitting paywalls
+                  Temporary solution: Redirect to home or show "Coming Soon" message
+              */}
+              {/* <Link
                 href="/pricing"
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg text-sm sm:text-base"
               >
                 <ArrowUpCircle className="w-4 h-4" />
                 Upgrade Now
-              </Link>
+              </Link> */}
 
               <Link
                 href="/"

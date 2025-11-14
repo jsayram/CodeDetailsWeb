@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
+import { getTagInfo } from "@/constants/tag-descriptions";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,6 +33,7 @@ function SearchContent() {
   const [allProfiles, setAllProfiles] = useState<any[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+
 
   // Debounce search query
   useEffect(() => {
@@ -91,7 +93,8 @@ function SearchContent() {
         return (
           category.label.toLowerCase().includes(searchLower) ||
           category.description.toLowerCase().includes(searchLower) ||
-          key.toLowerCase().includes(searchLower)
+          key.toLowerCase().includes(searchLower) ||
+          (category.keywords && category.keywords.toLowerCase().includes(searchLower))
         );
       })
       .slice(0, 20);
@@ -121,12 +124,40 @@ function SearchContent() {
     }
     
     // When searching, filter and then apply same logic
-    const filteredActive = sortedActiveTags.filter((tag) =>
-      tag.name.toLowerCase().includes(searchLower)
-    );
-    const filteredInactive = sortedInactiveTags.filter((tag) =>
-      tag.name.toLowerCase().includes(searchLower)
-    );
+    const filteredActive = sortedActiveTags.filter((tag) => {
+      const tagLower = tag.name.toLowerCase();
+      
+      // Check tag name
+      if (tagLower.includes(searchLower)) return true;
+      
+      // Check tag description and keywords from tag-descriptions.ts
+      const tagInfo = getTagInfo(tag.name);
+      if (tagInfo) {
+        return (
+          tagInfo.description.toLowerCase().includes(searchLower) ||
+          tagInfo.keywords.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return false;
+    });
+    const filteredInactive = sortedInactiveTags.filter((tag) => {
+      const tagLower = tag.name.toLowerCase();
+      
+      // Check tag name
+      if (tagLower.includes(searchLower)) return true;
+      
+      // Check tag description and keywords
+      const tagInfo = getTagInfo(tag.name);
+      if (tagInfo) {
+        return (
+          tagInfo.description.toLowerCase().includes(searchLower) ||
+          tagInfo.keywords.toLowerCase().includes(searchLower)
+        );
+      }
+      
+      return false;
+    });
     
     const top30Active = filteredActive.slice(0, 30);
     const remainingSlots = 30 - top30Active.length;
