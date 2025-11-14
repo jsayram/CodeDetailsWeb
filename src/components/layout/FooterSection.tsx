@@ -36,7 +36,14 @@ export const FooterSection = () => {
                 reserved.
               </p>
               <div className="flex items-center gap-6">
-                <Link
+                {/* TODO: Implement legal pages before production deployment
+                    - /terms: Terms of Service page with acceptance mechanism
+                    - /privacy: Privacy Policy (GDPR/CCPA compliant)
+                    - /cookies: Cookie Policy with consent management
+                    Priority: HIGH - Required for legal compliance
+                    Consider using a legal template service or consult legal counsel
+                */}
+                {/* <Link
                   href="/terms"
                   className="text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
@@ -53,7 +60,7 @@ export const FooterSection = () => {
                   className="text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   Cookies
-                </Link>
+                </Link> */}
               </div>
             </div>
           </div>
