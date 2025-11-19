@@ -56,7 +56,7 @@ export function useAuthState(
         setIsReady(true);
       }
     }
-  }, [userId, token, isAuthenticated, client]);
+  }, [userId, token, isAuthenticated]);
 
   return { isAuthenticated, isAuthenticating, isReady };
 }
