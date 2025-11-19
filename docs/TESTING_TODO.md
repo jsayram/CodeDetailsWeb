@@ -201,17 +201,60 @@
   - Total likes aggregates correctly
   - Total tags counts unique tags
   - Most liked project identified
+  - **getUserDashboardStats filters by userId correctly**
+  - **myProjects query returns only user's projects**
+  - **myFavorites query returns only user's favorites**
+  - **topTags query returns user-specific tags**
+  - **recentActivity query returns user-specific activity**
+  - **myTagSubmissions query returns user's submissions**
 
 - [ ] **Integration: Dashboard Data**
   - Dashboard loads user's projects
   - Stats reflect real-time changes
   - Deleted projects excluded from count
+  - **Dashboard cache (localStorage) works with 5min TTL**
+  - **SWR background refresh updates stale data**
+  - **Manual refresh clears cache and refetches**
 
 - [ ] **E2E: Dashboard Interaction**
   - User sees their dashboard on login
   - Quick actions work (new project, etc.)
   - Recent activity shows correctly
   - Metrics update after actions
+  - **Dashboard shows only logged-in user's data**
+  - **Project cards navigate using slugs not IDs**
+  - **My Tag Submissions section scrolls vertically (max-height 400px)**
+  - **Stats cards display correct counts**
+  - **Recent Projects section shows max 5 projects**
+
+### 3.3 Admin Dashboard
+- [ ] **Unit: Admin Dashboard Stats**
+  - **getAllProjectsStats returns platform-wide data**
+  - **Total projects count correct (all users)**
+  - **Active users count correct**
+  - **Platform favorites aggregates correctly**
+  - **All tags query returns complete tag list**
+  - **Recent activity shows latest across all users**
+  - **Tag submissions query returns all pending submissions**
+
+- [ ] **Integration: Admin Authorization**
+  - **Middleware blocks non-admin users from /dashboard/admin**
+  - **Middleware redirects unauthenticated to /sign-in**
+  - **Middleware redirects non-admin to /dashboard**
+  - **Middleware uses ADMIN_DASHBOARD_MODERATOR env variable**
+  - **Server-side email verification via Clerk**
+  - **Test pages protected: /api/toasttest, /api/darkmodetest, /api/projects/test**
+
+- [ ] **E2E: Admin Dashboard Access**
+  - **Admin user can access /dashboard/admin**
+  - **Non-admin user redirected to /dashboard**
+  - **Admin sees platform-wide stats (not filtered by userId)**
+  - **Projects Overview chart has horizontal scroll**
+  - **Chart width scales with project count (40px per project)**
+  - **Tag Submissions section has vertical scroll (max-height 500px)**
+  - **Admin Test Pages card has 3 buttons to test pages**
+  - **Test pages accessible via admin dashboard buttons**
+  - **Test pages not shown in sidebar for any user**
 
 ---
 
