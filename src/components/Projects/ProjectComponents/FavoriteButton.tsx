@@ -27,7 +27,7 @@ export function FavoriteButton({
     <Button
       variant="ghost"
       size="icon"
-      className={`action-button favorite-button group relative ${className}`}
+      className={`action-button favorite-button group relative cursor-pointer ${className}`}
       onClick={onClick}
       aria-label={ariaLabel || (isFavorite ? "Remove from favorites" : "Add to favorites")}
       disabled={disabled}

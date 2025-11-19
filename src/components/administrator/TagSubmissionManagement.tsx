@@ -225,6 +225,7 @@ export function TagSubmissionManagement({
                 <Button
                   onClick={() => handleApprove(groupedTag)}
                   disabled={isProcessing[groupedTag.submissions[0]?.id]}
+                  className="cursor-pointer"
                 >
                   Approve All
                 </Button>

@@ -103,7 +103,7 @@ export function Logo({
 
   // Return with or without link wrapper based on href
   return href ? (
-    <Link href={href} className="focus:outline-none">
+    <Link href={href} className="focus:outline-none cursor-pointer">
       {logoContent}
     </Link>
   ) : (

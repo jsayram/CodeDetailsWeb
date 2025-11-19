@@ -117,7 +117,7 @@ function CategoriesContent() {
               return (
                 <Card
                   key={key}
-                  className={`category-card ${!hasProjects ? "disabled" : ""}`}
+                  className={`category-card cursor-pointer ${!hasProjects ? "disabled" : ""}`}
                   onClick={() => handleCategoryClick(key, hasProjects)}
                 >
                   <CardHeader className="flex flex-row justify-between items-center">

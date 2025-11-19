@@ -595,10 +595,11 @@ export function ProjectContent({
                     variant="outline"
                     onClick={handleCancel}
                     disabled={isUpdating}
+                    className="cursor-pointer"
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleSaveChanges} disabled={isUpdating}>
+                  <Button onClick={handleSaveChanges} disabled={isUpdating} className="cursor-pointer">
                     {isUpdating ? (
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>

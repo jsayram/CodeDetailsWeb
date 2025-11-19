@@ -68,7 +68,7 @@ export default function NotFound() {
 
         {/* Home button */}
         <SignedIn>
-          <Link href="/">
+          <Link href="/" className="cursor-pointer">
             <Button
               className="bg-primary text-primary-foreground hover:bg-primary/90
                      transition-all duration-300 hover:scale-105"

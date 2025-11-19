@@ -65,7 +65,7 @@ export const ShareProjectsButton = ({ userId }: ShareProjectButtonProps) => {
           </span>{" "}
           <ExternalLink
             size={30}
-            className="text-muted-foreground ml-2 hover:cursor-pointer"
+            className="text-muted-foreground ml-2 hover:cursor-pointer cursor-pointer"
             onClick={() => {
               window.open(
                 `/shared-projects/${encodeURIComponent(username)}`,

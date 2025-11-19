@@ -37,7 +37,7 @@ const FAQItem = ({
     <div className="border border-border rounded-lg mb-4">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex justify-between items-center w-full p-4 text-left hover:bg-muted/50 transition-colors rounded-lg"
+        className="flex justify-between items-center w-full p-4 text-left hover:bg-muted/50 transition-colors rounded-lg cursor-pointer"
         aria-expanded={isOpen}
         aria-controls={`faq-answer-${question
           .replace(/\s+/g, "-")
@@ -110,28 +110,28 @@ export default function SupportPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center h-auto gap-2 p-4"
+                  className="flex flex-col items-center h-auto gap-2 p-4 cursor-pointer"
                 >
                   <BookOpen size={24} className="text-primary" />
                   <span>Docs</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center h-auto gap-2 p-4"
+                  className="flex flex-col items-center h-auto gap-2 p-4 cursor-pointer"
                 >
                   <Code size={24} className="text-primary" />
                   <span>Guides</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center h-auto gap-2 p-4"
+                  className="flex flex-col items-center h-auto gap-2 p-4 cursor-pointer"
                 >
                   <MessageCircle size={24} className="text-primary" />
                   <span>Community</span>
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex flex-col items-center h-auto gap-2 p-4"
+                  className="flex flex-col items-center h-auto gap-2 p-4 cursor-pointer"
                 >
                   <Terminal size={24} className="text-primary" />
                   <span>CLI</span>
@@ -339,7 +339,7 @@ export default function SupportPage() {
                       <p className="text-sm text-muted-foreground">
                         <a
                           href="mailto:support@codedetails.dev"
-                          className="hover:text-primary"
+                          className="hover:text-primary cursor-pointer"
                         >
                           support@codedetails.dev
                         </a>
@@ -358,7 +358,7 @@ export default function SupportPage() {
                           href="https://discord.com/channels/1108053195957211237/1108053196720582707"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-primary"
+                          className="hover:text-primary cursor-pointer"
                         >
                           Join our community
                         </a>
@@ -377,7 +377,7 @@ export default function SupportPage() {
                           href="https://github.com/codedetails"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-primary"
+                          className="hover:text-primary cursor-pointer"
                         >
                           Report bugs or issues
                         </a>
@@ -388,7 +388,7 @@ export default function SupportPage() {
                   <Separator />
 
                   <div className="pt-2">
-                    <Button className="w-full" variant="default">
+                    <Button className="w-full cursor-pointer" variant="default">
                       Submit Support Ticket
                     </Button>
                   </div>
@@ -406,31 +406,31 @@ export default function SupportPage() {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="font-medium">Documentation</span>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
                       <ExternalLink size={16} />
                     </Button>
                   </div>
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="font-medium">API Reference</span>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
                       <ExternalLink size={16} />
                     </Button>
                   </div>
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="font-medium">Getting Started</span>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
                       <ExternalLink size={16} />
                     </Button>
                   </div>
                   <div className="flex items-center justify-between border-b pb-2">
                     <span className="font-medium">Tutorials</span>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
                       <ExternalLink size={16} />
                     </Button>
                   </div>
                   <div className="flex items-center justify-between pb-2">
                     <span className="font-medium">Code Samples</span>
-                    <Button variant="ghost" size="sm">
+                    <Button variant="ghost" size="sm" className="cursor-pointer">
                       <ExternalLink size={16} />
                     </Button>
                   </div>
@@ -454,7 +454,7 @@ export default function SupportPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full justify-start"
+                      className="w-full justify-start cursor-pointer"
                     >
                       <ExternalLink size={16} className="mr-2" />
                       Account Settings
@@ -462,7 +462,7 @@ export default function SupportPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full justify-start"
+                      className="w-full justify-start cursor-pointer"
                     >
                       <ExternalLink size={16} className="mr-2" />
                       Billing History
@@ -491,11 +491,11 @@ export default function SupportPage() {
                 might have. Let&apos;s solve your problems together!
               </p>
               <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-                <Button className="flex items-center" variant="default">
+                <Button className="flex items-center cursor-pointer" variant="default">
                   <Mail className="mr-2 h-4 w-4" />
                   Contact Support
                 </Button>
-                <Button className="flex items-center" variant="secondary">
+                <Button className="flex items-center cursor-pointer" variant="secondary">
                   <MessageCircle className="mr-2 h-4 w-4" />
                   Join Community
                 </Button>

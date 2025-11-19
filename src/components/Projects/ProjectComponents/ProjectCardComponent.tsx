@@ -422,7 +422,7 @@ export const ProjectCard = React.memo(
               </div>
               <ExternalLink
                 size={30}
-                className="text-muted-foreground ml-2 hover:cursor-pointer"
+                className="text-muted-foreground ml-2 hover:cursor-pointer cursor-pointer"
                 onClick={() => {
                   window.open(`/projects/${project.slug}`, "_blank");
                 }}
@@ -646,7 +646,7 @@ export const ProjectCard = React.memo(
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0"
+                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0 cursor-pointer"
                       onClick={handleShareClick}
                       aria-label="Share project"
                     >
@@ -695,7 +695,7 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } ${
+                        } cursor-pointer ${
                           loadingTag === tag
                             ? "opacity-70 pointer-events-none"
                             : ""

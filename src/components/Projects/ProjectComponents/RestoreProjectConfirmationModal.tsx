@@ -67,14 +67,14 @@ export function RestoreProjectConfirmationModal({
             variant="outline" 
             onClick={onClose} 
             disabled={isRestoring}
-            className="border-green-900/30 hover:bg-green-950/30 text-green-200/70"
+            className="border-green-900/30 hover:bg-green-950/30 text-green-200/70 cursor-pointer"
           >
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
             disabled={isRestoring}
-            className="flex items-center gap-2 bg-green-950/80 hover:bg-green-900/80 text-green-50"
+            className="flex items-center gap-2 bg-green-950/80 hover:bg-green-900/80 text-green-50 cursor-pointer"
           >
             {isRestoring ? (
               "Restoring Project..."
