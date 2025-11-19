@@ -21,6 +21,8 @@ import {
   Heart,
   ShieldCheck,
   Users,
+  Moon,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
@@ -280,15 +282,19 @@ function DashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Overview
-              data={stats.stats.allProjects.map((p) => ({
-                name:
-                  p.title.length > 20
-                    ? p.title.substring(0, 20) + "..."
-                    : p.title,
-                total: p.total_favorites,
-              }))}
-            />
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: `${Math.max(600, stats.stats.allProjects.length * 40)}px` }}>
+                <Overview
+                  data={stats.stats.allProjects.map((p) => ({
+                    name:
+                      p.title.length > 20
+                        ? p.title.substring(0, 20) + "..."
+                        : p.title,
+                    total: p.total_favorites,
+                  }))}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </ClientOnly>
@@ -387,11 +393,79 @@ function DashboardContent() {
       {/* Tag Submissions Management Section */}
       <div className="mt-6">
         <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Tag Submissions</CardTitle>
+            <CardDescription className="text-sm">
+              {stats.submissions.length} pending tag{stats.submissions.length !== 1 ? 's' : ''} for review
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="max-h-[500px] overflow-y-auto px-6 pb-4">
+              <TagSubmissionManagement initialSubmissions={stats.submissions} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Admin Test Pages Section */}
+      <div className="mt-6">
+        <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
           <CardHeader>
-            <CardTitle className="text-xl">Tag Submissions</CardTitle>
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Code className="h-5 w-5 text-primary" />
+              Admin Test Pages
+            </CardTitle>
+            <CardDescription>
+              Developer testing and debugging tools - Admin access only
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <TagSubmissionManagement initialSubmissions={stats.submissions} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <a href="/api/projects/test" target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Code className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">Project API Test</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground text-left">
+                    Test project API endpoints and functionality
+                  </span>
+                </Button>
+              </a>
+              
+              <a href="/api/darkmodetest" target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Moon className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">Dark Mode Test</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground text-left">
+                    Test dark mode theme components
+                  </span>
+                </Button>
+              </a>
+              
+              <a href="/api/toasttest" target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">Toast Test</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground text-left">
+                    Test toast notification system
+                  </span>
+                </Button>
+              </a>
+            </div>
           </CardContent>
         </Card>
       </div>

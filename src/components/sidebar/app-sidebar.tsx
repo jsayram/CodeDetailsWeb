@@ -49,21 +49,6 @@ const data = {
       url: "/dashboard",
       icon: PieChart,
       isActive: true,
-      items: [
-        {
-          title: "Project API Test Page",
-          url: API_ROUTES.PROJECTS.TEST_PAGE,
-          isNew: true,
-        },
-        {
-          title: "Dark Mode Test Page",
-          url: API_ROUTES.THEME.TEST_PAGE,
-        },
-        {
-          title: "Toast Test Page",
-          url: API_ROUTES.TOAST.TEST_PAGE,
-        },
-      ],
     },
     {
       title: "Search",

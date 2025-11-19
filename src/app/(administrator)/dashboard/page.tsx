@@ -9,6 +9,7 @@ import { SignedIn } from "@clerk/nextjs";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -382,14 +383,19 @@ function DashboardContent() {
       {/* My Tag Submissions */}
       {stats.myTagSubmissions.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle>My Tag Submissions</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">My Tag Submissions</CardTitle>
+            <CardDescription className="text-sm">
+              {stats.myTagSubmissions.length} tag{stats.myTagSubmissions.length > 1 ? 's' : ''} submitted
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {stats.myTagSubmissions.map((submission, index) => (
-                <TagSubmissionCard key={index} {...submission} />
-              ))}
+          <CardContent className="p-0">
+            <div className="max-h-[400px] overflow-y-auto px-6 pb-4">
+              <div className="space-y-2">
+                {stats.myTagSubmissions.map((submission, index) => (
+                  <TagSubmissionCard key={index} {...submission} />
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
