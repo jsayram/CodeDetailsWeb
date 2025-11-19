@@ -10,10 +10,7 @@ import React, {
   useRef,
 } from "react";
 import { Project } from "@/types/models/project";
-import {
-  getAnonymousClient,
-  getAuthenticatedClient,
-} from "@/services/supabase";
+import { getAnonymousClient } from "@/services/supabase";
 import { useIsBrowser } from "@/lib/ClientSideUtils";
 import { useAuthState } from "@/hooks/use-auth-state";
 import { API_ROUTES } from "@/constants/api-routes";
@@ -117,17 +114,13 @@ export function ProjectsProvider({
   });
 
   const anonymousClient = useMemo(() => getAnonymousClient(), []);
-  const authenticatedClient = useMemo(
-    () => getAuthenticatedClient(token),
-    [token]
-  );
   const isBrowser = useIsBrowser();
 
   const {
     isAuthenticated,
     isAuthenticating,
     isReady: authReady,
-  } = useAuthState(userId, token, authenticatedClient || undefined);
+  } = useAuthState(userId, token);
 
   const fetchProjects = useCallback(async () => {
     const now = Date.now();
@@ -232,7 +225,7 @@ export function ProjectsProvider({
       setLoading(false);
       lastFetchRef.current.inProgress = false;
     }
-  }, [filters, userId, token]);
+  }, [filters, userId]);
 
   const updateFilters = useCallback((newFilters: Partial<ProjectFilters>) => {
     setFilters((prev) => {

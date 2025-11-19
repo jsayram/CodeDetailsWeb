@@ -3,14 +3,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { getAnonymousClient } from "@/services/supabase";
 import { isValidTier, getAccessibleTiers } from "@/services/tierServiceServer";
 import { useUserTier } from "@/hooks/use-tierServiceClient";
 import Link from "next/link";
 import { LockIcon, ArrowUpCircle, HomeIcon } from "lucide-react";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
-import { profiles } from "@/db/schema/profiles";
-import { eq } from "drizzle-orm";
 
 /**
  * A component that protects content based on authentication status, user roles, or subscription tiers.
@@ -58,12 +55,9 @@ export default function ProtectedPage({
   const [hasAccess, setHasAccess] = useState(true);
   const [requiredTier, setRequiredTier] = useState<string | null>(null);
 
-  // Use useMemo for the Supabase client to prevent recreation on each render
-  const supabaseClient = useMemo(() => getAnonymousClient(), []);
-
   // Use the tierService hook directly
   const { userTier, loading: loadingTier } = useUserTier(
-    supabaseClient,
+    null,
     user?.id || null
   );
 
@@ -96,15 +90,10 @@ export default function ProtectedPage({
       }
 
       // Check role-based access first if roles are specified
-      if (allowedRoles?.length) {
-        // Use raw SQL query since drizzle() is not available on the client
-        const { data: userProfile } = await supabaseClient
-          .from("profiles")
-          .select("tier")
-          .eq("user_id", user.id)
-          .single();
-
-        if (!userProfile?.tier || !allowedRoles.includes(userProfile.tier)) {
+      // Note: Currently treating roles as tiers since profiles table only has tier field
+      // TODO: Add separate 'role' field to profiles table if role-based access is needed
+      if (allowedRoles?.length && userTier) {
+        if (!allowedRoles.includes(userTier)) {
           // Redirect to home page without exposing role requirements
           router.replace("/");
           return;
@@ -138,7 +127,6 @@ export default function ProtectedPage({
     allowedTiers,
     user,
     lowestRequiredTier,
-    supabaseClient,
   ]);
 
   // Show loading state

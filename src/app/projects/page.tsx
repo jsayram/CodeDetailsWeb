@@ -8,8 +8,7 @@ import React, { use, useMemo, useState } from "react";
 // Authentication (Clerk)
 import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 
-// Custom Services
-import { getAuthenticatedClient } from "@/services/supabase";
+// Custom Hooks
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
 
 // Application Components and Pages (Custom)
@@ -54,12 +53,6 @@ export default function DashBoard() {
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
 
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
-
-  // Get authenticated client with token from clerk using memoization to prevent re-renders
-  const authenticatedClient = useMemo(() => {
-    const client = getAuthenticatedClient(token);
-    return client;
-  }, [token]);
 
   // Determine overall loading state
   const isLoading = !userLoaded || tokenLoading;
