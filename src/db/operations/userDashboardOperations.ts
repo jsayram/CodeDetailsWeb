@@ -22,6 +22,7 @@ export interface UserDashboardStats {
   };
   recentActivity: {
     id: string;
+    slug: string;
     title: string;
     action: string;
     timestamp: Date;
@@ -143,6 +144,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
     const recentActivity = await db
       .select({
         id: projects.id,
+        slug: projects.slug,
         title: projects.title,
         action: sql<string>`case 
           when ${projects.created_at} = ${projects.updated_at} 

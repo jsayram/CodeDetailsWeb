@@ -53,6 +53,7 @@ interface StatsCardProps {
 }
 
 interface ActivityItemProps {
+  slug: string;
   title: string;
   description: string;
   timestamp: Date;
@@ -128,17 +129,19 @@ function StatsCard({ title, value, description, icon }: StatsCardProps) {
 }
 
 // Activity item component
-function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
+function ActivityItem({ slug, title, description, timestamp }: ActivityItemProps) {
   return (
-    <div className="flex flex-col space-y-1">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">
-          <FormattedDate date={timestamp} format="datetime" />
-        </p>
+    <Link href={`/projects/${slug}`} className="block cursor-pointer">
+      <div className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/50 transition-colors">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium hover:text-primary transition-colors">{title}</p>
+          <p className="text-xs text-muted-foreground">
+            <FormattedDate date={timestamp} format="datetime" />
+          </p>
+        </div>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-    </div>
+    </Link>
   );
 }
 
@@ -305,13 +308,20 @@ function RecentAppreciationItem({
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">
-          <span className="text-primary">
-            {favoriter_username || "Someone"}
-          </span>
+          {favoriter_username ? (
+            <Link
+              href={`/users/${favoriter_username}`}
+              className="text-primary hover:underline cursor-pointer font-semibold"
+            >
+              {favoriter_username}
+            </Link>
+          ) : (
+            <span className="text-primary">Someone</span>
+          )}
           {" favorited "}
           <Link
             href={`/projects/${project_slug}`}
-            className="hover:underline cursor-pointer"
+            className="text-primary hover:underline cursor-pointer font-semibold underline decoration-primary/30 hover:decoration-primary"
           >
             {project_title}
           </Link>
@@ -478,10 +488,11 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             {stats.recentActivity.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-2">
                 {stats.recentActivity.map((activity) => (
                   <ActivityItem
                     key={activity.id}
+                    slug={activity.slug}
                     title={activity.title}
                     description={`Project ${activity.action}`}
                     timestamp={activity.timestamp}
