@@ -320,3 +320,35 @@ export async function rejectTagSubmission(submissionId: string, adminNotes: stri
     revalidatePath("/administrator/dashboard");
   });
 }
+
+export async function approveRejectedTagSubmission(
+  projectId: string,
+  tagName: string,
+  submitterEmail: string
+) {
+  return executeQuery(async (db) => {
+    const normalizedTagName = tagName.trim().toLowerCase();
+
+    // Update the rejected submission to approved status
+    await db
+      .update(tag_submissions)
+      .set({
+        status: "approved",
+        reviewed_at: new Date(),
+        admin_notes: "Auto-approved: Tag was added to project after becoming available system-wide",
+      })
+      .where(
+        and(
+          eq(tag_submissions.project_id, projectId),
+          eq(tag_submissions.tag_name, normalizedTagName),
+          eq(tag_submissions.submitter_email, submitterEmail),
+          eq(tag_submissions.status, "rejected")
+        )
+      );
+
+    // Revalidate relevant paths
+    revalidatePath("/administrator/dashboard");
+    revalidatePath("/dashboard");
+    revalidatePath(`/projects/${projectId}`);
+  });
+}

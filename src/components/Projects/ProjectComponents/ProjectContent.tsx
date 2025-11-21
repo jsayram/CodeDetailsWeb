@@ -34,6 +34,7 @@ import { useUser, useAuth, SignedOut } from "@clerk/nextjs";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { createProject, updateProject } from "@/app/actions/projects";
+import { approveRejectedTagSubmission } from "@/app/actions/tag-submissions";
 import { TagSelector } from "./TagSelectorComponent";
 import { TagInfo } from "@/db/operations/tag-operations";
 import { Input } from "@/components/ui/input";
@@ -336,12 +337,36 @@ export function ProjectContent({
         if (result.success) {
           toast.success("Project updated successfully!");
 
+          // Check if there was a tag from URL that was added
+          const tagFromUrl = searchParams?.get("tag");
+          if (tagFromUrl && user?.primaryEmailAddress?.emailAddress) {
+            // Check if the tag from URL is in the saved tags
+            const tagWasAdded = projectData.tags.some(
+              (tag) => tag.toLowerCase() === tagFromUrl.toLowerCase()
+            );
+            
+            if (tagWasAdded) {
+              // Approve the rejected tag submission
+              try {
+                await approveRejectedTagSubmission(
+                  project.id,
+                  tagFromUrl,
+                  user.primaryEmailAddress.emailAddress
+                );
+              } catch (error) {
+                console.error("Failed to approve rejected tag submission:", error);
+                // Don't throw - project was saved successfully
+              }
+            }
+          }
+
           // Reset form initialization state
           formInitializedRef.current = false;
 
           // Exit edit mode
           const url = new URL(window.location.href);
           url.searchParams.delete("edit");
+          url.searchParams.delete("tag");
 
           // If slug changed, navigate to new URL
           if (result.data && result.data.slug !== project.slug) {
