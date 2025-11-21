@@ -35,6 +35,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { PageBanner } from "@/components/ui/page-banner";
+import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 
 // Type definitions
 interface StatsCardProps {
@@ -69,10 +70,14 @@ interface FavoriteCardProps {
 
 interface TagSubmissionCardProps {
   tag_name: string;
+  project_id: string;
+  project_slug: string;
   project_title: string;
   status: string;
   admin_notes: string | null;
   created_at: Date | null;
+  is_now_available: boolean;
+  project_tag_count: number;
 }
 
 interface RecentAppreciationItemProps {
@@ -188,10 +193,14 @@ function FavoriteCard({
 // Tag submission card
 function TagSubmissionCard({
   tag_name,
+  project_id,
+  project_slug,
   project_title,
   status,
   admin_notes,
   created_at,
+  is_now_available,
+  project_tag_count,
 }: TagSubmissionCardProps) {
   const statusColor =
     status === "approved"
@@ -199,6 +208,8 @@ function TagSubmissionCard({
       : status === "rejected"
       ? "destructive"
       : "secondary";
+
+  const isProjectAtCapacity = project_tag_count >= MAX_PROJECT_TAGS;
 
   return (
     <div className="p-3 rounded-lg bg-muted/30">
@@ -209,6 +220,11 @@ function TagSubmissionCard({
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={statusColor}>{status}</Badge>
+          {is_now_available && (
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800">
+              Now Available
+            </Badge>
+          )}
           {created_at && (
             <p className="text-xs text-muted-foreground">
               <FormattedDate date={created_at} format="datetime" />
@@ -222,6 +238,33 @@ function TagSubmissionCard({
             <span className="font-medium">Reason: </span>
             {admin_notes}
           </p>
+        </div>
+      )}
+      {is_now_available && (
+        <div className="mt-2 pt-2 border-t border-green-200 dark:border-green-800">
+          {isProjectAtCapacity ? (
+            <>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                <span className="font-medium">Tag is available,</span> but this project already has the maximum of {MAX_PROJECT_TAGS} tags. Remove a tag first to add this one.
+              </p>
+              <Link href={`/projects/${project_slug}`} className="cursor-pointer">
+                <Button variant="outline" size="sm" className="mt-2 text-xs h-7">
+                  Manage Project Tags
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-green-700 dark:text-green-400">
+                <span className="font-medium">Good news!</span> This tag was approved for use in the system after further consideration. You can add it to your project.
+              </p>
+              <Link href={`/projects/${project_slug}`} className="cursor-pointer">
+                <Button variant="outline" size="sm" className="mt-2 text-xs h-7">
+                  Add to Project
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       )}
     </div>

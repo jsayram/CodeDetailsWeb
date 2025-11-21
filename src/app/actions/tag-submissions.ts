@@ -80,14 +80,10 @@ export async function submitNewTag(
         throw new Error("You already have a pending submission for this tag");
       } else if (status === "approved") {
         throw new Error("This tag has already been approved for this project");
-      } else if (status === "rejected") {
-        const reason = existingSubmission[0].admin_notes 
-          ? `: ${existingSubmission[0].admin_notes}` 
-          : '';
-        throw new Error(
-          `This tag was previously rejected for this project${reason}. Please submit a different tag.`
-        );
       }
+      // Note: We don't block rejected submissions here because the tag might have been
+      // approved by another user since the rejection. The check at the top of this function
+      // will auto-approve if the tag now exists in the tags table.
     }
 
     // Create new tag submission for review

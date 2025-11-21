@@ -50,10 +50,14 @@ export interface UserDashboardStats {
   myTagSubmissions: {
     id: string;
     tag_name: string;
+    project_id: string;
+    project_slug: string;
     project_title: string;
     status: string;
     admin_notes: string | null;
     created_at: Date | null;
+    is_now_available: boolean;
+    project_tag_count: number;
   }[];
   recentAppreciation: {
     project_id: string;
@@ -221,6 +225,8 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .select({
         id: tag_submissions.id,
         tag_name: tag_submissions.tag_name,
+        project_id: tag_submissions.project_id,
+        project_slug: projects.slug,
         project_title: projects.title,
         status: tag_submissions.status,
         admin_notes: tag_submissions.admin_notes,
@@ -230,6 +236,32 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .innerJoin(projects, eq(projects.id, tag_submissions.project_id))
       .where(eq(tag_submissions.submitter_email, userProfile[0].email_address || ""))
       .orderBy(desc(tag_submissions.created_at));
+
+    // Get all approved tags to check if rejected tags are now available
+    const approvedTags = await db
+      .select({
+        name: tags.name,
+      })
+      .from(tags);
+    
+    const approvedTagNames = new Set(approvedTags.map(t => t.name));
+
+    // Get tag counts for each project to check capacity
+    const projectIds = [...new Set(allSubmissions.map(s => s.project_id))];
+    let tagCountMap = new Map<string, number>();
+    
+    if (projectIds.length > 0) {
+      const projectTagCounts = await db
+        .select({
+          project_id: project_tags.project_id,
+          count: sql<number>`count(*)`,
+        })
+        .from(project_tags)
+        .where(sql`${project_tags.project_id} IN (${sql.join(projectIds.map(id => sql.raw(`'${id}'`)), sql.raw(', '))})`)
+        .groupBy(project_tags.project_id);
+      
+      tagCountMap = new Map(projectTagCounts.map(p => [p.project_id, Number(p.count)]));
+    }
 
     // Filter to only show the latest submission per tag name
     const seenTags = new Set<string>();
@@ -242,7 +274,21 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         seenTags.add(key);
         return true;
       })
-      .slice(0, 10);
+      .slice(0, 10)
+      .map(sub => ({
+        id: sub.id,
+        tag_name: sub.tag_name,
+        project_id: sub.project_id,
+        project_slug: sub.project_slug,
+        project_title: sub.project_title,
+        status: sub.status,
+        admin_notes: sub.admin_notes,
+        created_at: sub.created_at,
+        // Flag if this rejected tag is now available system-wide
+        is_now_available: sub.status === 'rejected' && approvedTagNames.has(sub.tag_name),
+        // Current tag count for the project
+        project_tag_count: tagCountMap.get(sub.project_id) || 0,
+      }));
 
     // Get recent users who favorited user's projects (Recent Appreciation)
     const recentAppreciation = await db
@@ -295,14 +341,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         name: tag.name,
         count: Number(tag.count || 0)
       })),
-      myTagSubmissions: myTagSubmissions.map(sub => ({
-        id: sub.id,
-        tag_name: sub.tag_name,
-        project_title: sub.project_title,
-        status: sub.status,
-        admin_notes: sub.admin_notes,
-        created_at: sub.created_at,
-      })),
+      myTagSubmissions: myTagSubmissions,
       recentAppreciation: recentAppreciation.map(appreciation => ({
         ...appreciation,
       })),
