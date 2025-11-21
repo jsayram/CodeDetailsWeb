@@ -47,6 +47,11 @@ export interface UserDashboardStats {
   topTags: {
     name: string;
     count: number;
+    projects: {
+      id: string;
+      slug: string;
+      title: string;
+    }[];
   }[];
   myTagSubmissions: {
     id: string;
@@ -189,8 +194,9 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .where(eq(favorites.profile_id, profileId));
 
     // Get top tags used in user's projects
-    const topTags = await db
+    const topTagsRaw = await db
       .select({
+        tag_id: tags.id,
         name: tags.name,
         count: sql<number>`count(${project_tags.project_id})`,
       })
@@ -206,6 +212,34 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .groupBy(tags.id)
       .orderBy(desc(sql<number>`count(${project_tags.project_id})`))
       .limit(10);
+
+    // Get projects for each top tag
+    const topTags = await Promise.all(
+      topTagsRaw.map(async (tag) => {
+        const tagProjects = await db
+          .select({
+            id: projects.id,
+            slug: projects.slug,
+            title: projects.title,
+          })
+          .from(project_tags)
+          .innerJoin(projects, eq(projects.id, project_tags.project_id))
+          .where(
+            and(
+              eq(project_tags.tag_id, tag.tag_id),
+              eq(projects.user_id, userId),
+              isNull(projects.deleted_at)
+            )
+          )
+          .orderBy(desc(projects.updated_at));
+
+        return {
+          name: tag.name,
+          count: Number(tag.count || 0),
+          projects: tagProjects,
+        };
+      })
+    );
 
     // Count total unique tags used by user
     const tagCount = await db
@@ -339,10 +373,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         ...fav,
         owner_username: fav.owner_username || "Unknown",
       })),
-      topTags: topTags.map(tag => ({
-        name: tag.name,
-        count: Number(tag.count || 0)
-      })),
+      topTags: topTags,
       myTagSubmissions: myTagSubmissions,
       recentAppreciation: recentAppreciation.map(appreciation => ({
         ...appreciation,

@@ -528,19 +528,43 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             {stats.topTags.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
                 {stats.topTags.slice(0, 6).map((tag) => (
-                  <div
-                    key={tag.name}
-                    className="flex items-center justify-between p-2 bg-muted/10 rounded-lg"
-                  >
-                    <span className="text-sm font-medium truncate">
-                      {tag.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      {tag.count}
-                    </span>
-                  </div>
+                  <Accordion key={tag.name} type="single" collapsible>
+                    <AccordionItem value={tag.name} className="border rounded-lg">
+                      <AccordionTrigger className="px-3 py-2 hover:no-underline">
+                        <div className="flex items-center justify-between w-full pr-2">
+                          <span className="text-sm font-medium truncate">
+                            {tag.name}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {tag.count}
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-3 pb-2">
+                        <div className="space-y-1">
+                          {tag.projects && tag.projects.length > 0 ? (
+                            tag.projects.map((project) => (
+                              <Link
+                                key={project.id}
+                                href={`/projects/${project.slug}`}
+                                className="block cursor-pointer"
+                              >
+                                <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary truncate">
+                                  {project.title}
+                                </div>
+                              </Link>
+                            ))
+                          ) : (
+                            <p className="text-xs text-muted-foreground text-center py-2">
+                              No projects found
+                            </p>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                 ))}
               </div>
             ) : (
