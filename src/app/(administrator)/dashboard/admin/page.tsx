@@ -264,9 +264,9 @@ function DashboardContent() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
         <div className="text-center">
-          <p className="text-destructive">Error: {error}</p>
+          <p className="text-destructive text-sm md:text-base">Error: {error}</p>
         </div>
       </div>
     );
@@ -277,17 +277,17 @@ function DashboardContent() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
       {/* Dashboard Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
           Platform-wide analytics and administration
         </p>
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4 mb-4 md:mb-6">
         <StatsCard
           title="Total Projects"
           value={stats.stats.totalProjects.toString()}
@@ -319,7 +319,7 @@ function DashboardContent() {
       </div>
 
       {/* Additional Analytics Row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4 mb-6 md:mb-8">
         <StatsCard
           title="Total Users"
           value={stats.stats.userGrowth.totalUsers.toString()}
@@ -349,30 +349,30 @@ function DashboardContent() {
       </div>
 
       {/* Category Distribution */}
-      <Card className="mb-6">
+      <Card className="mb-4 md:mb-6">
         <CardHeader>
-          <CardTitle>Project Categories</CardTitle>
-          <CardDescription>
-            Distribution of projects across categories
+          <CardTitle className="text-base md:text-lg">Project Categories</CardTitle>
+          <CardDescription className="text-xs md:text-sm">
+          Distribution of projects across categories
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 md:gap-4">
             {stats.stats.categoryDistribution.map((cat) => (
               <div
                 key={cat.category}
-                className="flex flex-col p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20"
+                className="flex flex-col p-3 md:p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold capitalize text-lg">
+                  <span className="font-semibold capitalize text-base md:text-lg">
                     {cat.category}
                   </span>
-                  <span className="text-2xl font-bold text-primary">
+                  <span className="text-xl md:text-2xl font-bold text-primary">
                     {cat.count}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-xs md:text-sm text-muted-foreground">
                     {cat.percentage}% of all projects
                   </span>
                 </div>
@@ -390,14 +390,14 @@ function DashboardContent() {
 
       {/* Activity Overview Chart */}
       <ClientOnly fallback={<ChartSkeleton />}>
-        <Card className="mb-6">
+        <Card className="mb-4 md:mb-6">
           <CardHeader>
-            <CardTitle>Projects Overview</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base md:text-lg">Projects Overview</CardTitle>
+            <CardDescription className="text-xs md:text-sm">
               A comprehensive view of all projects and their favorites
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-2 md:px-6">
+          <CardContent className="px-2 sm:px-4 md:px-6">
             <Overview
               data={stats.stats.allProjects.map((p) => ({
                 name:
@@ -417,7 +417,7 @@ function DashboardContent() {
       </ClientOnly>
 
       {/* Main Content Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4 md:gap-6">
         {/* Activity Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -427,7 +427,7 @@ function DashboardContent() {
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {stats.stats.recentActivity.map((activity) => (
                 <ActivityItem
                   key={activity.id}
@@ -442,7 +442,7 @@ function DashboardContent() {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full flex items-center justify-center cursor-pointer"
+              className="w-full flex items-center justify-center cursor-pointer text-xs md:text-sm"
             >
               View all activity
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -481,7 +481,7 @@ function DashboardContent() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="w-full flex items-center justify-center cursor-pointer"
+                className="w-full flex items-center justify-center cursor-pointer text-xs md:text-sm"
               >
                 View all projects
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -493,19 +493,19 @@ function DashboardContent() {
 
       {/* Popular Tags Chart */}
       <ClientOnly fallback={<ChartSkeleton />}>
-        <Card className="mt-6">
+        <Card className="mt-4 md:mt-6">
           <CardHeader>
-            <CardTitle>Popular Tags</CardTitle>
+            <CardTitle className="text-base md:text-lg">Popular Tags</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
               {stats.stats.topTags.map((tag) => (
                 <div
                   key={tag.name}
-                  className="flex items-center justify-between p-4 bg-muted/10 rounded-lg"
+                  className="flex items-center justify-between p-3 md:p-4 bg-muted/10 rounded-lg"
                 >
-                  <span className="font-medium">{tag.name}</span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="font-medium text-sm md:text-base truncate">{tag.name}</span>
+                  <span className="text-xs md:text-sm text-muted-foreground ml-2 flex-shrink-0">
                     {tag.count} projects
                   </span>
                 </div>
@@ -516,30 +516,30 @@ function DashboardContent() {
       </ClientOnly>
 
       {/* Tag Submissions Management Section */}
-      <div className="mt-6">
+      <div className="mt-4 md:mt-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">
+            <CardTitle className="text-base md:text-lg">
               Tag Submissions for Review
             </CardTitle>
-            <CardDescription className="text-sm">
+            <CardDescription className="text-xs md:text-sm">
               {stats.submissions.length} pending tag
               {stats.submissions.length !== 1 ? "s" : ""} awaiting approval or
               rejection
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="max-h-[600px] overflow-y-scroll scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+            <div className="max-h-[500px] md:max-h-[600px] overflow-y-scroll scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
               <TagSubmissionManagement initialSubmissions={stats.submissions} />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-4 md:mt-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-xl">Tag List</CardTitle>
+            <CardTitle className="text-base md:text-xl">Tag List</CardTitle>
           </CardHeader>
           <CardContent>
             <TagList />
@@ -548,19 +548,19 @@ function DashboardContent() {
       </div>
 
       {/* Admin Test Pages Section */}
-      <div className="mt-6">
+      <div className="mt-4 md:mt-6">
         <Card className="bg-gradient-to-br from-primary/5 to-secondary/5">
           <CardHeader>
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Code className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base md:text-xl flex items-center gap-2">
+              <Code className="h-4 w-4 md:h-5 md:w-5 text-primary" />
               Admin Test Pages
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs md:text-sm">
               Developer testing and debugging tools - Admin access only
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4">
               <a
                 href="/api/projects/test"
                 target="_blank"
@@ -568,13 +568,13 @@ function DashboardContent() {
               >
                 <Button
                   variant="outline"
-                  className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                  className="w-full h-auto flex flex-col items-start p-3 md:p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <Code className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Project API Test</span>
+                    <Code className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                    <span className="font-semibold text-xs md:text-sm">Project API Test</span>
                   </div>
-                  <span className="text-xs text-muted-foreground text-left">
+                  <span className="text-[10px] md:text-xs text-muted-foreground text-left">
                     Test project API endpoints and functionality
                   </span>
                 </Button>
@@ -587,13 +587,13 @@ function DashboardContent() {
               >
                 <Button
                   variant="outline"
-                  className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                  className="w-full h-auto flex flex-col items-start p-3 md:p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <Moon className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Dark Mode Test</span>
+                    <Moon className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                    <span className="font-semibold text-xs md:text-sm">Dark Mode Test</span>
                   </div>
-                  <span className="text-xs text-muted-foreground text-left">
+                  <span className="text-[10px] md:text-xs text-muted-foreground text-left">
                     Test dark mode theme components
                   </span>
                 </Button>
@@ -606,13 +606,13 @@ function DashboardContent() {
               >
                 <Button
                   variant="outline"
-                  className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                  className="w-full h-auto flex flex-col items-start p-3 md:p-4 cursor-pointer hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Toast Test</span>
+                    <AlertCircle className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                    <span className="font-semibold text-xs md:text-sm">Toast Test</span>
                   </div>
-                  <span className="text-xs text-muted-foreground text-left">
+                  <span className="text-[10px] md:text-xs text-muted-foreground text-left">
                     Test toast notification system
                   </span>
                 </Button>
@@ -628,13 +628,13 @@ function DashboardContent() {
 // Loading state for the dashboard
 function DashboardLoading() {
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <Skeleton className="h-8 w-[200px] mb-2" />
-        <Skeleton className="h-4 w-[300px]" />
+    <main className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
+      <div className="mb-6 md:mb-8">
+        <Skeleton className="h-6 md:h-8 w-[180px] md:w-[200px] mb-2" />
+        <Skeleton className="h-3 md:h-4 w-[250px] md:w-[300px]" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 mb-6 md:mb-8">
         <StatsCardSkeleton />
         <StatsCardSkeleton />
         <StatsCardSkeleton />
@@ -643,7 +643,7 @@ function DashboardLoading() {
 
       <ChartSkeleton />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mt-6">
+      <div className="grid grid-cols-1 gap-4 md:gap-6 2xl:grid-cols-2 mt-4 md:mt-6">
         <ChartSkeleton />
         <ChartSkeleton />
       </div>
