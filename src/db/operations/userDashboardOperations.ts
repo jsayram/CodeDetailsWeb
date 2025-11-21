@@ -52,7 +52,16 @@ export interface UserDashboardStats {
     tag_name: string;
     project_title: string;
     status: string;
+    admin_notes: string | null;
     created_at: Date | null;
+  }[];
+  recentAppreciation: {
+    project_id: string;
+    project_slug: string;
+    project_title: string;
+    favoriter_username: string | null;
+    favoriter_profile_image: string | null;
+    favorited_at: Date | null;
   }[];
 }
 
@@ -207,19 +216,54 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         )
       );
 
-    // Get user's tag submissions using Drizzle ORM
-    const myTagSubmissions = await db
+    // Get user's tag submissions using Drizzle ORM - only latest per tag name
+    const allSubmissions = await db
       .select({
         id: tag_submissions.id,
         tag_name: tag_submissions.tag_name,
         project_title: projects.title,
         status: tag_submissions.status,
+        admin_notes: tag_submissions.admin_notes,
         created_at: tag_submissions.created_at,
       })
       .from(tag_submissions)
       .innerJoin(projects, eq(projects.id, tag_submissions.project_id))
       .where(eq(tag_submissions.submitter_email, userProfile[0].email_address || ""))
-      .orderBy(desc(tag_submissions.created_at))
+      .orderBy(desc(tag_submissions.created_at));
+
+    // Filter to only show the latest submission per tag name
+    const seenTags = new Set<string>();
+    const myTagSubmissions = allSubmissions
+      .filter(submission => {
+        const key = `${submission.tag_name}`;
+        if (seenTags.has(key)) {
+          return false;
+        }
+        seenTags.add(key);
+        return true;
+      })
+      .slice(0, 10);
+
+    // Get recent users who favorited user's projects (Recent Appreciation)
+    const recentAppreciation = await db
+      .select({
+        project_id: projects.id,
+        project_slug: projects.slug,
+        project_title: projects.title,
+        favoriter_username: profiles.username,
+        favoriter_profile_image: profiles.profile_image_url,
+        favorited_at: favorites.created_at,
+      })
+      .from(favorites)
+      .innerJoin(projects, eq(projects.id, favorites.project_id))
+      .innerJoin(profiles, eq(profiles.id, favorites.profile_id))
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at)
+        )
+      )
+      .orderBy(desc(favorites.created_at))
       .limit(10);
 
     return {
@@ -256,7 +300,11 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         tag_name: sub.tag_name,
         project_title: sub.project_title,
         status: sub.status,
+        admin_notes: sub.admin_notes,
         created_at: sub.created_at,
+      })),
+      recentAppreciation: recentAppreciation.map(appreciation => ({
+        ...appreciation,
       })),
     };
   });

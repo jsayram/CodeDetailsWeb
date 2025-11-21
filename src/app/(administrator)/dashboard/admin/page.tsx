@@ -23,6 +23,7 @@ import {
   Users,
   Moon,
   AlertCircle,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
@@ -91,6 +92,22 @@ interface DashboardStats {
       title: string;
       total_favorites: number;
     }>;
+    userGrowth: {
+      totalUsers: number;
+      newUsersThisWeek: number;
+      newUsersThisMonth: number;
+    };
+    categoryDistribution: Array<{
+      category: string;
+      count: number;
+      percentage: number;
+    }>;
+    engagementMetrics: {
+      avgFavoritesPerProject: number;
+      avgTagsPerProject: number;
+      projectsWithoutFavorites: number;
+      projectsWithoutTags: number;
+    };
   };
   submissions: Array<{
     tag_name: string;
@@ -106,6 +123,7 @@ interface DashboardStats {
       updated_at: Date | null;
       admin_notes: string | null;
       reviewed_at: Date | null;
+      project_title?: string;
     }>;
   }>;
 }
@@ -241,7 +259,7 @@ function DashboardContent() {
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
         <StatsCard
           title="Total Projects"
           value={stats.stats.totalProjects.toString()}
@@ -271,6 +289,74 @@ function DashboardContent() {
           icon={<ShieldCheck className="h-4 w-4 text-primary" />}
         />
       </div>
+
+      {/* Additional Analytics Row */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <StatsCard
+          title="Total Users"
+          value={stats.stats.userGrowth.totalUsers.toString()}
+          description={`${stats.stats.userGrowth.newUsersThisWeek} joined this week`}
+          icon={<Users className="h-4 w-4 text-emerald-500" />}
+        />
+        <StatsCard
+          title="Avg Favorites/Project"
+          value={stats.stats.engagementMetrics.avgFavoritesPerProject.toFixed(1)}
+          description={`${stats.stats.engagementMetrics.projectsWithoutFavorites} projects with no favorites`}
+          icon={<TrendingUp className="h-4 w-4 text-blue-500" />}
+        />
+        <StatsCard
+          title="Avg Tags/Project"
+          value={stats.stats.engagementMetrics.avgTagsPerProject.toFixed(1)}
+          description={`${stats.stats.engagementMetrics.projectsWithoutTags} projects without tags`}
+          icon={<TrendingUp className="h-4 w-4 text-purple-500" />}
+        />
+        <StatsCard
+          title="New Users (30d)"
+          value={stats.stats.userGrowth.newUsersThisMonth.toString()}
+          description="Monthly growth"
+          icon={<Users className="h-4 w-4 text-amber-500" />}
+        />
+      </div>
+
+      {/* Category Distribution */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Project Categories</CardTitle>
+          <CardDescription>
+            Distribution of projects across categories
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {stats.stats.categoryDistribution.map((cat) => (
+              <div
+                key={cat.category}
+                className="flex flex-col p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold capitalize text-lg">
+                    {cat.category}
+                  </span>
+                  <span className="text-2xl font-bold text-primary">
+                    {cat.count}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {cat.percentage}% of all projects
+                  </span>
+                </div>
+                <div className="mt-2 h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-500"
+                    style={{ width: `${cat.percentage}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Activity Overview Chart */}
       <ClientOnly fallback={<ChartSkeleton />}>
@@ -399,8 +485,8 @@ function DashboardContent() {
               {stats.submissions.length} pending tag{stats.submissions.length !== 1 ? 's' : ''} for review
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[500px] overflow-y-auto px-6 pb-4">
+          <CardContent className="pt-0">
+            <div className="max-h-[600px] overflow-y-scroll scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
               <TagSubmissionManagement initialSubmissions={stats.submissions} />
             </div>
           </CardContent>

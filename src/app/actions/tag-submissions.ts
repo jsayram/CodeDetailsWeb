@@ -60,7 +60,7 @@ export async function submitNewTag(
       };
     }
 
-    // Check for existing pending submission from the same user for the same project and tag
+    // Check for any existing submission from the same user for the same project and tag
     const existingSubmission = await db
       .select()
       .from(tag_submissions)
@@ -68,14 +68,26 @@ export async function submitNewTag(
         and(
           eq(tag_submissions.project_id, projectId),
           eq(tag_submissions.tag_name, normalizedTagName),
-          eq(tag_submissions.submitter_email, submitterEmail),
-          eq(tag_submissions.status, "pending")
+          eq(tag_submissions.submitter_email, submitterEmail)
         )
       )
       .limit(1);
 
     if (existingSubmission.length > 0) {
-      throw new Error("You already have a pending submission for this tag");
+      const status = existingSubmission[0].status;
+      
+      if (status === "pending") {
+        throw new Error("You already have a pending submission for this tag");
+      } else if (status === "approved") {
+        throw new Error("This tag has already been approved for this project");
+      } else if (status === "rejected") {
+        const reason = existingSubmission[0].admin_notes 
+          ? `: ${existingSubmission[0].admin_notes}` 
+          : '';
+        throw new Error(
+          `This tag was previously rejected for this project${reason}. Please submit a different tag.`
+        );
+      }
     }
 
     // Create new tag submission for review

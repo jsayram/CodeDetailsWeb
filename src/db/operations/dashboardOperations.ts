@@ -43,6 +43,22 @@ export interface DashboardStats {
     title: string;
     total_favorites: number;
   }[];
+  userGrowth: {
+    totalUsers: number;
+    newUsersThisWeek: number;
+    newUsersThisMonth: number;
+  };
+  categoryDistribution: {
+    category: string;
+    count: number;
+    percentage: number;
+  }[];
+  engagementMetrics: {
+    avgFavoritesPerProject: number;
+    avgTagsPerProject: number;
+    projectsWithoutFavorites: number;
+    projectsWithoutTags: number;
+  };
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -168,8 +184,64 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       })
       .from(tags);
 
+    // User Growth Analytics
+    const userGrowthStats = await db
+      .select({
+        totalUsers: sql<number>`count(distinct ${profiles.id})`,
+        newUsersThisWeek: sql<number>`count(distinct case 
+          when ${profiles.created_at} > now() - interval '7 days' 
+          then ${profiles.id} end)`,
+        newUsersThisMonth: sql<number>`count(distinct case 
+          when ${profiles.created_at} > now() - interval '30 days' 
+          then ${profiles.id} end)`,
+      })
+      .from(profiles);
+
+    // Category Distribution
+    const categoryStats = await db
+      .select({
+        category: projects.category,
+        count: sql<number>`count(*)`,
+      })
+      .from(projects)
+      .where(isNull(projects.deleted_at))
+      .groupBy(projects.category)
+      .orderBy(desc(sql<number>`count(*)`));
+
+    const totalProjects = Number(projectStats[0]?.total || 0);
+    const categoryDistribution = categoryStats.map(cat => ({
+      category: cat.category,
+      count: Number(cat.count),
+      percentage: totalProjects > 0 ? Math.round((Number(cat.count) / totalProjects) * 100) : 0,
+    }));
+
+    // Engagement Metrics
+    const engagementStats = await db
+      .select({
+        avgFavorites: sql<number>`coalesce(avg(${projects.total_favorites}), 0)`,
+        projectsWithoutFavorites: sql<number>`count(case when coalesce(${projects.total_favorites}, 0) = 0 then 1 end)`,
+      })
+      .from(projects)
+      .where(isNull(projects.deleted_at));
+
+    // Calculate average tags per project
+    const projectTagCounts = await db
+      .select({
+        project_id: projects.id,
+        tag_count: sql<number>`count(${project_tags.tag_id})`,
+      })
+      .from(projects)
+      .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
+      .where(isNull(projects.deleted_at))
+      .groupBy(projects.id);
+
+    const totalProjectCount = projectTagCounts.length;
+    const totalTagCount = projectTagCounts.reduce((sum, p) => sum + Number(p.tag_count), 0);
+    const projectsWithoutTagsCount = projectTagCounts.filter(p => Number(p.tag_count) === 0).length;
+    const avgTags = totalProjectCount > 0 ? totalTagCount / totalProjectCount : 0;
+
     return {
-      totalProjects: Number(projectStats[0]?.total || 0),
+      totalProjects,
       activeUsers: Number(activeUsers[0]?.count || 0),
       recentActivity: recentActivity.map(activity => ({
         ...activity,
@@ -189,7 +261,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         name: tag.name,
         count: Number(tag.count || 0)
       })),
-      allProjects // Add the allProjects to the returned stats
+      allProjects,
+      userGrowth: {
+        totalUsers: Number(userGrowthStats[0]?.totalUsers || 0),
+        newUsersThisWeek: Number(userGrowthStats[0]?.newUsersThisWeek || 0),
+        newUsersThisMonth: Number(userGrowthStats[0]?.newUsersThisMonth || 0),
+      },
+      categoryDistribution,
+      engagementMetrics: {
+        avgFavoritesPerProject: Math.round(Number(engagementStats[0]?.avgFavorites || 0) * 10) / 10,
+        avgTagsPerProject: Math.round(avgTags * 10) / 10,
+        projectsWithoutFavorites: Number(engagementStats[0]?.projectsWithoutFavorites || 0),
+        projectsWithoutTags: projectsWithoutTagsCount,
+      },
     };
   });
 }

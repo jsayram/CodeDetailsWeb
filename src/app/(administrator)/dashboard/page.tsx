@@ -23,6 +23,7 @@ import {
   TrendingUp,
   RefreshCw,
   Activity,
+  PieChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormattedDate } from "@/lib/FormattedDate";
@@ -31,7 +32,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { fetchUserDashboardData } from "@/app/actions/user-dashboard";
 import { useDashboardCache } from "@/hooks/use-dashboard-cache";
 import Link from "next/link";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
+import { PageBanner } from "@/components/ui/page-banner";
 
 // Type definitions
 interface StatsCardProps {
@@ -68,7 +71,16 @@ interface TagSubmissionCardProps {
   tag_name: string;
   project_title: string;
   status: string;
+  admin_notes: string | null;
   created_at: Date | null;
+}
+
+interface RecentAppreciationItemProps {
+  project_slug: string;
+  project_title: string;
+  favoriter_username: string | null;
+  favoriter_profile_image: string | null;
+  favorited_at: Date | null;
 }
 
 // Loading skeleton for stats card
@@ -119,7 +131,13 @@ function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
 }
 
 // Project card component
-function ProjectCard({ slug, title, description, total_favorites, category }: ProjectCardProps) {
+function ProjectCard({
+  slug,
+  title,
+  description,
+  total_favorites,
+  category,
+}: ProjectCardProps) {
   return (
     <Link href={`/projects/${slug}`} className="cursor-pointer">
       <Card className="hover:bg-accent/50 transition-colors">
@@ -146,7 +164,12 @@ function ProjectCard({ slug, title, description, total_favorites, category }: Pr
 }
 
 // Favorite card component
-function FavoriteCard({ slug, title, owner_username, category }: FavoriteCardProps) {
+function FavoriteCard({
+  slug,
+  title,
+  owner_username,
+  category,
+}: FavoriteCardProps) {
   return (
     <Link href={`/projects/${slug}`} className="cursor-pointer">
       <Card className="hover:bg-accent/50 transition-colors">
@@ -163,20 +186,89 @@ function FavoriteCard({ slug, title, owner_username, category }: FavoriteCardPro
 }
 
 // Tag submission card
-function TagSubmissionCard({ tag_name, project_title, status, created_at }: TagSubmissionCardProps) {
-  const statusColor = status === "approved" ? "default" : status === "rejected" ? "destructive" : "secondary";
-  
+function TagSubmissionCard({
+  tag_name,
+  project_title,
+  status,
+  admin_notes,
+  created_at,
+}: TagSubmissionCardProps) {
+  const statusColor =
+    status === "approved"
+      ? "default"
+      : status === "rejected"
+      ? "destructive"
+      : "secondary";
+
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-      <div className="flex-1">
-        <p className="text-sm font-medium">{tag_name}</p>
-        <p className="text-xs text-muted-foreground">for {project_title}</p>
+    <div className="p-3 rounded-lg bg-muted/30">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex-1">
+          <p className="text-sm font-medium">{tag_name}</p>
+          <p className="text-xs text-muted-foreground">for {project_title}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={statusColor}>{status}</Badge>
+          {created_at && (
+            <p className="text-xs text-muted-foreground">
+              <FormattedDate date={created_at} format="datetime" />
+            </p>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <Badge variant={statusColor}>{status}</Badge>
-        {created_at && (
+      {status === "rejected" && admin_notes && (
+        <div className="mt-2 pt-2 border-t border-destructive/20">
+          <p className="text-xs text-destructive/80">
+            <span className="font-medium">Reason: </span>
+            {admin_notes}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Recent Appreciation item component
+function RecentAppreciationItem({
+  project_slug,
+  project_title,
+  favoriter_username,
+  favoriter_profile_image,
+  favorited_at,
+}: RecentAppreciationItemProps) {
+  return (
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex-shrink-0">
+        {favoriter_profile_image ? (
+          <Image
+            src={favoriter_profile_image}
+            alt={favoriter_username || "User"}
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <Heart className="h-4 w-4 text-primary" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">
+          <span className="text-primary">
+            {favoriter_username || "Someone"}
+          </span>
+          {" favorited "}
+          <Link
+            href={`/projects/${project_slug}`}
+            className="hover:underline cursor-pointer"
+          >
+            {project_title}
+          </Link>
+        </p>
+        {favorited_at && (
           <p className="text-xs text-muted-foreground">
-            <FormattedDate date={created_at} format="datetime" />
+            <FormattedDate date={favorited_at} format="datetime" />
           </p>
         )}
       </div>
@@ -186,11 +278,12 @@ function TagSubmissionCard({ tag_name, project_title, status, created_at }: TagS
 
 // Dashboard content component
 function DashboardContent() {
-  const { data: dashboardData, loading, error, refresh } = useDashboardCache(
-    "user-dashboard",
-    fetchUserDashboardData,
-    []
-  );
+  const {
+    data: dashboardData,
+    loading,
+    error,
+    refresh,
+  } = useDashboardCache("user-dashboard", fetchUserDashboardData, []);
 
   if (loading) {
     return <DashboardLoading />;
@@ -200,7 +293,9 @@ function DashboardContent() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
-          <p className="text-destructive">Error loading dashboard: {error.message}</p>
+          <p className="text-destructive">
+            Error loading dashboard: {error.message}
+          </p>
           <Button onClick={refresh} className="mt-4 cursor-pointer">
             Retry
           </Button>
@@ -217,18 +312,40 @@ function DashboardContent() {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      {/* Dashboard Header */}
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Your personal analytics and project overview
-          </p>
+      {/* Dashboard Banner */}
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex justify-end mb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refresh}
+            className="cursor-pointer self-start"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          </div>
+          <PageBanner
+            icon={<PieChart className="h-8 w-8 text-purple-500" />}
+            bannerTitle="Dashboard - Your Personal Analytics Hub"
+            description={
+              stats.totalProjects > 0
+                ? `Welcome back! You've shared ${
+                    stats.totalProjects
+                  } amazing project${
+                    stats.totalProjects > 1 ? "s" : ""
+                  } with the community. ${stats.totalFavorites} developers have shown their appreciation with favorites!`
+                : "Welcome back! Your creative journey starts here. Share your first project and inspire the community!"
+            }
+            isUserBanner={false}
+            gradientFrom="purple-900"
+            gradientVia="indigo-800"
+            gradientTo="violet-800"
+            borderColor="border-purple-700/40"
+            textGradient="from-purple-400 via-indigo-400 to-violet-400"
+          />
         </div>
-        <Button variant="outline" size="sm" onClick={refresh} className="cursor-pointer">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
       </div>
 
       {/* Stats Cards Row */}
@@ -244,7 +361,10 @@ function DashboardContent() {
           value={stats.totalFavorites.toString()}
           description={
             stats.projectStats.mostPopularProject
-              ? `Most liked: ${stats.projectStats.mostPopularProject.title.substring(0, 20)}...`
+              ? `Most liked: ${stats.projectStats.mostPopularProject.title.substring(
+                  0,
+                  20
+                )}...`
               : "No favorites yet"
           }
           icon={<Heart className="h-4 w-4 text-primary" />}
@@ -263,12 +383,47 @@ function DashboardContent() {
         />
       </div>
 
-      {/* Main Content - Two Columns */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6">
-        {/* Recent Activity */}
-        <Card>
+      {/* Main Content - Three Columns */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-6">
+        {/* Left Column - Recent Appreciation */}
+        <Card className="lg:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Recent Appreciation
+            </CardTitle>
+            <Heart className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            {stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
+              <div className="space-y-2">
+                {stats.recentAppreciation
+                  .slice(0, 5)
+                  .map((appreciation, index) => (
+                    <RecentAppreciationItem key={index} {...appreciation} />
+                  ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Heart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  No favorites yet. Share your projects to get appreciation!
+                </p>
+              </div>
+            )}
+          </CardContent>
+          {stats.recentAppreciation && stats.recentAppreciation.length > 5 && (
+            <CardFooter className="text-xs text-muted-foreground text-center">
+              Showing 5 most recent
+            </CardFooter>
+          )}
+        </Card>
+
+        {/* Middle Column - Recent Activity */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Recent Activity
+            </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -284,12 +439,18 @@ function DashboardContent() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No recent activity</p>
+              <p className="text-sm text-muted-foreground">
+                No recent activity
+              </p>
             )}
           </CardContent>
           <CardFooter>
             <Link href="/projects" className="w-full cursor-pointer">
-              <Button variant="ghost" size="sm" className="w-full flex items-center justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full flex items-center justify-center"
+              >
                 View all projects
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -297,10 +458,12 @@ function DashboardContent() {
           </CardFooter>
         </Card>
 
-        {/* Popular Tags */}
-        <Card>
+        {/* Right Column - Popular Tags */}
+        <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">My Popular Tags</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              My Popular Tags
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {stats.topTags.length > 0 ? (
@@ -310,8 +473,12 @@ function DashboardContent() {
                     key={tag.name}
                     className="flex items-center justify-between p-2 bg-muted/10 rounded-lg"
                   >
-                    <span className="text-sm font-medium truncate">{tag.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{tag.count}</span>
+                    <span className="text-sm font-medium truncate">
+                      {tag.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {tag.count}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -337,7 +504,9 @@ function DashboardContent() {
           ) : (
             <div className="text-center py-8">
               <Code className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">You haven't created any projects yet</p>
+              <p className="text-muted-foreground mb-4">
+                You haven't created any projects yet
+              </p>
               <Link href="/projects/new" className="cursor-pointer">
                 <Button>Create Your First Project</Button>
               </Link>
@@ -370,7 +539,10 @@ function DashboardContent() {
           </CardContent>
           {stats.myFavorites.length > 6 && (
             <CardFooter>
-              <Link href="/projects/favorites" className="w-full cursor-pointer">
+              <Link
+                href="/projects/favorites"
+                className="w-full cursor-pointer"
+              >
                 <Button variant="outline" className="w-full cursor-pointer">
                   View All Favorites
                 </Button>
@@ -386,16 +558,68 @@ function DashboardContent() {
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">My Tag Submissions</CardTitle>
             <CardDescription className="text-sm">
-              {stats.myTagSubmissions.length} tag{stats.myTagSubmissions.length > 1 ? 's' : ''} submitted
+              {stats.myTagSubmissions.length} tag
+              {stats.myTagSubmissions.length > 1 ? "s" : ""} submitted
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[400px] overflow-y-auto px-6 pb-4">
-              <div className="space-y-2">
-                {stats.myTagSubmissions.map((submission, index) => (
-                  <TagSubmissionCard key={index} {...submission} />
-                ))}
-              </div>
+          <CardContent className="pt-0">
+            <div className="max-h-[400px] overflow-y-scroll scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+              {/* Pending Submissions */}
+              {stats.myTagSubmissions.filter(s => s.status === 'pending').length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-1 w-1 rounded-full bg-yellow-500"></div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Pending Review ({stats.myTagSubmissions.filter(s => s.status === 'pending').length})
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {stats.myTagSubmissions
+                      .filter(s => s.status === 'pending')
+                      .map((submission, index) => (
+                        <TagSubmissionCard key={index} {...submission} />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Approved Submissions */}
+              {stats.myTagSubmissions.filter(s => s.status === 'approved').length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-1 w-1 rounded-full bg-green-500"></div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Approved ({stats.myTagSubmissions.filter(s => s.status === 'approved').length})
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {stats.myTagSubmissions
+                      .filter(s => s.status === 'approved')
+                      .map((submission, index) => (
+                        <TagSubmissionCard key={index} {...submission} />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Rejected Submissions */}
+              {stats.myTagSubmissions.filter(s => s.status === 'rejected').length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-1 w-1 rounded-full bg-red-500"></div>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Rejected ({stats.myTagSubmissions.filter(s => s.status === 'rejected').length})
+                    </h3>
+                  </div>
+                  <div className="space-y-2">
+                    {stats.myTagSubmissions
+                      .filter(s => s.status === 'rejected')
+                      .map((submission, index) => (
+                        <TagSubmissionCard key={index} {...submission} />
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
