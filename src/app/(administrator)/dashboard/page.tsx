@@ -247,7 +247,7 @@ function TagSubmissionCard({
               <p className="text-xs text-amber-700 dark:text-amber-400">
                 <span className="font-medium">Tag is available,</span> but this project already has the maximum of {MAX_PROJECT_TAGS} tags. Remove a tag first to add this one.
               </p>
-              <Link href={`/projects/${project_slug}`} className="cursor-pointer">
+              <Link href={`/projects/${project_slug}?edit=true&tag=${encodeURIComponent(tag_name)}`} className="cursor-pointer">
                 <Button variant="outline" size="sm" className="mt-2 text-xs h-7">
                   Manage Project Tags
                 </Button>
@@ -258,7 +258,7 @@ function TagSubmissionCard({
               <p className="text-xs text-green-700 dark:text-green-400">
                 <span className="font-medium">Good news!</span> This tag was approved for use in the system after further consideration. You can add it to your project.
               </p>
-              <Link href={`/projects/${project_slug}`} className="cursor-pointer">
+              <Link href={`/projects/${project_slug}?edit=true&tag=${encodeURIComponent(tag_name)}`} className="cursor-pointer">
                 <Button variant="outline" size="sm" className="mt-2 text-xs h-7">
                   Add to Project
                 </Button>

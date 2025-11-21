@@ -192,6 +192,34 @@ export function ProjectContent({
     }
   }, [project, isEditMode]);
 
+  // Handle tag query parameter - auto-populate tag from URL
+  useEffect(() => {
+    if (!isEditMode) return;
+    
+    const tagFromUrl = searchParams?.get("tag");
+    if (!tagFromUrl) return;
+
+    // Check if tag already exists in selected tags
+    const tagExists = selectedTags.some(
+      (tag) => tag.name.toLowerCase() === tagFromUrl.toLowerCase()
+    );
+
+    if (!tagExists) {
+      // Add the tag from URL to selected tags
+      const newTag: TagInfo = {
+        id: `tag-${tagFromUrl}`,
+        name: tagFromUrl,
+      };
+      
+      setSelectedTags((prev) => [...prev, newTag]);
+      
+      // Show a toast to inform the user
+      toast.info(`Tag "${tagFromUrl}" has been added to the tag field`, {
+        description: "You can save the project to save the tag to your project, or cancel the edit to discard.",
+      });
+    }
+  }, [isEditMode, searchParams, selectedTags]);
+
   const generateSlug = useCallback(() => {
     if (formData.title) {
       const newSlug = slugify(formData.title);
@@ -210,6 +238,8 @@ export function ProjectContent({
       url.searchParams.set("edit", "true");
     } else {
       url.searchParams.delete("edit");
+      // Remove tag parameter when exiting edit mode
+      url.searchParams.delete("tag");
     }
 
     router.replace(url.pathname + url.search, {
