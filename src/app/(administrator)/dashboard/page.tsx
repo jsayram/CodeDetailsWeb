@@ -625,10 +625,10 @@ function DashboardContent() {
                 <AccordionContent className="px-4 pb-4">
                   <div className="space-y-3 pt-2">
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium text-foreground">Your impact matters:</span> Every tag you submit helps make Code Details better for the entire community. When approved, your tags become part of our shared vocabulary available system-wide for thousands of developers to organize and discover amazing work.
+                      <span className="font-medium text-foreground">✨ You're a Tag Hero!</span> Every tag you submit is like adding a new superpower to Code Details! When approved, your tags join our global tag library, helping thousands of developers discover incredible projects. You're literally shaping how the community finds and organizes amazing work. So thank you for making Code Details a better place, one tag at a time!
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium text-foreground">About rejections:</span> Please don't take them personally! Our review process ensures tags stay clean, consistent, and useful for everyone. It's about maintaining quality for better search and discoverability, not a reflection on you or your work. Keep contributing!
+                      <span className="font-medium text-foreground">💙 Rejections? No big deal!</span> Think of our tag review like quality control for the whole community's benefit. We're just making sure every tag is clean, consistent, and super useful for discovery. It's never about you or your awesome work, it's about keeping our tag system crisp and searchable for everyone. Keep those tag ideas coming!
                     </p>
                   </div>
                 </AccordionContent>
