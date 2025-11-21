@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,21 +20,20 @@ export function SidebarToggleButton() {
       variant="outline"
       size="icon"
       className={cn(
-        "fixed top-1/2 -translate-y-1/2 z-50 h-10 w-10 rounded-full shadow-lg",
+        "fixed top-1/2 -translate-y-1/2 z-50 h-16 w-8 shadow-lg",
         "transition-all duration-300 ease-in-out cursor-pointer",
         "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-        "hover:bg-accent hover:text-accent-foreground hover:scale-110",
+        "hover:bg-accent hover:text-accent-foreground",
         "border border-border",
+        "rounded-r-xl rounded-l-none", // Tab shape - rounded on right, flat on left
+        "border-l-0", // No border on left edge
         // Desktop positioning based on sidebar state - positioned to overlap sidebar edge
-        open ? "left-[calc(16rem-1.25rem)]" : "left-2"
+        open ? "left-[16rem]" : "left-0"
       )}
-      aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
+      aria-label="Toggle Sidebar"
     >
-      {open ? (
-        <ChevronLeft className="h-5 w-5" />
-      ) : (
-        <ChevronRight className="h-5 w-5" />
-      )}
+      <PanelLeft className="h-5 w-5" />
+      <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
 }
