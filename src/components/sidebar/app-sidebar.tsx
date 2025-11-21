@@ -41,7 +41,6 @@ import { Logo } from "../CodeDetailsLogoComponent";
 import { API_ROUTES } from "../../constants/api-routes";
 import { SignInButtonComponent } from "../auth/SignInButtonComponent";
 import { is } from "drizzle-orm";
-import { SidebarToggleButton } from "./sidebar-toggle-button";
 
 const data = {
   navMain: [
@@ -222,8 +221,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <>
-      <Sidebar variant="inset" {...props}>
+    <Sidebar variant="inset" {...props}>
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -273,7 +271,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SignedOut>
         </SidebarFooter>
       </Sidebar>
-      <SidebarToggleButton />
-    </>
   );
 }

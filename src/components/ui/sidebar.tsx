@@ -259,22 +259,51 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, open, isMobile } = useSidebar();
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <Button
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
-      variant="ghost"
+      variant={isScrolled && !isMobile ? "outline" : "ghost"}
       size="icon"
-      className={cn("size-7 cursor-pointer", className)}
+      className={cn(
+        "cursor-pointer transition-all duration-300 ease-in-out",
+        // When scrolled: transform into floating tab (shared styles)
+        isScrolled && [
+          "!fixed z-50 h-16 w-8 shadow-lg",
+          "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+          "border border-border rounded-r-xl rounded-l-none border-l-0"
+        ],
+        // Desktop scrolled: positioned at sidebar edge
+        isScrolled && !isMobile && [
+          "hover:bg-accent hover:text-accent-foreground",
+          "top-1/2 -translate-y-1/2",
+          open ? "left-[16rem]" : "left-0"
+        ],
+        // Mobile scrolled: positioned below header
+        isScrolled && isMobile && "top-20 left-0",
+        // Default state in header
+        !isScrolled && "size-7",
+        className
+      )}
       onClick={(event) => {
         onClick?.(event);
         toggleSidebar();
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <PanelLeftIcon className={isScrolled ? "h-5 w-5" : undefined} />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
