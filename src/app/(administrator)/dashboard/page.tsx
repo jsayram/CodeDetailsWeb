@@ -438,7 +438,7 @@ function DashboardContent() {
         <StatsCard
           title="My Tags"
           value={stats.projectStats.totalTags.toString()}
-          description="Unique tags used"
+          description="Total unique tags across all projects"
           icon={<TagIcon className="h-4 w-4 text-primary" />}
         />
       </div>
@@ -525,6 +525,9 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium">
               My Popular Tags
             </CardTitle>
+            <CardDescription className="text-xs">
+              Most frequently used tags (number shows project count)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {stats.topTags.length > 0 ? (
@@ -537,9 +540,11 @@ function DashboardContent() {
                           <span className="text-sm font-medium truncate">
                             {tag.name}
                           </span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {tag.count}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">
+                              {tag.count} {tag.count === 1 ? 'project' : 'projects'}
+                            </span>
+                          </div>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-3 pb-2">
