@@ -15,13 +15,14 @@ export interface DashboardStats {
     username: string;
     timestamp: Date;
   }[];
-  activeProjects: {
+  projectsNeedingAttention: {
     id: string;
     title: string;
-    description: string | null;
-    progress: number;
+    slug: string;
     owner: string;
-    total_favorites: number;
+    missingDescription: boolean;
+    missingTags: boolean;
+    issueCount: number;
   }[];
   mostPopularProjects: {
     id: string;
@@ -41,7 +42,12 @@ export interface DashboardStats {
   allProjects: {
     id: string;
     title: string;
+    slug: string;
     total_favorites: number;
+    category: string;
+    owner: string;
+    created_at: Date | null;
+    tag_count: number;
   }[];
   userGrowth: {
     totalUsers: number;
@@ -75,16 +81,31 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .from(projects)
       .where(isNull(projects.deleted_at));
 
-    // Get all projects for the overview chart
-    const allProjects = await db
+    // Get all projects for the overview chart with additional details
+    const allProjectsQuery = await db
       .select({
         id: projects.id,
         title: projects.title,
+        slug: projects.slug,
         total_favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
+        category: projects.category,
+        owner: sql<string>`coalesce(${profiles.username}, 'Unknown User')`,
+        created_at: projects.created_at,
+        tag_count: sql<number>`(
+          SELECT count(*)
+          FROM ${project_tags}
+          WHERE ${project_tags.project_id} = ${projects.id}
+        )`,
       })
       .from(projects)
+      .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .where(isNull(projects.deleted_at))
       .orderBy(desc(projects.total_favorites));
+
+    const allProjects = allProjectsQuery.map(p => ({
+      ...p,
+      tag_count: Number(p.tag_count || 0)
+    }));
 
     // Get active users with proper join and explicit typing
     const activeUsers = await db
@@ -114,42 +135,44 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .orderBy(desc(projects.updated_at))
       .limit(5);
 
-    // Get active projects with calculated progress and proper typing
-    const activeProjects = await db
+    // Get projects needing attention (missing description or tags)
+    const projectsNeedingAttentionQuery = await db
       .select({
         id: projects.id,
         title: projects.title,
-        description: projects.description,
+        slug: projects.slug,
         owner: sql<string>`coalesce(${profiles.username}, 'Unknown User')`,
-        total_favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
-        progress: sql<number>`(
-          CASE 
-            WHEN ${projects.description} IS NOT NULL AND length(${projects.description}) > 0 THEN 40
-            ELSE 0
-          END +
-          CASE 
-            WHEN EXISTS (
-              SELECT 1 FROM ${project_tags} 
-              WHERE ${project_tags.project_id} = ${projects.id}
-              LIMIT 1
-            ) THEN 30
-            ELSE 0
-          END +
-          CASE 
-            WHEN coalesce(${projects.total_favorites}, 0) > 0 THEN 20
-            ELSE 0
-          END +
-          CASE 
-            WHEN ${projects.category} != 'web' THEN 10
-            ELSE 0
-          END
+        missingDescription: sql<boolean>`(${projects.description} IS NULL OR length(trim(${projects.description})) = 0)`,
+        missingTags: sql<boolean>`NOT EXISTS (
+          SELECT 1 FROM ${project_tags} 
+          WHERE ${project_tags.project_id} = ${projects.id}
+          LIMIT 1
+        )`,
+        issueCount: sql<number>`(
+          CASE WHEN ${projects.description} IS NULL OR length(trim(${projects.description})) = 0 THEN 1 ELSE 0 END +
+          CASE WHEN NOT EXISTS (
+            SELECT 1 FROM ${project_tags} 
+            WHERE ${project_tags.project_id} = ${projects.id}
+            LIMIT 1
+          ) THEN 1 ELSE 0 END
         )::numeric`
       })
       .from(projects)
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .where(isNull(projects.deleted_at))
-      .orderBy(desc(projects.updated_at))
-      .limit(4);
+      .orderBy(desc(sql<number>`(
+        CASE WHEN ${projects.description} IS NULL OR length(trim(${projects.description})) = 0 THEN 1 ELSE 0 END +
+        CASE WHEN NOT EXISTS (
+          SELECT 1 FROM ${project_tags} 
+          WHERE ${project_tags.project_id} = ${projects.id}
+          LIMIT 1
+        ) THEN 1 ELSE 0 END
+      )`), desc(projects.created_at));
+
+    // Filter out projects with no issues
+    const projectsNeedingAttention = projectsNeedingAttentionQuery.filter(
+      project => Number(project.issueCount) > 0
+    );
 
     // Get most popular projects with proper joins and field selection
     const mostPopularProjects = await db
@@ -247,10 +270,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         ...activity,
         timestamp: activity.timestamp ? new Date(activity.timestamp) : new Date()
       })),
-      activeProjects: activeProjects.map(project => ({
-        ...project,
-        description: project.description || "No description provided"
-      })),
+      projectsNeedingAttention,
       mostPopularProjects,
       projectStats: {
         totalFavorites: Number(projectStats[0]?.totalFavorites || 0),

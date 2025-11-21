@@ -26,6 +26,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
 import { TagList } from "@/components/TagList";
 import { FormattedDate } from "@/lib/FormattedDate";
@@ -49,11 +50,7 @@ interface ActivityItemProps {
   timestamp: Date;
 }
 
-interface ProjectItemProps {
-  title: string;
-  description: string;
-  progress: number;
-}
+
 
 interface DashboardStats {
   stats: {
@@ -76,12 +73,14 @@ interface DashboardStats {
       username: string;
       timestamp: Date;
     }>;
-    activeProjects: Array<{
+    projectsNeedingAttention: Array<{
       id: string;
       title: string;
-      description: string | null;
-      progress: number;
-      total_favorites: number;
+      slug: string;
+      owner: string;
+      missingDescription: boolean;
+      missingTags: boolean;
+      issueCount: number;
     }>;
     topTags: Array<{
       name: string;
@@ -90,7 +89,12 @@ interface DashboardStats {
     allProjects: Array<{
       id: string;
       title: string;
+      slug: string;
       total_favorites: number;
+      category: string;
+      owner: string;
+      created_at: Date | null;
+      tag_count: number;
     }>;
     userGrowth: {
       totalUsers: number;
@@ -191,22 +195,46 @@ function ActivityItem({ title, description, timestamp }: ActivityItemProps) {
   );
 }
 
-// Project item with progress bar
-function ProjectItem({ title, description, progress }: ProjectItemProps) {
+// Project needing attention item
+function ProjectNeedsAttentionItem({
+  title,
+  slug,
+  owner,
+  missingDescription,
+  missingTags,
+  issueCount,
+}: {
+  title: string;
+  slug: string;
+  owner: string;
+  missingDescription: boolean;
+  missingTags: boolean;
+  issueCount: number;
+}) {
   return (
-    <div className="flex flex-col space-y-2">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{progress}%</p>
+    <Link href={`/projects/${slug}`} className="block">
+      <div className="flex flex-col space-y-2 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium truncate flex-1">{title}</p>
+          <span className="text-xs font-semibold text-destructive ml-2">
+            {issueCount} issue{issueCount > 1 ? 's' : ''}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">by {owner}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {missingDescription && (
+            <span className="text-xs px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+              No description
+            </span>
+          )}
+          {missingTags && (
+            <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20">
+              No tags
+            </span>
+          )}
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">{description}</p>
-      <div className="h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-primary rounded-full transition-all duration-500 ease-in-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
+    </Link>
   );
 }
 
@@ -300,7 +328,9 @@ function DashboardContent() {
         />
         <StatsCard
           title="Avg Favorites/Project"
-          value={stats.stats.engagementMetrics.avgFavoritesPerProject.toFixed(1)}
+          value={stats.stats.engagementMetrics.avgFavoritesPerProject.toFixed(
+            1
+          )}
           description={`${stats.stats.engagementMetrics.projectsWithoutFavorites} projects with no favorites`}
           icon={<TrendingUp className="h-4 w-4 text-blue-500" />}
         />
@@ -367,20 +397,21 @@ function DashboardContent() {
               A comprehensive view of all projects and their favorites
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <div style={{ minWidth: `${Math.max(600, stats.stats.allProjects.length * 40)}px` }}>
-                <Overview
-                  data={stats.stats.allProjects.map((p) => ({
-                    name:
-                      p.title.length > 20
-                        ? p.title.substring(0, 20) + "..."
-                        : p.title,
-                    total: p.total_favorites,
-                  }))}
-                />
-              </div>
-            </div>
+          <CardContent className="px-2 md:px-6">
+            <Overview
+              data={stats.stats.allProjects.map((p) => ({
+                name:
+                  p.title.length > 20
+                    ? p.title.substring(0, 20) + "..."
+                    : p.title,
+                total: p.total_favorites,
+                category: p.category,
+                tagCount: Number(p.tag_count),
+                owner: p.owner,
+                createdAt: p.created_at ? p.created_at.toString() : undefined,
+                slug: p.slug,
+              }))}
+            />
           </CardContent>
         </Card>
       </ClientOnly>
@@ -419,35 +450,43 @@ function DashboardContent() {
           </CardFooter>
         </Card>
 
-        {/* Projects Card */}
+        {/* Projects Needing Attention Card */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Active Projects
+              Projects Needing Attention
             </CardTitle>
-            <Code className="h-4 w-4 text-muted-foreground" />
+            <AlertCircle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats.stats.activeProjects.map((project) => (
-                <ProjectItem
-                  key={project.id}
-                  title={project.title}
-                  description={project.description || "No description"}
-                  progress={project.progress}
-                />
-              ))}
-            </div>
+            {stats.stats.projectsNeedingAttention.length > 0 ? (
+              <div className="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2">
+                  {stats.stats.projectsNeedingAttention.map((project) => (
+                    <ProjectNeedsAttentionItem key={project.id} {...project} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Code className="h-12 w-12 mx-auto text-green-500/30 mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  All projects look great! 🎉
+                </p>
+              </div>
+            )}
           </CardContent>
           <CardFooter>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full flex items-center justify-center cursor-pointer"
-            >
-              View all projects
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            <Link href="/projects" className="w-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full flex items-center justify-center cursor-pointer"
+              >
+                View all projects
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </CardFooter>
         </Card>
       </div>
@@ -480,15 +519,30 @@ function DashboardContent() {
       <div className="mt-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Tag Submissions for Review</CardTitle>
+            <CardTitle className="text-lg">
+              Tag Submissions for Review
+            </CardTitle>
             <CardDescription className="text-sm">
-              {stats.submissions.length} pending tag{stats.submissions.length !== 1 ? 's' : ''} awaiting approval or rejection
+              {stats.submissions.length} pending tag
+              {stats.submissions.length !== 1 ? "s" : ""} awaiting approval or
+              rejection
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="max-h-[600px] overflow-y-scroll scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
               <TagSubmissionManagement initialSubmissions={stats.submissions} />
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-xl">Tag List</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TagList />
           </CardContent>
         </Card>
       </div>
@@ -507,7 +561,11 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <a href="/api/projects/test" target="_blank" rel="noopener noreferrer">
+              <a
+                href="/api/projects/test"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   variant="outline"
                   className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
@@ -521,8 +579,12 @@ function DashboardContent() {
                   </span>
                 </Button>
               </a>
-              
-              <a href="/api/darkmodetest" target="_blank" rel="noopener noreferrer">
+
+              <a
+                href="/api/darkmodetest"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   variant="outline"
                   className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
@@ -536,8 +598,12 @@ function DashboardContent() {
                   </span>
                 </Button>
               </a>
-              
-              <a href="/api/toasttest" target="_blank" rel="noopener noreferrer">
+
+              <a
+                href="/api/toasttest"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Button
                   variant="outline"
                   className="w-full h-auto flex flex-col items-start p-4 cursor-pointer hover:bg-accent/50 transition-colors"
@@ -552,17 +618,6 @@ function DashboardContent() {
                 </Button>
               </a>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div className="mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Tag List</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TagList />
           </CardContent>
         </Card>
       </div>
