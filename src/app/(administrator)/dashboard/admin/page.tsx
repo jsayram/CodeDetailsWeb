@@ -480,9 +480,9 @@ function DashboardContent() {
       <div className="mt-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Tag Submissions</CardTitle>
+            <CardTitle className="text-lg">Tag Submissions for Review</CardTitle>
             <CardDescription className="text-sm">
-              {stats.submissions.length} pending tag{stats.submissions.length !== 1 ? 's' : ''} for review
+              {stats.submissions.length} pending tag{stats.submissions.length !== 1 ? 's' : ''} awaiting approval or rejection
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">

@@ -15,6 +15,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   ArrowRight,
   Code,
   Heart,
@@ -24,6 +30,7 @@ import {
   RefreshCw,
   Activity,
   PieChart,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormattedDate } from "@/lib/FormattedDate";
@@ -449,7 +456,7 @@ function DashboardContent() {
               <div className="text-center py-8">
                 <Heart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No favorites yet. Share your projects to get appreciation!
+                  No favorites yet. Don't worry someone will like your masterpiece soon!
                 </p>
               </div>
             )}
@@ -606,63 +613,91 @@ function DashboardContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="max-h-[400px] overflow-y-scroll scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
-              {/* Pending Submissions */}
-              {stats.myTagSubmissions.filter(s => s.status === 'pending').length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-1 w-1 rounded-full bg-yellow-500"></div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Pending Review ({stats.myTagSubmissions.filter(s => s.status === 'pending').length})
-                    </h3>
+            {/* Tag Contribution Info Accordion */}
+            <Accordion type="single" collapsible className="mb-6">
+              <AccordionItem value="about-submissions" className="border border-primary/20 rounded-lg bg-gradient-to-r from-primary/5 via-purple/5 to-primary/5">
+                <AccordionTrigger className="px-4 hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">About Tag Submissions</span>
                   </div>
-                  <div className="space-y-2">
-                    {stats.myTagSubmissions
+                </AccordionTrigger>
+                <AccordionContent className="px-4 pb-4">
+                  <div className="space-y-3 pt-2">
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-medium text-foreground">Your impact matters:</span> Every tag you submit helps make Code Details better for the entire community. When approved, your tags become part of our shared vocabulary available system-wide for thousands of developers to organize and discover amazing work.
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      <span className="font-medium text-foreground">About rejections:</span> Please don't take them personally! Our review process ensures tags stay clean, consistent, and useful for everyone. It's about maintaining quality for better search and discoverability, not a reflection on you or your work. Keep contributing!
+                    </p>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Pending Submissions Column */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-1 w-1 rounded-full bg-yellow-500"></div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Pending ({stats.myTagSubmissions.filter(s => s.status === 'pending').length})
+                  </h3>
+                </div>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                  {stats.myTagSubmissions.filter(s => s.status === 'pending').length > 0 ? (
+                    stats.myTagSubmissions
                       .filter(s => s.status === 'pending')
                       .map((submission, index) => (
                         <TagSubmissionCard key={index} {...submission} />
-                      ))}
-                  </div>
+                      ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No pending submissions</p>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {/* Approved Submissions */}
-              {stats.myTagSubmissions.filter(s => s.status === 'approved').length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-1 w-1 rounded-full bg-green-500"></div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Approved ({stats.myTagSubmissions.filter(s => s.status === 'approved').length})
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {stats.myTagSubmissions
+              {/* Approved Submissions Column */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-1 w-1 rounded-full bg-green-500"></div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Approved ({stats.myTagSubmissions.filter(s => s.status === 'approved').length})
+                  </h3>
+                </div>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                  {stats.myTagSubmissions.filter(s => s.status === 'approved').length > 0 ? (
+                    stats.myTagSubmissions
                       .filter(s => s.status === 'approved')
                       .map((submission, index) => (
                         <TagSubmissionCard key={index} {...submission} />
-                      ))}
-                  </div>
+                      ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No approved submissions</p>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {/* Rejected Submissions */}
-              {stats.myTagSubmissions.filter(s => s.status === 'rejected').length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="h-1 w-1 rounded-full bg-red-500"></div>
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Rejected ({stats.myTagSubmissions.filter(s => s.status === 'rejected').length})
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {stats.myTagSubmissions
+              {/* Rejected Submissions Column */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-1 w-1 rounded-full bg-red-500"></div>
+                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Rejected ({stats.myTagSubmissions.filter(s => s.status === 'rejected').length})
+                  </h3>
+                </div>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                  {stats.myTagSubmissions.filter(s => s.status === 'rejected').length > 0 ? (
+                    stats.myTagSubmissions
                       .filter(s => s.status === 'rejected')
                       .map((submission, index) => (
                         <TagSubmissionCard key={index} {...submission} />
-                      ))}
-                  </div>
+                      ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No rejected submissions</p>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
