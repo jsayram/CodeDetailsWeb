@@ -457,7 +457,7 @@ function DashboardContent() {
             {stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentAppreciation
-                  .slice(0, 5)
+                  .slice(0, 8)
                   .map((appreciation, index) => (
                     <RecentAppreciationItem key={index} {...appreciation} />
                   ))}
@@ -531,47 +531,89 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             {stats.topTags.length > 0 ? (
-              <div className="space-y-2">
-                {stats.topTags.slice(0, 6).map((tag) => (
-                  <Accordion key={tag.name} type="single" collapsible>
-                    <AccordionItem value={tag.name} className="border rounded-lg">
+              <>
+                <div className="space-y-2">
+                  {/* Show tags with 2+ projects (up to 8 total) */}
+                  {stats.topTags
+                    .filter(tag => tag.count > 1)
+                    .slice(0, 8)
+                    .map((tag) => (
+                      <Accordion key={tag.name} type="single" collapsible>
+                        <AccordionItem value={tag.name} className="border rounded-lg">
+                          <AccordionTrigger className="px-3 py-2 hover:no-underline">
+                            <div className="flex items-center justify-between w-full pr-2">
+                              <span className="text-sm font-medium truncate">
+                                {tag.name}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-muted-foreground">
+                                  {tag.count} {tag.count === 1 ? 'project' : 'projects'}
+                                </span>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-3 pb-2">
+                            <div className="space-y-1">
+                              {tag.projects && tag.projects.length > 0 ? (
+                                tag.projects.map((project) => (
+                                  <Link
+                                    key={project.id}
+                                    href={`/projects/${project.slug}`}
+                                    className="block cursor-pointer"
+                                  >
+                                    <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary truncate">
+                                      {project.title}
+                                    </div>
+                                  </Link>
+                                ))
+                              ) : (
+                                <p className="text-xs text-muted-foreground text-center py-2">
+                                  No projects found
+                                </p>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    ))}
+                </div>
+
+                {/* Show tags with only 1 project in a collapsible section */}
+                {stats.topTags.filter(tag => tag.count === 1).length > 0 && (
+                  <Accordion type="single" collapsible className="mt-3">
+                    <AccordionItem value="single-use-tags" className="border rounded-lg">
                       <AccordionTrigger className="px-3 py-2 hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-2">
-                          <span className="text-sm font-medium truncate">
-                            {tag.name}
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Tags used in a single project ({stats.topTags.filter(tag => tag.count === 1).length})
                           </span>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-muted-foreground">
-                              {tag.count} {tag.count === 1 ? 'project' : 'projects'}
-                            </span>
-                          </div>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-3 pb-2">
                         <div className="space-y-1">
-                          {tag.projects && tag.projects.length > 0 ? (
-                            tag.projects.map((project) => (
-                              <Link
-                                key={project.id}
-                                href={`/projects/${project.slug}`}
-                                className="block cursor-pointer"
-                              >
-                                <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary truncate">
-                                  {project.title}
-                                </div>
-                              </Link>
-                            ))
-                          ) : (
-                            <p className="text-xs text-muted-foreground text-center py-2">
-                              No projects found
-                            </p>
-                          )}
+                          {stats.topTags
+                            .filter(tag => tag.count === 1)
+                            .map((tag) => (
+                              <div key={tag.name} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                                <span className="text-sm font-medium truncate">
+                                  {tag.name}
+                                </span>
+                                {tag.projects && tag.projects.length > 0 && (
+                                  <Link
+                                    href={`/projects/${tag.projects[0].slug}`}
+                                    className="text-xs text-primary hover:underline cursor-pointer truncate ml-2"
+                                  >
+                                    {tag.projects[0].title}
+                                  </Link>
+                                )}
+                              </div>
+                            ))}
                         </div>
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                ))}
-              </div>
+                )}
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">No tags yet</p>
             )}
