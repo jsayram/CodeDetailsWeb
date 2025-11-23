@@ -11,6 +11,7 @@ export interface DashboardStats {
   recentActivity: {
     id: string;
     title: string;
+    slug: string;
     action: string;
     username: string;
     timestamp: Date;
@@ -27,6 +28,7 @@ export interface DashboardStats {
   mostPopularProjects: {
     id: string;
     title: string;
+    slug: string;
     favorites: number;
     owner: string;
   }[];
@@ -54,6 +56,16 @@ export interface DashboardStats {
     newUsersThisWeek: number;
     newUsersThisMonth: number;
   };
+  newUsersList: {
+    id: string;
+    user_id: string;
+    username: string;
+    full_name: string | null;
+    email_address: string | null;
+    tier: string | null;
+    profile_image_url: string | null;
+    created_at: Date | null;
+  }[];
   categoryDistribution: {
     category: string;
     count: number;
@@ -104,6 +116,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
     const allProjects = allProjectsQuery.map(p => ({
       ...p,
+      total_favorites: Number(p.total_favorites || 0),
       tag_count: Number(p.tag_count || 0)
     }));
 
@@ -121,6 +134,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select({
         id: projects.id,
         title: projects.title,
+        slug: projects.slug,
         action: sql<string>`case 
           when ${projects.created_at} = ${projects.updated_at} 
           then 'created' 
@@ -133,7 +147,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .where(isNull(projects.deleted_at))
       .orderBy(desc(projects.updated_at))
-      .limit(5);
+      .limit(30);
 
     // Get projects needing attention (missing description or tags)
     const projectsNeedingAttentionQuery = await db
@@ -179,6 +193,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .select({
         id: projects.id,
         title: projects.title,
+        slug: projects.slug,
         favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
         owner: sql<string>`coalesce(${profiles.username}, 'Unknown User')`,
       })
@@ -186,7 +201,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       .leftJoin(profiles, eq(profiles.user_id, projects.user_id))
       .where(isNull(projects.deleted_at))
       .orderBy(desc(projects.total_favorites))
-      .limit(3);
+      .limit(10);
 
     // Get top tags with proper counting and joins
     const topTags = await db
@@ -219,6 +234,22 @@ export async function getDashboardStats(): Promise<DashboardStats> {
           then ${profiles.id} end)`,
       })
       .from(profiles);
+
+    // Get new users from the last 30 days
+    const newUsersList = await db
+      .select({
+        id: profiles.id,
+        user_id: profiles.user_id,
+        username: profiles.username,
+        full_name: profiles.full_name,
+        email_address: profiles.email_address,
+        tier: profiles.tier,
+        profile_image_url: profiles.profile_image_url,
+        created_at: profiles.created_at,
+      })
+      .from(profiles)
+      .where(sql`${profiles.created_at} > now() - interval '30 days'`)
+      .orderBy(desc(profiles.created_at));
 
     // Category Distribution
     const categoryStats = await db
@@ -287,6 +318,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         newUsersThisWeek: Number(userGrowthStats[0]?.newUsersThisWeek || 0),
         newUsersThisMonth: Number(userGrowthStats[0]?.newUsersThisMonth || 0),
       },
+      newUsersList: newUsersList.map(user => ({
+        ...user,
+        created_at: user.created_at ? new Date(user.created_at) : null
+      })),
       categoryDistribution,
       engagementMetrics: {
         avgFavoritesPerProject: Math.round(Number(engagementStats[0]?.avgFavorites || 0) * 10) / 10,

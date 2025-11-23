@@ -208,53 +208,55 @@ export function TagSubmissionManagement({
   }, [submissions]);
 
   return (
-    <div className="grid gap-6">
+    <div className="space-y-4">
       {submissions.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No pending tag submissions to review.
         </div>
       ) : (
         submissions.map((groupedTag) => (
-          <Card key={groupedTag.tag_name}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  Tag: <Badge>{groupedTag.tag_name}</Badge>
-                  <Badge variant="secondary">{groupedTag.count} projects</Badge>
+          <Card key={groupedTag.tag_name} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-sm font-medium">Tag:</span>
+                  <Badge className="flex-shrink-0">{groupedTag.tag_name}</Badge>
+                  <Badge variant="secondary" className="flex-shrink-0">{groupedTag.count} projects</Badge>
                 </div>
                 <Button
                   onClick={() => handleApprove(groupedTag)}
                   disabled={isProcessing[groupedTag.submissions[0]?.id]}
-                  className="cursor-pointer"
+                  className="cursor-pointer flex-shrink-0 w-full sm:w-auto"
+                  size="sm"
                 >
                   Approve All
                 </Button>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 This tag has been requested for multiple projects
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Accordion type="single" collapsible>
-                <AccordionItem value="submissions">
-                  <AccordionTrigger>View All Submissions</AccordionTrigger>
+                <AccordionItem value="submissions" className="border-0">
+                  <AccordionTrigger className="text-sm py-2">View All Submissions</AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {groupedTag.submissions.map((submission) => (
                         <div
                           key={submission.id}
-                          className="border rounded-lg p-4 space-y-4"
+                          className="border rounded-lg p-3 space-y-3 overflow-hidden"
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="font-medium text-sm truncate">
                                 Project:{" "}
                                 {projectNames[submission.project_id] || "Loading..."}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground truncate">
                                 Submitted by: {submission.submitter_email}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                 Date:{" "}
                                 {submission.created_at ? (
                                   <FormattedDate date={submission.created_at} />
@@ -263,7 +265,7 @@ export function TagSubmissionManagement({
                                 )}
                               </p>
                             </div>
-                            <div className="space-x-2">
+                            <div className="flex gap-2 flex-shrink-0">
                               <Button
                                 variant="default"
                                 size="sm"
@@ -274,6 +276,7 @@ export function TagSubmissionManagement({
                                   )
                                 }
                                 disabled={isProcessing[submission.id]}
+                                className="flex-1 sm:flex-initial"
                               >
                                 Approve
                               </Button>
@@ -284,15 +287,16 @@ export function TagSubmissionManagement({
                                   handleReject(submission.id, groupedTag.tag_name)
                                 }
                                 disabled={isProcessing[submission.id]}
+                                className="flex-1 sm:flex-initial"
                               >
                                 Reject
                               </Button>
                             </div>
                           </div>
                           {submission.description && (
-                            <div>
-                              <h4 className="font-medium mb-2">Description:</h4>
-                              <p className="text-sm text-muted-foreground">
+                            <div className="overflow-hidden">
+                              <h4 className="font-medium text-sm mb-1">Description:</h4>
+                              <p className="text-xs text-muted-foreground break-words">
                                 {submission.description}
                               </p>
                             </div>
@@ -300,11 +304,11 @@ export function TagSubmissionManagement({
                           <div>
                             <label
                               htmlFor={`notes-${submission.id}`}
-                              className="font-medium block mb-2"
+                              className="font-medium text-sm block mb-2"
                             >
                               Admin Notes{" "}
                               {!adminNotes[submission.id]?.trim() &&
-                                "(required for rejection)"}
+                                <span className="text-xs text-muted-foreground">(required for rejection)</span>}
                             </label>
                             <Textarea
                               id={`notes-${submission.id}`}
@@ -316,6 +320,7 @@ export function TagSubmissionManagement({
                                   [submission.id]: e.target.value,
                                 }))
                               }
+                              className="text-sm min-h-[80px]"
                             />
                           </div>
                         </div>
