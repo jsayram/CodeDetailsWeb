@@ -446,14 +446,14 @@ function DashboardContent() {
       {/* Main Content - Three Columns */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-6">
         {/* Left Column - Recent Appreciation */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="lg:col-span-1 flex flex-col h-[600px]">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               Recent Appreciation
             </CardTitle>
             <Heart className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentAppreciation
@@ -472,21 +472,21 @@ function DashboardContent() {
             )}
           </CardContent>
           {stats.recentAppreciation && stats.recentAppreciation.length > 5 && (
-            <CardFooter className="text-xs text-muted-foreground text-center">
+            <CardFooter className="text-xs text-muted-foreground text-center flex-shrink-0">
               Showing 5 most recent
             </CardFooter>
           )}
         </Card>
 
         {/* Middle Column - Recent Activity */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="lg:col-span-1 flex flex-col h-[600px]">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               Recent Activity
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.recentActivity.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentActivity.map((activity) => (
@@ -505,7 +505,7 @@ function DashboardContent() {
               </p>
             )}
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex-shrink-0">
             <Link href="/projects" className="w-full cursor-pointer">
               <Button
                 variant="ghost"
@@ -520,8 +520,8 @@ function DashboardContent() {
         </Card>
 
         {/* Right Column - Popular Tags */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
+        <Card className="lg:col-span-1 flex flex-col h-[600px]">
+          <CardHeader className="flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               My Popular Tags
             </CardTitle>
@@ -529,7 +529,7 @@ function DashboardContent() {
               Most frequently used tags (number shows project count)
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.topTags.length > 0 ? (
               <>
                 <div className="space-y-2">
@@ -622,11 +622,11 @@ function DashboardContent() {
       </div>
 
       {/* My Projects Section */}
-      <Card className="mb-6">
-        <CardHeader>
+      <Card className="mb-6 flex flex-col max-h-[800px]">
+        <CardHeader className="flex-shrink-0">
           <CardTitle>My Recent Projects</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {stats.myProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {stats.myProjects.slice(0, 6).map((project) => (
@@ -646,7 +646,7 @@ function DashboardContent() {
           )}
         </CardContent>
         {stats.myProjects.length > 6 && (
-          <CardFooter>
+          <CardFooter className="flex-shrink-0">
             <Link href="/projects" className="w-full cursor-pointer">
               <Button variant="outline" className="w-full">
                 View All My Projects
@@ -658,11 +658,11 @@ function DashboardContent() {
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
+        <Card className="mb-6 flex flex-col max-h-[800px]">
+          <CardHeader className="flex-shrink-0">
             <CardTitle>Projects I've Favorited</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {stats.myFavorites.slice(0, 6).map((favorite) => (
                 <FavoriteCard key={favorite.id} {...favorite} />
@@ -670,7 +670,7 @@ function DashboardContent() {
             </div>
           </CardContent>
           {stats.myFavorites.length > 6 && (
-            <CardFooter>
+            <CardFooter className="flex-shrink-0">
               <Link
                 href="/projects/favorites"
                 className="w-full cursor-pointer"
@@ -686,15 +686,15 @@ function DashboardContent() {
 
       {/* My Tag Submissions */}
       {stats.myTagSubmissions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
+        <Card className="flex flex-col max-h-[900px]">
+          <CardHeader className="pb-3 flex-shrink-0">
             <CardTitle className="text-lg">My Tag Submissions</CardTitle>
             <CardDescription className="text-sm">
               {stats.myTagSubmissions.length} tag
               {stats.myTagSubmissions.length > 1 ? "s" : ""} submitted
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {/* Tag Contribution Info Accordion */}
             <Accordion type="single" collapsible className="mb-6">
               <AccordionItem value="about-submissions" className="border border-primary/20 rounded-lg bg-gradient-to-r from-primary/5 via-purple/5 to-primary/5">
