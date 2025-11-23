@@ -166,7 +166,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         )
       )
       .orderBy(desc(projects.updated_at))
-      .limit(5);
+      .limit(10);
 
     // Get user's favorite projects (projects they favorited)
     const myFavorites = await db

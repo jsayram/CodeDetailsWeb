@@ -471,11 +471,6 @@ function DashboardContent() {
               </div>
             )}
           </CardContent>
-          {stats.recentAppreciation && stats.recentAppreciation.length > 5 && (
-            <CardFooter className="text-xs text-muted-foreground text-center flex-shrink-0">
-              Showing 5 most recent
-            </CardFooter>
-          )}
         </Card>
 
         {/* Middle Column - Recent Activity */}
@@ -505,18 +500,6 @@ function DashboardContent() {
               </p>
             )}
           </CardContent>
-          <CardFooter className="flex-shrink-0">
-            <Link href="/projects" className="w-full cursor-pointer">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full flex items-center justify-center"
-              >
-                View all projects
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardFooter>
         </Card>
 
         {/* Right Column - Popular Tags */}
