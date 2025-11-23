@@ -319,18 +319,18 @@ function ActivityItem({
       onClick={() => setIsNavigating(true)}
     >
       <div className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isNavigating && <Loader2 className="h-3 w-3 animate-spin" />}
-            <p className="text-sm font-medium hover:text-primary transition-colors">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            {isNavigating && <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />}
+            <p className="text-sm font-medium hover:text-primary transition-colors truncate">
               {title}
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground flex-shrink-0">
             <FormattedDate date={timestamp} format="datetime" />
           </p>
         </div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-xs text-muted-foreground line-clamp-2">{description}</p>
       </div>
     </Link>
   );
@@ -350,11 +350,11 @@ function PopularTagProjectItem({
       className="block cursor-pointer"
       onClick={() => setIsNavigating(true)}
     >
-      <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary truncate flex items-center gap-1">
+      <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary flex items-center gap-1 min-w-0">
         {isNavigating && (
           <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
         )}
-        <span>{project.title}</span>
+        <span className="truncate">{project.title}</span>
       </div>
     </Link>
   );
@@ -373,18 +373,18 @@ function SingleUseTagItem({
   const [isNavigating, setIsNavigating] = useState(false);
 
   return (
-    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
-      <span className="text-sm font-medium truncate">{tag.name}</span>
+    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors gap-2 min-w-0">
+      <span className="text-sm font-medium truncate min-w-0">{tag.name}</span>
       {tag.projects && tag.projects.length > 0 && (
         <Link
           href={`/projects/${tag.projects[0].slug}`}
-          className="text-xs text-primary hover:underline cursor-pointer truncate ml-2 inline-flex items-center gap-1"
+          className="text-xs text-primary hover:underline cursor-pointer ml-2 inline-flex items-center gap-1 min-w-0 flex-shrink-0 max-w-[50%]"
           onClick={() => setIsNavigating(true)}
         >
           {isNavigating && (
             <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
           )}
-          <span>{tag.projects[0].title}</span>
+          <span className="truncate">{tag.projects[0].title}</span>
         </Link>
       )}
     </div>
@@ -456,9 +456,9 @@ function FavoriteCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <CardHeader>
+        <CardHeader className="overflow-hidden">
           <CardTitle className="text-base line-clamp-1">{title}</CardTitle>
-          <p className="text-xs text-muted-foreground">by {owner_username}</p>
+          <p className="text-xs text-muted-foreground truncate">by {owner_username}</p>
         </CardHeader>
         <CardFooter>
           <Badge variant="outline">{category}</Badge>
@@ -492,10 +492,10 @@ function TagSubmissionCard({
 
   return (
     <div className="p-3 rounded-lg bg-muted/30">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex-1">
-          <p className="text-sm font-medium">{tag_name}</p>
-          <p className="text-xs text-muted-foreground">for {project_title}</p>
+      <div className="flex items-center justify-between mb-2 gap-2">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate">{tag_name}</p>
+          <p className="text-xs text-muted-foreground truncate">for {project_title}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={statusColor}>{status}</Badge>
@@ -615,17 +615,17 @@ function RecentAppreciationItem({
           )}
         </div>
         <div className="flex-1 min-w-0 space-y-1">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium break-words">
             {favoriter_username ? (
               <Link
                 href={`/users/${favoriter_username}`}
-                className="text-primary hover:underline cursor-pointer font-semibold inline-flex items-center gap-1"
+                className="text-primary hover:underline cursor-pointer font-semibold inline-flex items-center gap-1 max-w-full"
                 onClick={() => setIsNavigatingToUser(true)}
               >
                 {isNavigatingToUser && (
-                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
                 )}
-                {favoriter_username}
+                <span className="truncate">{favoriter_username}</span>
               </Link>
             ) : (
               <span className="text-primary font-semibold">Someone</span>
@@ -637,19 +637,21 @@ function RecentAppreciationItem({
           </p>
             <Link
             href={`/projects/${project_slug}`}
-            className="cursor-pointer"
+            className="cursor-pointer block min-w-0 w-full"
             onClick={() => setIsNavigatingToProject(true)}
             >
             <Button
               variant="outline"
               size="sm"
-              className="h-auto w-auto px-2 py-1 bottom-1 hover:cursor-pointer hover:text-primary transition-colors text-left justify-start"
+              className="h-auto w-full px-2 py-1 hover:cursor-pointer hover:text-primary transition-colors text-left justify-start overflow-hidden"
               disabled={isNavigatingToProject}
             >
-              {isNavigatingToProject && (
-              <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mr-1" />
-              )}
-              <span className="line-clamp-2">{project_title}</span>
+              <div className="flex items-start gap-1 min-w-0 w-full overflow-hidden">
+                {isNavigatingToProject && (
+                  <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mt-0.5" />
+                )}
+                <span className="line-clamp-2 break-words min-w-0 overflow-hidden">{project_title}</span>
+              </div>
             </Button>
             </Link>
           {favorited_at && (
