@@ -53,6 +53,15 @@ export interface UserDashboardStats {
       title: string;
     }[];
   }[];
+  allTags: {
+    name: string;
+  }[];
+  projectsWithFavorites: {
+    id: string;
+    slug: string;
+    title: string;
+    total_favorites: number;
+  }[];
   myTagSubmissions: {
     id: string;
     tag_name: string;
@@ -256,6 +265,42 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         )
       );
 
+    // Get ALL unique tags used across all user projects
+    const allTagsRaw = await db
+      .select({
+        name: tags.name,
+      })
+      .from(project_tags)
+      .innerJoin(tags, eq(tags.id, project_tags.tag_id))
+      .innerJoin(projects, eq(projects.id, project_tags.project_id))
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at)
+        )
+      )
+      .groupBy(tags.name)
+      .orderBy(tags.name);
+
+    // Get projects that have received favorites
+    const projectsWithFavorites = await db
+      .select({
+        id: projects.id,
+        slug: projects.slug,
+        title: projects.title,
+        total_favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
+      })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.user_id, userId),
+          isNull(projects.deleted_at),
+          sql`${projects.total_favorites} > 0`
+        )
+      )
+      .orderBy(desc(projects.total_favorites))
+      .limit(5);
+
     // Get user's tag submissions using Drizzle ORM - only latest per tag name
     const allSubmissions = await db
       .select({
@@ -374,6 +419,11 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         owner_username: fav.owner_username || "Unknown",
       })),
       topTags: topTags,
+      allTags: allTagsRaw.map(tag => ({ name: tag.name })),
+      projectsWithFavorites: projectsWithFavorites.map(project => ({
+        ...project,
+        total_favorites: Number(project.total_favorites || 0),
+      })),
       myTagSubmissions: myTagSubmissions,
       recentAppreciation: recentAppreciation.map(appreciation => ({
         ...appreciation,

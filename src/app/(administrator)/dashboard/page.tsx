@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -31,6 +31,7 @@ import {
   Activity,
   PieChart,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormattedDate } from "@/lib/FormattedDate";
@@ -43,6 +44,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { PageBanner } from "@/components/ui/page-banner";
 import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
 
 // Type definitions
 interface StatsCardProps {
@@ -115,26 +117,215 @@ function StatsCardSkeleton() {
 // Simple stats card component
 function StatsCard({ title, value, description, icon }: StatsCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className="h-[250px] flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+      <CardContent className="flex-1 flex flex-col justify-center items-center">
+        <div className="text-5xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground mt-2 text-center">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// My Projects card component with button
+function MyProjectsCard({ totalProjects, activeThisWeek }: { totalProjects: number; activeThisWeek: number }) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <Card className="h-[250px] flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+        <CardTitle className="text-sm font-medium">My Projects</CardTitle>
+        <Code className="h-4 w-4 text-primary" />
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col justify-center items-center">
+        <div className="text-5xl font-bold">{totalProjects}</div>
+        <p className="text-xs text-muted-foreground mt-2 text-center">{activeThisWeek} updated this week</p>
+        <Link href="/projects" className="mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full cursor-pointer text-xs"
+            onClick={() => setIsNavigating(true)}
+            disabled={isNavigating}
+          >
+            {isNavigating && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+            View All Projects
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Favorite project item component
+function FavoriteProjectItem({ project }: { project: { id: string; slug: string; title: string; total_favorites: number } }) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <Link
+      href={`/projects/${project.slug}`}
+      className="block cursor-pointer"
+      onClick={() => setIsNavigating(true)}
+    >
+      <div className="text-xs p-1.5 rounded hover:bg-muted/50 transition-colors flex items-center justify-between group">
+        <span className="truncate flex-1 group-hover:text-primary">{project.title}</span>
+        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+          {isNavigating && <Loader2 className="h-3 w-3 animate-spin" />}
+          <Heart className="h-3 w-3" />
+          <span className="text-xs font-medium">{project.total_favorites}</span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// Favorites Received card component with project list
+function FavoritesReceivedCard({ 
+  totalFavorites, 
+  projectsWithFavorites 
+}: { 
+  totalFavorites: number; 
+  projectsWithFavorites: { id: string; slug: string; title: string; total_favorites: number }[] 
+}) {
+  return (
+    <Card className="h-[250px] flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+        <CardTitle className="text-sm font-medium">Favorites Received</CardTitle>
+        <Heart className="h-4 w-4 text-primary" />
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-row gap-3 overflow-hidden p-4">
+        {/* Left side - Total count */}
+        <div className="flex flex-col items-center justify-center flex-shrink-0 w-1/3 border-r border-border pr-3">
+          <div className="text-4xl font-bold">{totalFavorites}</div>
+          <p className="text-xs text-muted-foreground mt-1 text-center">Total</p>
+        </div>
+        
+        {/* Right side - Scrollable project list */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {projectsWithFavorites.length > 0 ? (
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+              <div className="space-y-1">
+                {projectsWithFavorites.map((project) => (
+                  <FavoriteProjectItem key={project.id} project={project} />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-xs text-muted-foreground text-center">No projects have received favorites yet</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Favorites Given card component with button
+function FavoritesGivenCard({ totalFavoritesGiven }: { totalFavoritesGiven: number }) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <Card className="h-[250px] flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+        <CardTitle className="text-sm font-medium">Favorites Given</CardTitle>
+        <Star className="h-4 w-4 text-primary" />
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col justify-center items-center">
+        <div className="text-5xl font-bold">{totalFavoritesGiven}</div>
+        <p className="text-xs text-muted-foreground mt-2 text-center">Projects you've favorited ❤️</p>
+        <Link href="/projects/favorites" className="mt-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full cursor-pointer text-xs"
+            onClick={() => setIsNavigating(true)}
+            disabled={isNavigating}
+          >
+            {isNavigating && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+            View All Favorites
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Tags card component showing all tags
+interface TagsCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  tags: { name: string }[];
+}
+
+function TagsCard({ title, value, icon, tags }: TagsCardProps) {
+  return (
+    <Card className="h-[250px] flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-row gap-4 overflow-hidden p-4">
+        {/* Left side - Total count */}
+        <div className="flex flex-col items-center justify-center flex-shrink-0 w-1/2 border-r border-border pr-4">
+          <div className="text-5xl font-bold">{value}</div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Unique tags
+          </p>
+        </div>
+
+        {/* Right side - Scrollable tags */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {tags && tags.length > 0 ? (
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+              <div className="flex flex-wrap gap-1.5 content-start">
+                {tags.map((tag, index) => (
+                  <Badge
+                    key={`${tag.name}-${index}`}
+                    variant="secondary"
+                    className="text-xs h-5"
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">No tags yet</p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
 // Activity item component
-function ActivityItem({ slug, title, description, timestamp }: ActivityItemProps) {
+function ActivityItem({
+  slug,
+  title,
+  description,
+  timestamp,
+}: ActivityItemProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   return (
-    <Link href={`/projects/${slug}`} className="block cursor-pointer">
+    <Link
+      href={`/projects/${slug}`}
+      className="block cursor-pointer"
+      onClick={() => setIsNavigating(true)}
+    >
       <div className="flex flex-col space-y-1 p-2 rounded-lg hover:bg-muted/50 transition-colors">
         <div className="flex items-center justify-between">
-          <p className="text-sm font-medium hover:text-primary transition-colors">{title}</p>
+          <div className="flex items-center gap-2">
+            {isNavigating && <Loader2 className="h-3 w-3 animate-spin" />}
+            <p className="text-sm font-medium hover:text-primary transition-colors">
+              {title}
+            </p>
+          </div>
           <p className="text-xs text-muted-foreground">
             <FormattedDate date={timestamp} format="datetime" />
           </p>
@@ -142,6 +333,61 @@ function ActivityItem({ slug, title, description, timestamp }: ActivityItemProps
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </Link>
+  );
+}
+
+// Popular tag project item component
+function PopularTagProjectItem({
+  project,
+}: {
+  project: { id: string; slug: string; title: string };
+}) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <Link
+      href={`/projects/${project.slug}`}
+      className="block cursor-pointer"
+      onClick={() => setIsNavigating(true)}
+    >
+      <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary truncate flex items-center gap-1">
+        {isNavigating && (
+          <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+        )}
+        <span>{project.title}</span>
+      </div>
+    </Link>
+  );
+}
+
+// Single-use tag item component
+function SingleUseTagItem({
+  tag,
+}: {
+  tag: {
+    name: string;
+    count: number;
+    projects: { id: string; slug: string; title: string }[];
+  };
+}) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
+      <span className="text-sm font-medium truncate">{tag.name}</span>
+      {tag.projects && tag.projects.length > 0 && (
+        <Link
+          href={`/projects/${tag.projects[0].slug}`}
+          className="text-xs text-primary hover:underline cursor-pointer truncate ml-2 inline-flex items-center gap-1"
+          onClick={() => setIsNavigating(true)}
+        >
+          {isNavigating && (
+            <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+          )}
+          <span>{tag.projects[0].title}</span>
+        </Link>
+      )}
+    </div>
   );
 }
 
@@ -153,9 +399,20 @@ function ProjectCard({
   total_favorites,
   category,
 }: ProjectCardProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   return (
-    <Link href={`/projects/${slug}`} className="cursor-pointer">
-      <Card className="hover:bg-accent/50 transition-colors">
+    <Link
+      href={`/projects/${slug}`}
+      className="cursor-pointer"
+      onClick={() => setIsNavigating(true)}
+    >
+      <Card className="hover:bg-accent/50 transition-colors relative">
+        {isNavigating && (
+          <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -185,9 +442,20 @@ function FavoriteCard({
   owner_username,
   category,
 }: FavoriteCardProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
+
   return (
-    <Link href={`/projects/${slug}`} className="cursor-pointer">
-      <Card className="hover:bg-accent/50 transition-colors">
+    <Link
+      href={`/projects/${slug}`}
+      className="cursor-pointer"
+      onClick={() => setIsNavigating(true)}
+    >
+      <Card className="hover:bg-accent/50 transition-colors relative">
+        {isNavigating && (
+          <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
         <CardHeader>
           <CardTitle className="text-base line-clamp-1">{title}</CardTitle>
           <p className="text-xs text-muted-foreground">by {owner_username}</p>
@@ -212,6 +480,7 @@ function TagSubmissionCard({
   is_now_available,
   project_tag_count,
 }: TagSubmissionCardProps) {
+  const [isNavigating, setIsNavigating] = useState(false);
   const statusColor =
     status === "approved"
       ? "default"
@@ -231,7 +500,10 @@ function TagSubmissionCard({
         <div className="flex items-center gap-2">
           <Badge variant={statusColor}>{status}</Badge>
           {is_now_available && (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800">
+            <Badge
+              variant="outline"
+              className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800"
+            >
               Now Available
             </Badge>
           )}
@@ -255,10 +527,26 @@ function TagSubmissionCard({
           {isProjectAtCapacity ? (
             <>
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                <span className="font-medium">Tag is available,</span> but this project already has the maximum of {MAX_PROJECT_TAGS} tags. Remove a tag first to add this one.
+                <span className="font-medium">Tag is available,</span> but this
+                project already has the maximum of {MAX_PROJECT_TAGS} tags.
+                Remove a tag first to add this one.
               </p>
-              <Link href={`/projects/${project_slug}?edit=true&tag=${encodeURIComponent(tag_name)}`} className="cursor-pointer">
-                <Button variant="outline" size="sm" className="mt-2 text-xs h-7">
+              <Link
+                href={`/projects/${project_slug}?edit=true&tag=${encodeURIComponent(
+                  tag_name
+                )}`}
+                className="cursor-pointer"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 text-xs h-7"
+                  onClick={() => setIsNavigating(true)}
+                  disabled={isNavigating}
+                >
+                  {isNavigating && (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  )}
                   Manage Project Tags
                 </Button>
               </Link>
@@ -266,10 +554,26 @@ function TagSubmissionCard({
           ) : (
             <>
               <p className="text-xs text-green-700 dark:text-green-400">
-                <span className="font-medium">Good news!</span> This tag was approved for use in the system after further consideration. You can add it to your project.
+                <span className="font-medium">Good news!</span> This tag was
+                approved for use in the system after further consideration. You
+                can add it to your project.
               </p>
-              <Link href={`/projects/${project_slug}?edit=true&tag=${encodeURIComponent(tag_name)}`} className="cursor-pointer">
-                <Button variant="outline" size="sm" className="mt-2 text-xs h-7">
+              <Link
+                href={`/projects/${project_slug}?edit=true&tag=${encodeURIComponent(
+                  tag_name
+                )}`}
+                className="cursor-pointer"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 text-xs h-7"
+                  onClick={() => setIsNavigating(true)}
+                  disabled={isNavigating}
+                >
+                  {isNavigating && (
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                  )}
                   Add to Project
                 </Button>
               </Link>
@@ -289,48 +593,148 @@ function RecentAppreciationItem({
   favoriter_profile_image,
   favorited_at,
 }: RecentAppreciationItemProps) {
+  const [isNavigatingToUser, setIsNavigatingToUser] = useState(false);
+  const [isNavigatingToProject, setIsNavigatingToProject] = useState(false);
+
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-      <div className="flex-shrink-0">
-        {favoriter_profile_image ? (
-          <Image
-            src={favoriter_profile_image}
-            alt={favoriter_username || "User"}
-            width={32}
-            height={32}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-            <Heart className="h-4 w-4 text-primary" />
-          </div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
-          {favoriter_username ? (
-            <Link
-              href={`/users/${favoriter_username}`}
-              className="text-primary hover:underline cursor-pointer font-semibold"
-            >
-              {favoriter_username}
-            </Link>
+    <div className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex items-start gap-3 mb-2">
+        <div className="flex-shrink-0">
+          {favoriter_profile_image ? (
+            <Image
+              src={favoriter_profile_image}
+              alt={favoriter_username || "User"}
+              width={40}
+              height={40}
+              className="h-10 w-10 rounded-full object-cover"
+            />
           ) : (
-            <span className="text-primary">Someone</span>
+            <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Heart className="h-5 w-5 text-primary" />
+            </div>
           )}
-          {" ❤️ Favorited "}
-          <Link
-            href={`/projects/${project_slug}`}
-            className="text-primary hover:underline cursor-pointer font-semibold underline decoration-primary/30 hover:decoration-primary"
-          >
-            {project_title}
-          </Link>
-        </p>
-        {favorited_at && (
-          <p className="text-xs text-muted-foreground">
-            <FormattedDate date={favorited_at} format="datetime" />
+        </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <p className="text-sm font-medium">
+            {favoriter_username ? (
+              <Link
+                href={`/users/${favoriter_username}`}
+                className="text-primary hover:underline cursor-pointer font-semibold inline-flex items-center gap-1"
+                onClick={() => setIsNavigatingToUser(true)}
+              >
+                {isNavigatingToUser && (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                )}
+                {favoriter_username}
+              </Link>
+            ) : (
+              <span className="text-primary font-semibold">Someone</span>
+            )}
+            <span className="text-muted-foreground font-normal">
+              {" "}
+              favorited ❤️
+            </span>
           </p>
-        )}
+            <Link
+            href={`/projects/${project_slug}`}
+            className="cursor-pointer"
+            onClick={() => setIsNavigatingToProject(true)}
+            >
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto w-auto px-2 py-1 bottom-1 hover:cursor-pointer hover:text-primary transition-colors text-left justify-start"
+              disabled={isNavigatingToProject}
+            >
+              {isNavigatingToProject && (
+              <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mr-1" />
+              )}
+              <span className="line-clamp-2">{project_title}</span>
+            </Button>
+            </Link>
+          {favorited_at && (
+            <p className="text-xs text-muted-foreground">
+              <FormattedDate date={favorited_at} format="datetime" />
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// View All Projects Button component
+function ViewAllProjectsButton() {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <CardFooter className="flex-shrink-0 flex justify-center">
+      <Link href="/projects" className="cursor-pointer">
+        <Button
+          className="w-md cursor-pointer"
+          onClick={() => setIsNavigating(true)}
+          disabled={isNavigating}
+        >
+          {isNavigating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+          View All My Projects
+        </Button>
+      </Link>
+    </CardFooter>
+  );
+}
+
+// View All Favorites Button component
+function ViewAllFavoritesButton() {
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  return (
+    <CardFooter className="flex-shrink-0 flex justify-center">
+      <Link href="/projects/favorites" className="cursor-pointer">
+        <Button
+          className="w-md cursor-pointer"
+          onClick={() => setIsNavigating(true)}
+          disabled={isNavigating}
+        >
+          {isNavigating && (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          )}
+          View All Projects I've Favorited ❤️
+        </Button>
+      </Link>
+    </CardFooter>
+  );
+}
+
+// Dashboard error component
+function DashboardError({
+  error,
+  refresh,
+}: {
+  error: Error;
+  refresh: () => void;
+}) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setIsRefreshing(false);
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="text-center">
+        <p className="text-destructive">
+          Error loading dashboard: {error.message}
+        </p>
+        <Button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="mt-4 cursor-pointer"
+        >
+          {isRefreshing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+          {isRefreshing ? "Retrying..." : "Retry"}
+        </Button>
       </div>
     </div>
   );
@@ -350,18 +754,7 @@ function DashboardContent() {
   }
 
   if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <p className="text-destructive">
-            Error loading dashboard: {error.message}
-          </p>
-          <Button onClick={refresh} className="mt-4 cursor-pointer">
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
+    return <DashboardError error={error} refresh={refresh} />;
   }
 
   if (!dashboardData) {
@@ -370,21 +763,43 @@ function DashboardContent() {
 
   const { stats } = dashboardData;
 
+  return <DashboardMain stats={stats} refresh={refresh} />;
+}
+
+// Dashboard main content with stats
+function DashboardMain({
+  stats,
+  refresh,
+}: {
+  stats: UserDashboardStats;
+  refresh: () => void;
+}) {
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    setIsRefreshing(false);
+  };
+
   return (
     <main className="container mx-auto px-4 py-8">
       {/* Dashboard Banner */}
       <div className="mb-4 flex items-center justify-between gap-4">
         <div className="flex-1">
           <div className="flex justify-end mb-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={refresh}
-            className="cursor-pointer self-start"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="cursor-pointer self-start"
+            >
+              <RefreshCw
+                className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
           </div>
           <PageBanner
             icon={<PieChart className="h-8 w-8 text-purple-500" />}
@@ -395,7 +810,9 @@ function DashboardContent() {
                     stats.totalProjects
                   } amazing project${
                     stats.totalProjects > 1 ? "s" : ""
-                  } with the community. ${stats.totalFavorites} developers have shown their appreciation with favorites!`
+                  } with the community. ${
+                    stats.totalFavorites
+                  } developers have shown their appreciation with favorites!`
                 : "Welcome back! Your creative journey starts here. Share your first project and inspire the community!"
             }
             isUserBanner={false}
@@ -409,44 +826,28 @@ function DashboardContent() {
       </div>
 
       {/* Stats Cards Row */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatsCard
-          title="My Projects"
-          value={stats.totalProjects.toString()}
-          description={`${stats.projectStats.activeThisWeek} updated this week`}
-          icon={<Code className="h-4 w-4 text-primary" />}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+        <MyProjectsCard 
+          totalProjects={stats.totalProjects} 
+          activeThisWeek={stats.projectStats.activeThisWeek}
         />
-        <StatsCard
-          title="Favorites Received"
-          value={stats.totalFavorites.toString()}
-          description={
-            stats.projectStats.mostPopularProject
-              ? `Most liked: ${stats.projectStats.mostPopularProject.title.substring(
-                  0,
-                  20
-                )}...`
-              : "No favorites yet"
-          }
-          icon={<Heart className="h-4 w-4 text-primary" />}
+        <FavoritesReceivedCard 
+          totalFavorites={stats.totalFavorites}
+          projectsWithFavorites={stats.projectsWithFavorites}
         />
-        <StatsCard
-          title="Favorites Given"
-          value={stats.totalFavoritesGiven.toString()}
-          description="Projects you've favorited"
-          icon={<Star className="h-4 w-4 text-primary" />}
-        />
-        <StatsCard
+        <FavoritesGivenCard totalFavoritesGiven={stats.totalFavoritesGiven} />
+        <TagsCard
           title="My Tags"
-          value={stats.projectStats.totalTags.toString()}
-          description="Total unique tags across all projects"
+          value={(stats.allTags?.length || 0).toString()}
           icon={<TagIcon className="h-4 w-4 text-primary" />}
+          tags={stats.allTags || []}
         />
       </div>
 
       {/* Main Content - Three Columns */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 mb-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 mb-6">
         {/* Left Column - Recent Appreciation */}
-        <Card className="lg:col-span-1 flex flex-col h-[600px]">
+        <Card className="md:col-span-2 xl:col-span-1 flex flex-col h-[600px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               Recent Appreciation
@@ -466,7 +867,8 @@ function DashboardContent() {
               <div className="text-center py-8">
                 <Heart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No favorites yet. Don't worry someone will like your masterpiece soon!
+                  No favorites yet. Don't worry someone will like your
+                  masterpiece soon!
                 </p>
               </div>
             )}
@@ -474,7 +876,7 @@ function DashboardContent() {
         </Card>
 
         {/* Middle Column - Recent Activity */}
-        <Card className="lg:col-span-1 flex flex-col h-[600px]">
+        <Card className="md:col-span-1 xl:col-span-1 flex flex-col h-[600px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               Recent Activity
@@ -503,7 +905,7 @@ function DashboardContent() {
         </Card>
 
         {/* Right Column - Popular Tags */}
-        <Card className="lg:col-span-1 flex flex-col h-[600px]">
+        <Card className="md:col-span-1 xl:col-span-1 flex flex-col h-[600px]">
           <CardHeader className="flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               My Popular Tags
@@ -518,11 +920,14 @@ function DashboardContent() {
                 <div className="space-y-2">
                   {/* Show tags with 2+ projects (up to 8 total) */}
                   {stats.topTags
-                    .filter(tag => tag.count > 1)
+                    .filter((tag) => tag.count > 1)
                     .slice(0, 8)
                     .map((tag) => (
                       <Accordion key={tag.name} type="single" collapsible>
-                        <AccordionItem value={tag.name} className="border rounded-lg">
+                        <AccordionItem
+                          value={tag.name}
+                          className="border rounded-lg"
+                        >
                           <AccordionTrigger className="px-3 py-2 hover:no-underline">
                             <div className="flex items-center justify-between w-full pr-2">
                               <span className="text-sm font-medium truncate">
@@ -530,7 +935,8 @@ function DashboardContent() {
                               </span>
                               <div className="flex items-center gap-1">
                                 <span className="text-xs text-muted-foreground">
-                                  {tag.count} {tag.count === 1 ? 'project' : 'projects'}
+                                  {tag.count}{" "}
+                                  {tag.count === 1 ? "project" : "projects"}
                                 </span>
                               </div>
                             </div>
@@ -539,15 +945,10 @@ function DashboardContent() {
                             <div className="space-y-1">
                               {tag.projects && tag.projects.length > 0 ? (
                                 tag.projects.map((project) => (
-                                  <Link
+                                  <PopularTagProjectItem
                                     key={project.id}
-                                    href={`/projects/${project.slug}`}
-                                    className="block cursor-pointer"
-                                  >
-                                    <div className="text-xs p-2 rounded hover:bg-muted/50 transition-colors hover:text-primary truncate">
-                                      {project.title}
-                                    </div>
-                                  </Link>
+                                    project={project}
+                                  />
                                 ))
                               ) : (
                                 <p className="text-xs text-muted-foreground text-center py-2">
@@ -562,34 +963,30 @@ function DashboardContent() {
                 </div>
 
                 {/* Show tags with only 1 project in a collapsible section */}
-                {stats.topTags.filter(tag => tag.count === 1).length > 0 && (
+                {stats.topTags.filter((tag) => tag.count === 1).length > 0 && (
                   <Accordion type="single" collapsible className="mt-3">
-                    <AccordionItem value="single-use-tags" className="border rounded-lg">
+                    <AccordionItem
+                      value="single-use-tags"
+                      className="border rounded-lg"
+                    >
                       <AccordionTrigger className="px-3 py-2 hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-2">
                           <span className="text-xs font-medium text-muted-foreground">
-                            Tags used in a single project ({stats.topTags.filter(tag => tag.count === 1).length})
+                            Tags used in a single project (
+                            {
+                              stats.topTags.filter((tag) => tag.count === 1)
+                                .length
+                            }
+                            )
                           </span>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="px-3 pb-2">
                         <div className="space-y-1">
                           {stats.topTags
-                            .filter(tag => tag.count === 1)
+                            .filter((tag) => tag.count === 1)
                             .map((tag) => (
-                              <div key={tag.name} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors">
-                                <span className="text-sm font-medium truncate">
-                                  {tag.name}
-                                </span>
-                                {tag.projects && tag.projects.length > 0 && (
-                                  <Link
-                                    href={`/projects/${tag.projects[0].slug}`}
-                                    className="text-xs text-primary hover:underline cursor-pointer truncate ml-2"
-                                  >
-                                    {tag.projects[0].title}
-                                  </Link>
-                                )}
-                              </div>
+                              <SingleUseTagItem key={tag.name} tag={tag} />
                             ))}
                         </div>
                       </AccordionContent>
@@ -623,27 +1020,21 @@ function DashboardContent() {
                 You haven't created any projects yet
               </p>
               <Link href="/projects/new" className="cursor-pointer">
-                <Button>Create Your First Project</Button>
+                <Button onClick={() => {}} className="cursor-pointer">
+                  Create Your First Project
+                </Button>
               </Link>
             </div>
           )}
         </CardContent>
-        {stats.myProjects.length > 6 && (
-          <CardFooter className="flex-shrink-0">
-            <Link href="/projects" className="w-full cursor-pointer">
-              <Button variant="outline" className="w-full">
-                View All My Projects
-              </Button>
-            </Link>
-          </CardFooter>
-        )}
+        {stats.myProjects.length > 6 && <ViewAllProjectsButton />}
       </Card>
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
         <Card className="mb-6 flex flex-col max-h-[800px]">
           <CardHeader className="flex-shrink-0">
-            <CardTitle>Projects I've Favorited</CardTitle>
+            <CardTitle>Projects I've Favorited ❤️</CardTitle>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -652,18 +1043,7 @@ function DashboardContent() {
               ))}
             </div>
           </CardContent>
-          {stats.myFavorites.length > 6 && (
-            <CardFooter className="flex-shrink-0">
-              <Link
-                href="/projects/favorites"
-                className="w-full cursor-pointer"
-              >
-                <Button variant="outline" className="w-full cursor-pointer">
-                  View All Favorites
-                </Button>
-              </Link>
-            </CardFooter>
-          )}
+          {stats.myFavorites.length > 6 && <ViewAllFavoritesButton />}
         </Card>
       )}
 
@@ -680,20 +1060,41 @@ function DashboardContent() {
           <CardContent className="pt-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {/* Tag Contribution Info Accordion */}
             <Accordion type="single" collapsible className="mb-6">
-              <AccordionItem value="about-submissions" className="border border-primary/20 rounded-lg bg-gradient-to-r from-primary/5 via-purple/5 to-primary/5">
+              <AccordionItem
+                value="about-submissions"
+                className="border border-primary/20 rounded-lg bg-gradient-to-r from-primary/5 via-purple/5 to-primary/5"
+              >
                 <AccordionTrigger className="px-4 hover:no-underline">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">About Tag Submissions</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      About Tag Submissions
+                    </span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   <div className="space-y-3 pt-2">
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium text-foreground">✨ You're a Tag Hero!</span> Every tag you submit is like adding a new superpower to Code Details! When approved, your tags join our global tag library, helping thousands of developers discover incredible projects. You're literally shaping how the community finds and organizes amazing work. So thank you for making Code Details a better place, one tag at a time!
+                      <span className="font-medium text-foreground">
+                        ✨ You're a Tag Hero!
+                      </span>{" "}
+                      Every tag you submit is like adding a new superpower to
+                      Code Details! When approved, your tags join our global tag
+                      library, helping thousands of developers discover
+                      incredible projects. You're literally shaping how the
+                      community finds and organizes amazing work. So thank you
+                      for making Code Details a better place, one tag at a time!
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium text-foreground">💙 Rejections? No big deal!</span> Think of our tag review like quality control for the whole community's benefit. We're just making sure every tag is clean, consistent, and super useful for discovery. It's never about you or your awesome work—it's about keeping our tag system crisp, clean, appropriate, error-free, and searchable for everyone. Keep those tag ideas coming!
+                      <span className="font-medium text-foreground">
+                        💙 Rejections? No big deal!
+                      </span>{" "}
+                      Think of our tag review like quality control for the whole
+                      community's benefit. We're just making sure every tag is
+                      clean, consistent, and super useful for discovery. It's
+                      never about you or your awesome work—it's about keeping
+                      our tag system crisp, clean, appropriate, error-free, and
+                      searchable for everyone. Keep those tag ideas coming!
                     </p>
                   </div>
                 </AccordionContent>
@@ -706,18 +1107,27 @@ function DashboardContent() {
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-1 w-1 rounded-full bg-yellow-500"></div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Pending ({stats.myTagSubmissions.filter(s => s.status === 'pending').length})
+                    Pending (
+                    {
+                      stats.myTagSubmissions.filter(
+                        (s) => s.status === "pending"
+                      ).length
+                    }
+                    )
                   </h3>
                 </div>
                 <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
-                  {stats.myTagSubmissions.filter(s => s.status === 'pending').length > 0 ? (
+                  {stats.myTagSubmissions.filter((s) => s.status === "pending")
+                    .length > 0 ? (
                     stats.myTagSubmissions
-                      .filter(s => s.status === 'pending')
+                      .filter((s) => s.status === "pending")
                       .map((submission, index) => (
                         <TagSubmissionCard key={index} {...submission} />
                       ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No pending submissions</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No pending submissions
+                    </p>
                   )}
                 </div>
               </div>
@@ -727,18 +1137,27 @@ function DashboardContent() {
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-1 w-1 rounded-full bg-green-500"></div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Approved ({stats.myTagSubmissions.filter(s => s.status === 'approved').length})
+                    Approved (
+                    {
+                      stats.myTagSubmissions.filter(
+                        (s) => s.status === "approved"
+                      ).length
+                    }
+                    )
                   </h3>
                 </div>
                 <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
-                  {stats.myTagSubmissions.filter(s => s.status === 'approved').length > 0 ? (
+                  {stats.myTagSubmissions.filter((s) => s.status === "approved")
+                    .length > 0 ? (
                     stats.myTagSubmissions
-                      .filter(s => s.status === 'approved')
+                      .filter((s) => s.status === "approved")
                       .map((submission, index) => (
                         <TagSubmissionCard key={index} {...submission} />
                       ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No approved submissions</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No approved submissions
+                    </p>
                   )}
                 </div>
               </div>
@@ -748,18 +1167,27 @@ function DashboardContent() {
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-1 w-1 rounded-full bg-red-500"></div>
                   <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Rejected ({stats.myTagSubmissions.filter(s => s.status === 'rejected').length})
+                    Rejected (
+                    {
+                      stats.myTagSubmissions.filter(
+                        (s) => s.status === "rejected"
+                      ).length
+                    }
+                    )
                   </h3>
                 </div>
                 <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
-                  {stats.myTagSubmissions.filter(s => s.status === 'rejected').length > 0 ? (
+                  {stats.myTagSubmissions.filter((s) => s.status === "rejected")
+                    .length > 0 ? (
                     stats.myTagSubmissions
-                      .filter(s => s.status === 'rejected')
+                      .filter((s) => s.status === "rejected")
                       .map((submission, index) => (
                         <TagSubmissionCard key={index} {...submission} />
                       ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">No rejected submissions</p>
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No rejected submissions
+                    </p>
                   )}
                 </div>
               </div>
