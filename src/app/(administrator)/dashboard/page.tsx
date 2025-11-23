@@ -318,7 +318,7 @@ function RecentAppreciationItem({
           ) : (
             <span className="text-primary">Someone</span>
           )}
-          {" favorited "}
+          {" ❤️ Favorited "}
           <Link
             href={`/projects/${project_slug}`}
             className="text-primary hover:underline cursor-pointer font-semibold underline decoration-primary/30 hover:decoration-primary"
