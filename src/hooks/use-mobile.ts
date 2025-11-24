@@ -1,8 +1,8 @@
 import * as React from "react";
 import { useIsBrowser } from "@/lib/ClientSideUtils";
 
-// Match Tailwind's md breakpoint (768px)
-const MOBILE_BREAKPOINT = 768;
+// Increased from 768px to 1024px to close sidebar sooner on medium screens
+const MOBILE_BREAKPOINT = 1024;
 
 export function useIsMobile() {
   const isBrowser = useIsBrowser();

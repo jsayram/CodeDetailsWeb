@@ -453,7 +453,7 @@ export const ProjectCard = React.memo(
     return (
       <>
         <Card
-          className={`group relative overflow-hidden w-full h-[620px] flex flex-col transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
+          className={`group relative overflow-hidden w-full flex flex-col transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
             project.category
           }
             ${project.deleted_at ? "deleted" : ""} ${

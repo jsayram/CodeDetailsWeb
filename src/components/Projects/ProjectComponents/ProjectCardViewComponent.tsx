@@ -84,7 +84,7 @@ export function ProjectCardView({
 
   return (
     <div className="w-full" style={{ minHeight: `${minHeight}px` }}>
-      <div className="project-grid gap-4">
+      <div className="project-grid">
         {validProjects.map((project) => (
           <ProjectCard
             key={project.id}

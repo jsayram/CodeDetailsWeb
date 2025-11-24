@@ -40,7 +40,7 @@ export default function DeletedProjects() {
         >
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="bg-background">
+            <SidebarInset>
               <HeaderSection />
               <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
                 <div className="flex justify-center w-full mb-20">
