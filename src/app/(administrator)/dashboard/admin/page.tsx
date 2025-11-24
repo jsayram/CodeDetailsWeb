@@ -50,10 +50,14 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClientOnly } from "@/components/ClientOnly";
 import { fetchAdminDashboardData } from "@/app/actions/admin-dashboard";
 import { fetchAllUsersAction, updateUserAction, checkIsSuperAdmin } from "@/app/actions/user-management";
+import { fetchTopContributors, fetchTagPipelineAnalytics } from "@/app/actions/advanced-analytics";
+import type { TopContributor, TagPipelineMetrics } from "@/app/actions/advanced-analytics";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import type { UserProfile } from "@/db/operations/userManagementOperations";
 import { toast } from "sonner";
+import { TopContributorsCard } from "@/components/administrator/TopContributorsCard";
+import { TagPipelineCard } from "@/components/administrator/TagPipelineCard";
 
 // Type definitions
 interface StatsCardProps {
@@ -1065,6 +1069,9 @@ function DashboardContent() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
+  const [topContributors, setTopContributors] = React.useState<TopContributor[]>([]);
+  const [tagPipelineMetrics, setTagPipelineMetrics] = React.useState<TagPipelineMetrics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = React.useState(true);
 
   React.useEffect(() => {
     async function loadData() {
@@ -1082,6 +1089,26 @@ function DashboardContent() {
       }
     }
     loadData();
+  }, []);
+
+  // Load advanced analytics
+  React.useEffect(() => {
+    async function loadAnalytics() {
+      try {
+        const [contributors, pipelineMetrics] = await Promise.all([
+          fetchTopContributors(20),
+          fetchTagPipelineAnalytics(),
+        ]);
+        setTopContributors(contributors);
+        setTagPipelineMetrics(pipelineMetrics);
+      } catch (error) {
+        console.error("Failed to load advanced analytics:", error);
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    }
+
+    loadAnalytics();
   }, []);
 
   if (loading) {
@@ -1576,6 +1603,23 @@ function DashboardContent() {
             <TagList />
           </CardContent>
         </Card>
+      </div>
+
+      {/* Advanced Analytics Section */}
+      <div className="mt-6 md:mt-8 space-y-6">
+        {/* Top Contributors Leaderboard */}
+        {analyticsLoading ? (
+          <ChartSkeleton />
+        ) : (
+          <TopContributorsCard contributors={topContributors} />
+        )}
+
+        {/* Tag Pipeline Analytics */}
+        {analyticsLoading ? (
+          <ChartSkeleton />
+        ) : tagPipelineMetrics ? (
+          <TagPipelineCard metrics={tagPipelineMetrics} />
+        ) : null}
       </div>
 
       {/* Admin Test Pages Section */}
