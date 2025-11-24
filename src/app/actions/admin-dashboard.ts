@@ -5,6 +5,26 @@ import { getPendingTagSubmissions } from "./tag-submissions";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/admin-utils";
 import { redirect } from "next/navigation";
+import { unstable_cache } from 'next/cache';
+
+// Cache admin dashboard stats for 2 minutes
+export const getCachedDashboardStats = unstable_cache(
+  async () => getDashboardStats(),
+  ['admin-dashboard-stats'],
+  {
+    revalidate: 120, // 2 minutes
+    tags: ['admin-dashboard']
+  }
+);
+
+export const getCachedTagSubmissions = unstable_cache(
+  async () => getPendingTagSubmissions(),
+  ['admin-tag-submissions'],
+  {
+    revalidate: 60, // 1 minute for more frequently changing data
+    tags: ['admin-dashboard', 'tag-submissions']
+  }
+);
 
 export async function fetchAdminDashboardData() {
   const { userId } = await auth();
@@ -24,8 +44,8 @@ export async function fetchAdminDashboardData() {
   }
 
   const [submissions, stats] = await Promise.all([
-    getPendingTagSubmissions(),
-    getDashboardStats(),
+    getCachedTagSubmissions(),
+    getCachedDashboardStats(),
   ]);
 
   return {

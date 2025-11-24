@@ -83,30 +83,10 @@ async function extractClerkUserData(data: ClerkUserData) {
   // Get tier from metadata if provided
   let tier = data.public_metadata?.tier;
 
-  // If tier is not provided, try to get it from the database
-  if (!tier && user_id) {
-    try {
-      // Try to get the existing user data from the database
-      const { data: existingUser } = await supabaseServer
-        .from("profiles")
-        .select("tier")
-        .eq("user_id", user_id)
-        .single();
-
-      // If the user exists, use their current tier
-      if (existingUser && existingUser.tier) {
-        console.log(
-          `🎫 Using existing tier from database: ${existingUser.tier} for user ${user_id}`
-        );
-        tier = existingUser.tier;
-      } else {
-        // For new users, default to 'free'
-        tier = "free";
-      }
-    } catch (error) {
-      console.log("Could not fetch existing tier, defaulting to 'free'");
-      tier = "free";
-    }
+  // If tier is not provided in metadata, default to 'free' for new users
+  // Existing users will keep their current tier during update (won't be overwritten)
+  if (!tier) {
+    tier = "free";
   }
 
   return {
@@ -147,22 +127,29 @@ export async function createOrUpdateUserProfile(data: any) {
     }
 
     if (existingProfile) {
-      // User exists - update their profile
+      // User exists - update their profile (preserve tier if not provided in metadata)
       console.log(`✅ User ${user_id} already exists, updating profile`);
+      
+      const updateData: any = {
+        email_address: userData.email_address,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        full_name: userData.full_name,
+        username: userData.username,
+        profile_image_url: userData.profile_image_url,
+        role: userData.role,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Only update tier if it's explicitly provided in metadata
+      // This prevents overwriting existing tier with default 'free'
+      if (data.public_metadata?.tier) {
+        updateData.tier = userData.tier;
+      }
       
       const { error: updateError } = await supabaseServer
         .from("profiles")
-        .update({
-          email_address: userData.email_address,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          full_name: userData.full_name,
-          username: userData.username,
-          profile_image_url: userData.profile_image_url,
-          role: userData.role,
-          tier: userData.tier,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("user_id", user_id);
 
       if (updateError) {

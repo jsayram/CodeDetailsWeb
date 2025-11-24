@@ -31,6 +31,7 @@ import {
   Edit,
   X,
   Save,
+  RefreshCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -50,7 +51,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClientOnly } from "@/components/ClientOnly";
 import { fetchAdminDashboardData } from "@/app/actions/admin-dashboard";
 import { fetchAllUsersAction, updateUserAction, checkIsSuperAdmin } from "@/app/actions/user-management";
-import { fetchTopContributors, fetchTagPipelineAnalytics } from "@/app/actions/advanced-analytics";
+import { getCachedTopContributors, getCachedTagPipelineAnalytics } from "@/app/actions/advanced-analytics";
 import type { TopContributor, TagPipelineMetrics } from "@/app/actions/advanced-analytics";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -331,6 +332,50 @@ function MostLikedProjectItem({
           <Heart className="h-4 w-4 text-red-500 fill-red-500" />
           <span className="text-sm font-semibold">{favorites}</span>
         </div>
+      </div>
+    </Link>
+  );
+}
+
+// Category card item with loading state
+function CategoryCardItem({
+  category,
+  count,
+  percentage,
+}: {
+  category: string;
+  count: number;
+  percentage: number;
+}) {
+  const [isNavigating, setIsNavigating] = React.useState(false);
+
+  return (
+    <Link
+      href={`/categories/${category}`}
+      onClick={() => setIsNavigating(true)}
+      className="flex flex-col p-3 md:p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20 hover:border-primary/40 hover:from-primary/10 hover:to-primary/15 transition-all cursor-pointer group"
+    >
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {isNavigating && <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 text-primary" />}
+          <span className="font-semibold capitalize text-base md:text-lg group-hover:text-primary transition-colors truncate">
+            {category}
+          </span>
+        </div>
+        <span className="text-xl md:text-2xl font-bold text-primary flex-shrink-0 ml-2">
+          {count}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs md:text-sm text-muted-foreground">
+          {percentage}% of all projects
+        </span>
+      </div>
+      <div className="mt-2 h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all duration-500 group-hover:bg-primary/80"
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </Link>
   );
@@ -1072,44 +1117,52 @@ function DashboardContent() {
   const [topContributors, setTopContributors] = React.useState<TopContributor[]>([]);
   const [tagPipelineMetrics, setTagPipelineMetrics] = React.useState<TagPipelineMetrics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = React.useState(true);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
+  const loadData = React.useCallback(async () => {
+    try {
+      const [data, superAdminStatus] = await Promise.all([
+        fetchAdminDashboardData(),
+        checkIsSuperAdmin(),
+      ]);
+      setStats(data);
+      setIsSuperAdmin(superAdminStatus);
+    } catch (err: any) {
+      setError(err.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadAnalytics = React.useCallback(async () => {
+    try {
+      const [contributors, pipelineMetrics] = await Promise.all([
+        getCachedTopContributors(20),
+        getCachedTagPipelineAnalytics(),
+      ]);
+      setTopContributors(contributors);
+      setTagPipelineMetrics(pipelineMetrics);
+    } catch (error) {
+      console.error("Failed to load advanced analytics:", error);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  const handleRefresh = React.useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([loadData(), loadAnalytics()]);
+    setIsRefreshing(false);
+  }, [loadData, loadAnalytics]);
 
   React.useEffect(() => {
-    async function loadData() {
-      try {
-        const [data, superAdminStatus] = await Promise.all([
-          fetchAdminDashboardData(),
-          checkIsSuperAdmin(),
-        ]);
-        setStats(data);
-        setIsSuperAdmin(superAdminStatus);
-      } catch (err: any) {
-        setError(err.message || "Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    }
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Load advanced analytics
   React.useEffect(() => {
-    async function loadAnalytics() {
-      try {
-        const [contributors, pipelineMetrics] = await Promise.all([
-          fetchTopContributors(20),
-          fetchTagPipelineAnalytics(),
-        ]);
-        setTopContributors(contributors);
-        setTagPipelineMetrics(pipelineMetrics);
-      } catch (error) {
-        console.error("Failed to load advanced analytics:", error);
-      } finally {
-        setAnalyticsLoading(false);
-      }
-    }
-
     loadAnalytics();
-  }, []);
+  }, [loadAnalytics]);
 
   if (loading) {
     return <DashboardLoading />;
@@ -1131,12 +1184,28 @@ function DashboardContent() {
 
   return (
     <main className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
-      {/* Dashboard Header */}
+      {/* Dashboard Header with Refresh Button */}
       <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
-          Platform-wide analytics and administration
-        </p>
+        <div className="flex items-center justify-between mb-2">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
+              Platform-wide analytics and administration
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="cursor-pointer"
+          >
+            <RefreshCcw
+              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+            {isRefreshing ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards Row */}
@@ -1274,30 +1343,12 @@ function DashboardContent() {
         <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 md:gap-4">
             {stats.stats.categoryDistribution.map((cat) => (
-              <div
+              <CategoryCardItem
                 key={cat.category}
-                className="flex flex-col p-3 md:p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold capitalize text-base md:text-lg">
-                    {cat.category}
-                  </span>
-                  <span className="text-xl md:text-2xl font-bold text-primary">
-                    {cat.count}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs md:text-sm text-muted-foreground">
-                    {cat.percentage}% of all projects
-                  </span>
-                </div>
-                <div className="mt-2 h-2 w-full bg-secondary/30 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full transition-all duration-500"
-                    style={{ width: `${cat.percentage}%` }}
-                  />
-                </div>
-              </div>
+                category={cat.category}
+                count={cat.count}
+                percentage={cat.percentage}
+              />
             ))}
           </div>
         </CardContent>
@@ -1719,6 +1770,21 @@ function DashboardContent() {
                   </span>
                 </Button>
               </a>
+
+              <Link href="/test-cache">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-start p-3 md:p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                    <span className="font-semibold text-xs md:text-sm">Cache Performance</span>
+                  </div>
+                  <span className="text-[10px] md:text-xs text-muted-foreground text-left">
+                    Test cache performance and efficiency
+                  </span>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
