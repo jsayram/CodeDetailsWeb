@@ -238,13 +238,7 @@
 
 /* Card description */
 .card-description {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 0.5rem 0;
-  min-height: 5rem; /* Increased from 2.5rem */
+  min-height: 7rem; 
 }
 
 /* Project metadata section */
@@ -341,13 +335,18 @@
 /* Mobile and Responsive breakpoints */
 @media (max-width: 767px) {
   .project-card {
-    min-height: 380px;
-    max-height: 400px; /* Allow cards to expand on mobile */
+    min-height: 620px;
+    max-height: 620px; /* Match desktop height */
+    height: 620px;
   }
   
   .card-content {
     padding: 1rem;
     padding-top: 4rem; /* More space for action buttons on mobile */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .card-footer {

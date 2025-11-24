@@ -924,10 +924,13 @@ function DashboardMain({
 
         {/* Right Column - Popular Tags */}
         <Card className="md:col-span-1 xl:col-span-1 flex flex-col h-[600px]">
-          <CardHeader className="flex-shrink-0">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle className="text-sm font-medium">
               My Popular Tags
             </CardTitle>
+            <TrendingUp className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardHeader className="flex-shrink-0 pt-0">
             <CardDescription className="text-xs">
               Most frequently used tags (number shows project count)
             </CardDescription>
@@ -1021,8 +1024,9 @@ function DashboardMain({
 
       {/* My Projects Section */}
       <Card className="mb-6 flex flex-col max-h-[800px]">
-        <CardHeader className="flex-shrink-0">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
           <CardTitle>My Recent Projects</CardTitle>
+          <Code className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {stats.myProjects.length > 0 ? (
@@ -1051,8 +1055,9 @@ function DashboardMain({
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
         <Card className="mb-6 flex flex-col max-h-[800px]">
-          <CardHeader className="flex-shrink-0">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle>Projects I've Favorited ❤️</CardTitle>
+            <Heart className="h-4 w-4 text-red-500 fill-red-500" />
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1068,12 +1073,15 @@ function DashboardMain({
       {/* My Tag Submissions */}
       {stats.myTagSubmissions.length > 0 && (
         <Card className="flex flex-col max-h-[900px]">
-          <CardHeader className="pb-3 flex-shrink-0">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
+            <div className="flex-1">
             <CardTitle className="text-lg">My Tag Submissions</CardTitle>
             <CardDescription className="text-sm">
               {stats.myTagSubmissions.length} tag
               {stats.myTagSubmissions.length > 1 ? "s" : ""} submitted
             </CardDescription>
+            </div>
+            <TagIcon className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent className="pt-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {/* Tag Contribution Info Accordion */}
