@@ -5,7 +5,7 @@ export default async function TagSubmissionsPage() {
   const submissions = await getPendingTagSubmissions();
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
       <h1 className="text-3xl font-bold mb-6">Tag Submissions</h1>
       <TagSubmissionManagement initialSubmissions={submissions} />
     </div>

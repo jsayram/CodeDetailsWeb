@@ -425,11 +425,53 @@
   }
 }
 
+/* Large Desktop - Full HD */
+@media (min-width: 1920px) {
+  .project-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 2K/QHD Screens */
+@media (min-width: 2560px) {
+  .project-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* 4K/Ultrawide Screens */
+@media (min-width: 3440px) {
+  .project-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
 /* Responsive adjustments accounting for sidebar width */
 /* When sidebar is open on smaller desktop screens, reduce to 2 columns */
 @media (min-width: 1280px) and (max-width: 1600px) {
   body:has([data-state="expanded"]) .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Sidebar open on large screens */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Sidebar open on 2K screens */
+@media (min-width: 2560px) and (max-width: 3439px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Sidebar open on 4K screens */
+@media (min-width: 3440px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 

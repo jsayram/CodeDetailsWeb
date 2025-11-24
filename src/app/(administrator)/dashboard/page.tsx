@@ -44,6 +44,7 @@ import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { PageBanner } from "@/components/ui/page-banner";
 import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
 
 // Type definitions
@@ -411,14 +412,14 @@ function ProjectCard({
       className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/50 transition-colors relative h-[180px] flex flex-col">
+      <Card className="hover:bg-accent/50 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <Badge variant="outline" className={`absolute top-2 left-2 truncate max-w-[140px] category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
-          {category}
+        <Badge variant="outline" className={`absolute top-2 left-2 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+          {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
         {created_at && (
           <div className="absolute top-2 right-2 text-[10px] text-muted-foreground">
@@ -479,14 +480,14 @@ function FavoriteCard({
       className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/50 transition-colors relative h-[180px] flex flex-col">
+      <Card className="hover:bg-accent/50 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <Badge variant="outline" className={`absolute top-2 left-2 truncate max-w-[140px] category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
-          {category}
+        <Badge variant="outline" className={`absolute top-2 left-2 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+          {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
         <CardHeader className="flex-1 min-h-0 pb-4 pt-12">
           <div className="flex items-start justify-between h-full">
@@ -782,7 +783,7 @@ function DashboardError({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
       <div className="text-center">
         <p className="text-destructive">
           Error loading dashboard: {error.message}
@@ -843,7 +844,7 @@ function DashboardMain({
   };
 
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
       {/* Dashboard Banner */}
       <div className="mb-4 flex items-center justify-between gap-4">
         <div className="flex-1">
@@ -1081,7 +1082,7 @@ function DashboardMain({
       </div>
 
       {/* My Projects Section */}
-      <Card className="mb-6 flex flex-col h-[600px]">
+      <Card className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px]">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
           <CardTitle>My Recent Projects</CardTitle>
           <Code className="h-4 w-4 text-primary" />
@@ -1112,7 +1113,7 @@ function DashboardMain({
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
-        <Card className="mb-6 flex flex-col h-[600px]">
+        <Card className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle>Projects I've Favorited ❤️</CardTitle>
             <Heart className="h-4 w-4 text-red-500 fill-red-500" />
@@ -1130,7 +1131,7 @@ function DashboardMain({
 
       {/* My Tag Submissions */}
       {stats.myTagSubmissions.length > 0 && (
-        <Card className="flex flex-col h-[600px]">
+        <Card className="flex flex-col h-[600px] 3xl:h-[1200px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
             <div className="flex-1">
             <CardTitle className="text-lg">My Tag Submissions</CardTitle>
@@ -1316,7 +1317,7 @@ function DashboardMain({
 // Loading state for the dashboard
 function DashboardLoading() {
   return (
-    <main className="container mx-auto px-4 py-8">
+    <main className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
       <div className="mb-8">
         <Skeleton className="h-8 w-[200px] mb-2" />
         <Skeleton className="h-4 w-[300px]" />

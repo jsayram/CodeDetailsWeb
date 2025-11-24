@@ -60,7 +60,7 @@ export default function TagsIndexPage() {
           <SidebarInset>
             <HeaderSection />
             <div className="flex justify-center w-full mb-20">
-              <div className="w-full max-w-7xl px-4">
+              <div className="w-full px-4 2xl:px-8 3xl:px-12">
                 <div className="flex flex-col gap-4 mb-6 py-3">
                   <PageBanner
                     icon={<Tag className="h-8 w-8 text-primary" />}
@@ -146,7 +146,7 @@ export default function TagsIndexPage() {
         <SidebarInset>
           <HeaderSection />
           <div className="flex justify-center w-full mb-20">
-            <div className="w-full max-w-7xl px-4">
+            <div className="w-full px-4 2xl:px-8 3xl:px-12">
               <div className="flex flex-col gap-4 mb-6 py-3">
                 <PageBanner
                   icon={<Tag className="h-8 w-8 text-primary" />}

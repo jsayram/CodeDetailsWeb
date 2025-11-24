@@ -322,7 +322,7 @@ function SearchContent() {
 
   return (
     <div className="flex justify-center w-full mb-20">
-      <div className="w-full max-w-7xl px-4">
+      <div className="w-full px-4 2xl:px-8 3xl:px-12">
         <div className="flex flex-col gap-6 mb-6 py-3">
           <PageBanner
             icon={<Search className="h-8 w-8 text-primary" />}
@@ -358,9 +358,9 @@ function SearchContent() {
           {showEmptyState ? (
             <div className="text-center py-20">
               <Search className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Start Searching</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Type in the search box above to find categories, tags, or users. 
+              <h3 className="text-xl 3xl:text-2xl 4xl:text-3xl font-semibold mb-2">Start Searching</h3>
+              <p className="text-muted-foreground max-w-md mx-auto 3xl:text-lg 4xl:text-xl">
+                Type in the search box above to find projects, categories, tags, and users.
                 Search by name, description, or even project tags!
               </p>
             </div>

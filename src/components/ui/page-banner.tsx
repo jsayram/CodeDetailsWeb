@@ -64,7 +64,7 @@ export function PageBanner({
           )}
         </div>
         <div className="flex flex-col items-center md:items-start text-center md:text-left">
-          <h2 className="text-3xl font-extrabold text-foreground dark:text-foreground drop-shadow-lg flex flex-col md:flex-row items-center gap-2">
+          <h2 className="text-3xl 3xl:text-4xl 4xl:text-5xl font-extrabold text-foreground dark:text-foreground drop-shadow-lg flex flex-col md:flex-row items-center gap-2">
             {isUserBanner ? (
               <>
                 {userName}&apos;s{" "}
@@ -83,7 +83,7 @@ export function PageBanner({
             )}
           </h2>
           {description && (
-            <p className="text-sm text-foreground mt-2">
+            <p className="text-sm 3xl:text-base 4xl:text-lg text-foreground mt-2">
               {description}
             </p>
           )}

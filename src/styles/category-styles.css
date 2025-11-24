@@ -188,7 +188,14 @@
 
 /* Category Badge Base Styles */
 .category-badge {
-  @apply rounded-lg px-3 py-2 border;
+  @apply rounded-lg border text-xs font-medium;
+  padding: 0.375rem 0.625rem;
+  white-space: nowrap;
+  width: fit-content;
+  max-width: calc(100% - 1rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Light/Dark Mode Styles */

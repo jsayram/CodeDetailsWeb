@@ -1170,7 +1170,7 @@ function DashboardContent() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
+      <div className="w-full px-4 2xl:px-8 3xl:px-12 py-6 md:py-8">
         <div className="text-center">
           <p className="text-destructive text-sm md:text-base">Error: {error}</p>
         </div>
@@ -1183,13 +1183,13 @@ function DashboardContent() {
   }
 
   return (
-    <main className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
+    <main className="w-full px-4 2xl:px-8 3xl:px-12 py-6 md:py-8">
       {/* Dashboard Header with Refresh Button */}
       <div className="mb-6 md:mb-8">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">
+            <h1 className="text-2xl md:text-3xl 3xl:text-4xl 4xl:text-5xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base 3xl:text-lg 4xl:text-xl">
               Platform-wide analytics and administration
             </p>
           </div>
@@ -1796,7 +1796,7 @@ function DashboardContent() {
 // Loading state for the dashboard
 function DashboardLoading() {
   return (
-    <main className="container mx-auto px-3 sm:px-4 md:px-6 py-6 md:py-8">
+    <main className="w-full px-4 2xl:px-8 3xl:px-12 py-6 md:py-8">
       <div className="mb-6 md:mb-8">
         <Skeleton className="h-6 md:h-8 w-[180px] md:w-[200px] mb-2" />
         <Skeleton className="h-3 md:h-4 w-[250px] md:w-[300px]" />
