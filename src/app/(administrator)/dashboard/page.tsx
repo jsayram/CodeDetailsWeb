@@ -830,7 +830,7 @@ function DashboardMain({
           </div>
           <PageBanner
             icon={<PieChart className="h-8 w-8 text-purple-500" />}
-            bannerTitle="Dashboard - Your Personal Analytics Hub"
+            bannerTitle="Dashboard - Your Personal Analytics Hub (Private)"
             description={
               stats.totalProjects > 0
                 ? `Welcome back! You've shared ${stats.totalProjects} amazing project${
@@ -855,8 +855,8 @@ function DashboardMain({
                           stats.myTagSubmissions.length > 1 ? "s" : ""
                         } pending review` : ""}.`
                       : ""
-                  } Keep up the great work!`
-                : "Welcome back! Your creative journey starts here. Share your first project and inspire the community!"
+                  } Keep up the great work! This dashboard is only visible to you.`
+                : "Welcome back! Your creative journey starts here. Share your first project and inspire the community! This dashboard is only visible to you."
             }
             isUserBanner={false}
             gradientFrom="purple-900"
