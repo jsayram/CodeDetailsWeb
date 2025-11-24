@@ -485,12 +485,14 @@ function TagSubmissionCard({
   project_tag_count,
 }: TagSubmissionCardProps) {
   const [isNavigating, setIsNavigating] = useState(false);
-  const statusColor =
+  
+  // Unified badge styling with status-based text colors
+  const badgeClassName =
     status === "approved"
-      ? "default"
+      ? "text-xs bg-green-700 dark:bg-green-400 text-black dark:text-black border-transparent"
       : status === "rejected"
-      ? "destructive"
-      : "secondary";
+      ? "text-xs bg-red-700 dark:bg-red-400 text-black dark:text-black border-transparent"
+      : "text-xs bg-yellow-900 dark:bg-yellow-500 text-black dark:text-black border-transparent";
 
   const isProjectAtCapacity = project_tag_count >= MAX_PROJECT_TAGS;
 
@@ -498,7 +500,9 @@ function TagSubmissionCard({
     <div className="p-3 rounded-lg bg-muted/30">
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex-1 min-w-0 space-y-2">
-          <Badge variant={statusColor} className="text-xs"><span className="text-foreground">#</span>{tag_name}</Badge>
+          <Badge variant="outline" className={badgeClassName}>
+            <span className="opacity-70">#</span>{tag_name}
+          </Badge>
           <Link
             href={`/projects/${project_slug}`}
             className="cursor-pointer block"
@@ -1233,6 +1237,26 @@ function DashboardMain({
                     )
                   </h3>
                 </div>
+                {/* Rejected column help message */}
+                {stats.myTagSubmissions.filter((s) => s.status === "rejected").length > 0 && (
+                  <Accordion type="single" collapsible className="mb-3">
+                    <AccordionItem
+                      value="rejected-help"
+                      className="border border-muted-foreground/20 rounded-lg bg-muted/20"
+                    >
+                      <AccordionTrigger className="px-3 py-2 hover:no-underline">
+                        <span className="text-xs font-semibold text-foreground">
+                          💡 Got a Rejection? Here's What to Do
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-3 pb-3">
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          <span className="font-semibold text-foreground">Think this was a mistake?</span> You can resubmit the tag with a better explanation of why it's useful for the community. Focus on how it helps categorize projects, describes specific technologies, or aids in discovery for all users.
+                        </p>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                )}
                 <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "rejected")
                     .length > 0 ? (
