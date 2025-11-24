@@ -673,7 +673,7 @@ function ViewAllProjectsButton() {
     <CardFooter className="flex-shrink-0 flex justify-center">
       <Link href="/projects" className="cursor-pointer">
         <Button
-          className="w-md cursor-pointer"
+          className="w-auto px-6 cursor-pointer"
           onClick={() => setIsNavigating(true)}
           disabled={isNavigating}
         >
@@ -693,7 +693,7 @@ function ViewAllFavoritesButton() {
     <CardFooter className="flex-shrink-0 flex justify-center">
       <Link href="/projects/favorites" className="cursor-pointer">
         <Button
-          className="w-md cursor-pointer"
+          className="w-auto px-6 cursor-pointer"
           onClick={() => setIsNavigating(true)}
           disabled={isNavigating}
         >
@@ -1100,27 +1100,37 @@ function DashboardMain({
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   <div className="space-y-3 pt-2">
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium text-foreground">
-                        ✨ You're a Tag Hero!
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-semibold text-purple-600 dark:text-purple-400">
+                        ✨ Share Your Tags
                       </span>{" "}
-                      Every tag you submit is like adding a new superpower to
-                      Code Details! When approved, your tags join our global tag
-                      library, helping thousands of developers discover
-                      incredible projects. You're literally shaping how the
-                      community finds and organizes amazing work. So thank you
-                      for making Code Details a better place, one tag at a time!
+                      <span className="text-foreground">
+                        When editing your project, submit tags you think should be in the system if not already there for you. Once{" "}
+                        <span className="text-green-600 dark:text-green-400 font-medium">
+                          approved
+                        </span>
+                        , you can use them in your projects and others can add them to theirs too!
+                      </span>
                     </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      <span className="font-medium text-foreground">
-                        💙 Rejections? No big deal!
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-semibold text-blue-600 dark:text-blue-400">
+                        🎯 Why Tags Matter
                       </span>{" "}
-                      Think of our tag review like quality control for the whole
-                      community's benefit. We're just making sure every tag is
-                      clean, consistent, and super useful for discovery. It's
-                      never about you or your awesome work—it's about keeping
-                      our tag system crisp, clean, appropriate, error-free, and
-                      searchable for everyone. Keep those tag ideas coming!
+                      <span className="text-foreground">
+                        Tags add specific tech details beyond categorieslike frameworks, languages, or concepts helping developers find exactly what they need and your projects more efficiently and deliberately.
+                      </span>
+                    </p>
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-semibold text-orange-600 dark:text-orange-400">
+                        💡 Review Process
+                      </span>{" "}
+                      <span className="text-foreground">
+                        Tags get reviewed for quality as they are available for everyone in the community.{" "}
+                        <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+                          Rejections?
+                        </span>{" "}
+                        Don't sweat it! They're not about you, we are just keeping tags clean, consistent, and useful for everyone.
+                      </span>
                     </p>
                   </div>
                 </AccordionContent>
