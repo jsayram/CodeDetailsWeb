@@ -33,7 +33,7 @@ export function Overview({ data }: OverviewProps) {
       {/* Chart view - Hidden on mobile */}
       <div className="hidden md:block">
         <div className="overflow-x-auto">
-          <div style={{ minWidth: `${Math.max(800, data.length * 40)}px` }}>
+          <div className="min-w-full" style={{ width: `${Math.max(data.length * 40, 100)}px` }}>
             <ResponsiveContainer width="100%" height={350}>
               <BarChart
                 data={data}
