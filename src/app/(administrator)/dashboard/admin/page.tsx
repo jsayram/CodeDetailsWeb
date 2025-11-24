@@ -123,6 +123,16 @@ interface DashboardStats {
       newUsersThisWeek: number;
       newUsersThisMonth: number;
     };
+    newUsersList: Array<{
+      id: string;
+      user_id: string;
+      username: string;
+      full_name: string | null;
+      email_address: string | null;
+      tier: string | null;
+      profile_image_url: string | null;
+      created_at: Date | null;
+    }>;
     categoryDistribution: Array<{
       category: string;
       count: number;

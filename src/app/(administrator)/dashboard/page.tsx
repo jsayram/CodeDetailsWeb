@@ -404,28 +404,28 @@ function ProjectCard({
   return (
     <Link
       href={`/projects/${slug}`}
-      className="cursor-pointer"
+      className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/50 transition-colors relative">
+      <Card className="hover:bg-accent/50 transition-colors relative h-[180px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-base line-clamp-1">{title}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+        <CardHeader className="flex-1 min-h-0">
+          <div className="flex items-start justify-between h-full">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <CardTitle className="text-base line-clamp-2 mb-2">{title}</CardTitle>
+              <p className="text-xs text-muted-foreground line-clamp-3 flex-1">
                 {description || "No description provided"}
               </p>
             </div>
           </div>
         </CardHeader>
-        <CardFooter className="flex justify-between">
-          <Badge variant="outline">{category}</Badge>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <CardFooter className="flex justify-between flex-shrink-0 pt-3">
+          <Badge variant="outline" className="truncate max-w-[140px]">{category}</Badge>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
             <Heart className="h-3 w-3" />
             {total_favorites}
           </div>
@@ -447,21 +447,21 @@ function FavoriteCard({
   return (
     <Link
       href={`/projects/${slug}`}
-      className="cursor-pointer"
+      className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/50 transition-colors relative">
+      <Card className="hover:bg-accent/50 transition-colors relative h-[180px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <CardHeader className="overflow-hidden">
-          <CardTitle className="text-base line-clamp-1">{title}</CardTitle>
+        <CardHeader className="flex-1 min-h-0 overflow-hidden">
+          <CardTitle className="text-base line-clamp-2 mb-2">{title}</CardTitle>
           <p className="text-xs text-muted-foreground truncate">by {owner_username}</p>
         </CardHeader>
-        <CardFooter>
-          <Badge variant="outline">{category}</Badge>
+        <CardFooter className="flex-shrink-0">
+          <Badge variant="outline" className="truncate max-w-[140px]">{category}</Badge>
         </CardFooter>
       </Card>
     </Link>
@@ -808,13 +808,29 @@ function DashboardMain({
             bannerTitle="Dashboard - Your Personal Analytics Hub"
             description={
               stats.totalProjects > 0
-                ? `Welcome back! You've shared ${
-                    stats.totalProjects
-                  } amazing project${
+                ? `Welcome back! You've shared ${stats.totalProjects} amazing project${
                     stats.totalProjects > 1 ? "s" : ""
-                  } with the community. ${
-                    stats.totalFavorites
-                  } developers have shown their appreciation with favorites!`
+                  } with the community, collectively receiving ${stats.totalFavorites} favorite${
+                    stats.totalFavorites !== 1 ? "s" : ""
+                  } from appreciative developers. You've explored ${stats.myFavorites.length} project${
+                    stats.myFavorites.length !== 1 ? "s" : ""
+                  } and given ${stats.totalFavoritesGiven} favorite${
+                    stats.totalFavoritesGiven !== 1 ? "s" : ""
+                  } to support other creators. ${
+                    stats.projectStats.activeThisWeek > 0
+                      ? `${stats.projectStats.activeThisWeek} of your project${
+                          stats.projectStats.activeThisWeek > 1 ? "s were" : " was"
+                        } active this week. `
+                      : ""
+                  }${
+                    stats.allTags.length > 0
+                      ? `You've organized your work with ${stats.allTags.length} tag${
+                          stats.allTags.length > 1 ? "s" : ""
+                        }${stats.myTagSubmissions.length > 0 ? ` and have ${stats.myTagSubmissions.length} tag submission${
+                          stats.myTagSubmissions.length > 1 ? "s" : ""
+                        } pending review` : ""}.`
+                      : ""
+                  } Keep up the great work!`
                 : "Welcome back! Your creative journey starts here. Share your first project and inspire the community!"
             }
             isUserBanner={false}
