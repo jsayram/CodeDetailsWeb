@@ -1,5 +1,6 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import { executeQuery } from "./server";
 import { projects } from "./schema/projects";
 import { profiles } from "./schema/profiles";
@@ -174,6 +175,20 @@ export async function getUserById(userId: string) {
     return user;
   });
 }
+
+/**
+ * Cached version of getUserById
+ * Cache: 5 minutes - User profiles change infrequently
+ * Tags: ['user-profile'] - Invalidate on user profile updates
+ */
+export const getCachedUserById = unstable_cache(
+  async (userId: string) => getUserById(userId),
+  ['user-by-id'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['user-profile']
+  }
+);
 
 /**
  * Server-side function to soft delete a project

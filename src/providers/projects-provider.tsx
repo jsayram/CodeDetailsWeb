@@ -79,6 +79,9 @@ interface ProjectsProviderProps {
   initialFilters?: Partial<ProjectFilters>;
 }
 
+// Persistent cache outside component - survives remounts
+const globalPageCache: PageCache = {};
+
 export function ProjectsProvider({
   children,
   token,
@@ -105,8 +108,6 @@ export function ProjectsProvider({
     totalPages: 1,
     currentPage: 1,
   });
-
-  const [pageCache, setPageCache] = useState<PageCache>({});
 
   const lastFetchRef = useRef<{ timestamp: number; inProgress: boolean }>({
     timestamp: 0,
@@ -146,10 +147,11 @@ export function ProjectsProvider({
       tags: filters.tags,
     });
 
-    const cached = pageCache[cacheKey];
+    const cached = globalPageCache[cacheKey];
     if (cached && now - cached.timestamp < 300000) {
       console.log("🎯 Using cached page data for page", filters.page);
       setProjects(cached.data);
+      setLoading(false); // Ensure loading is false when using cache
       setPagination((prev) => ({
         ...prev,
         currentPage: filters.page,
@@ -203,13 +205,10 @@ export function ProjectsProvider({
         });
       }
 
-      setPageCache((prev) => ({
-        ...prev,
-        [cacheKey]: {
-          data: result.data || [],
-          timestamp: now,
-        },
-      }));
+      globalPageCache[cacheKey] = {
+        data: result.data || [],
+        timestamp: now,
+      };
 
       setProjects(result.data || []);
       lastFetchRef.current.timestamp = now;
@@ -236,7 +235,11 @@ export function ProjectsProvider({
 
       // Reset cache if category changes
       if ('category' in newFilters) {
-        setPageCache({});
+        Object.keys(globalPageCache).forEach(key => {
+          if (JSON.parse(key).category !== newFilters.category) {
+            delete globalPageCache[key];
+          }
+        });
         lastFetchRef.current.timestamp = 0;
       }
 
@@ -260,7 +263,7 @@ export function ProjectsProvider({
     if (isAuthenticated || filters.username) {
       fetchProjects();
     }
-  }, [isAuthenticated, authReady, isLoading, fetchProjects, filters.username]);
+  }, [isAuthenticated, authReady, isLoading, fetchProjects, filters]);
 
   const handleProjectAdded = async (newProject: Project) => {
     console.log("➕ Adding new project:", newProject.title);
@@ -275,7 +278,7 @@ export function ProjectsProvider({
     setProjects((prev) => prev.filter((p) => p.id !== projectId));
     
     // Clear the page cache to force a fresh fetch
-    setPageCache({});
+    Object.keys(globalPageCache).forEach(key => delete globalPageCache[key]);
     
     // Reset fetch timestamp and refresh projects
     lastFetchRef.current.timestamp = 0;
@@ -302,7 +305,7 @@ export function ProjectsProvider({
       setProjects((prev) => prev.filter((p) => p.id !== updatedProject.id));
       
       // Clear the page cache to force fresh data on next fetch
-      setPageCache({});
+      Object.keys(globalPageCache).forEach(key => delete globalPageCache[key]);
       lastFetchRef.current.timestamp = 0;
       lastFetchRef.current.inProgress = false;
       

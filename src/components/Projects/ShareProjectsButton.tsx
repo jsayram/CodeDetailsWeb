@@ -1,39 +1,58 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { getUserById } from "@/db/actions"; // Adjust the import path as necessary
+import { getCachedUserById } from "@/db/actions";
 import Image from "next/image";
 
 interface ShareProjectButtonProps {
   userId: string;
 }
 
+// Client-side cache to prevent redundant fetches during same session
+const userCache = new Map<string, string | null>();
+
 export const ShareProjectsButton = ({ userId }: ShareProjectButtonProps) => {
-  const [username, setUsername] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(() => {
+    // Check client cache on mount
+    return userCache.get(userId) ?? null;
+  });
+  const [loading, setLoading] = useState(!userCache.has(userId));
 
-  useEffect(() => {
-    const fetchUsername = async () => {
-      try {
-        const user = await getUserById(userId); // Use your existing action
-        if (!user) {
-          console.warn("User not found in database, may need sync from Clerk");
-          setUsername(null);
-          return;
-        }
-        setUsername(user.username);
-      } catch (error) {
-        console.error("Error fetching username:", error);
+  // Memoize fetch function to prevent recreation on every render
+  const fetchUsername = useCallback(async () => {
+    // Skip if already cached
+    if (userCache.has(userId)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const user = await getCachedUserById(userId);
+      if (!user) {
+        console.warn("User not found in database, may need sync from Clerk");
+        userCache.set(userId, null);
         setUsername(null);
+        return;
       }
-    };
-
-    if (userId) {
-      fetchUsername();
+      userCache.set(userId, user.username);
+      setUsername(user.username);
+    } catch (error) {
+      console.error("Error fetching username:", error);
+      userCache.set(userId, null);
+      setUsername(null);
+    } finally {
+      setLoading(false);
     }
   }, [userId]);
+
+  useEffect(() => {
+    if (userId && !userCache.has(userId)) {
+      fetchUsername();
+    }
+  }, [userId, fetchUsername]);
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -88,10 +107,10 @@ export const ShareProjectsButton = ({ userId }: ShareProjectButtonProps) => {
       variant="default"
       size="sm"
       className="inline-flex items-center gap-2 hover:cursor-pointer"
-      disabled={!username}
+      disabled={loading || !username}
     >
       <ExternalLink className="h-4 w-4" />
-      {username ? "Copy Share Projects Link" : "Loading..."}
+      {loading ? "Loading..." : username ? "Copy Share Projects Link" : "Not Available"}
     </Button>
   );
 };

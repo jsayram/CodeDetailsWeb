@@ -62,7 +62,7 @@ interface ProjectListProps {
   allowAnonymousView?: boolean;
 }
 
-export function ProjectList({
+export const ProjectList = React.memo(function ProjectList({
   currentPage: externalPage = CURRENT_PAGE,
   filter,
   showSortingFilters = true,
@@ -647,4 +647,4 @@ export function ProjectList({
       />
     </div>
   );
-}
+});
