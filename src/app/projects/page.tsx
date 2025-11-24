@@ -92,7 +92,7 @@ export default function DashBoard() {
               <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
                 {/* Centered content container */}
                 <div className="flex justify-center w-full mb-20">
-                  <div className="w-full max-w-7xl px-4">
+                  <div className="w-full px-4 2xl:px-8 3xl:px-12">
                     {/* Main content */}
                     <div className="flex flex-col gap-4">
                       <SignedIn>

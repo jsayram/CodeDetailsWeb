@@ -26,7 +26,7 @@ export default function NotFound() {
 
       <div className="relative z-10 text-center">
         {/* 404 Text */}
-        <h1 className="text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary mb-20">
+        <h1 className="text-8xl 3xl:text-9xl 4xl:text-[12rem] font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary mb-20">
           404
         </h1>
 
@@ -59,16 +59,16 @@ export default function NotFound() {
         </motion.div>
 
         {/* Error message */}
-        <h2 className="text-2xl font-semibold text-foreground mb-4">
+        <h2 className="text-2xl 3xl:text-3xl 4xl:text-4xl font-semibold text-foreground mb-4">
           Page Not Found
         </h2>
-        <p className="text-muted-foreground mb-8 max-w-lg mx-auto text-2xl">
+        <p className="text-muted-foreground mb-8 max-w-lg mx-auto text-2xl 3xl:text-3xl 4xl:text-4xl">
         You&apos;ve reached a non-existent page.<br/> While the URL failed you, your life choices simply... led you here.<br/>Coincidence? Perhaps...<br/> Irony? Definitely!<br/> <span className="text-6xl">🤭</span>
         </p>
 
         {/* Home button */}
         <SignedIn>
-          <Link href="/">
+          <Link href="/" className="cursor-pointer">
             <Button
               className="bg-primary text-primary-foreground hover:bg-primary/90
                      transition-all duration-300 hover:scale-105"

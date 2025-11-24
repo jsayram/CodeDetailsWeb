@@ -8,6 +8,19 @@
 @import "./category-styles.css";
 @import "./table.css";
 
+/* Increase base font size for 4K screens */
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 20px;
+  }
+}
+
 :root {
   --radius: 0.625rem; /* Base border radius value for UI consistency */
   

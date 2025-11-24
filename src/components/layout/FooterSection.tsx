@@ -17,7 +17,7 @@ export const FooterSection = () => {
       <div className="flex flex-row ">
       <motion.button
         onClick={scrollToTop}
-        className="hover:bg-primary/10 p-2 rounded-full transition-colors flex justify-center items-center absolute left-1/2 -translate-x-1/2 top-10 z-50 shadow-md hover:shadow-lg hover:scale-110"
+        className="hover:bg-primary/10 p-2 rounded-full transition-colors flex justify-center items-center absolute left-1/2 -translate-x-1/2 top-10 z-50 shadow-md hover:shadow-lg hover:scale-110 cursor-pointer"
         whileHover={{ y: -5 }}
         aria-label="Back to top"
       >

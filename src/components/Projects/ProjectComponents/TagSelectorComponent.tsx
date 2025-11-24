@@ -197,27 +197,37 @@ export function TagSelector({
   return (
     <div className={className}>
       <div className="space-y-4">
-        <div className="flex gap-2 items-center">
-          <TagInput
-            tags={selectedTags}
-            onAddTag={handleAddTag}
-            onRemoveTag={handleRemoveTag}
-            searchTags={handleSearchTags}
-            placeholder={
-              isOwner
-                ? "Search for tags..."
-                : "Only project owners can edit tags"
-            }
-            disabled={isTagCacheLoading || !isOwner}
-            className="flex-1"
-          />
-          {projectId !== "new" && isOwner && (
-            <TagSubmissionModal
-              projectId={projectId}
-              onSubmit={loadPendingSubmissions}
-              isOwner={isOwner}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">
+              Project Tags ({selectedTags.length}/{MAX_PROJECT_TAGS})
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Optimal: 6-10 tags for best discoverability
+            </p>
+          </div>
+          <div className="flex gap-2 items-center">
+            <TagInput
+              tags={selectedTags}
+              onAddTag={handleAddTag}
+              onRemoveTag={handleRemoveTag}
+              searchTags={handleSearchTags}
+              placeholder={
+                isOwner
+                  ? "Search for tags..."
+                  : "Only project owners can edit tags"
+              }
+              disabled={isTagCacheLoading || !isOwner}
+              className="flex-1"
             />
-          )}
+            {projectId !== "new" && isOwner && (
+              <TagSubmissionModal
+                projectId={projectId}
+                onSubmit={loadPendingSubmissions}
+                isOwner={isOwner}
+              />
+            )}
+          </div>
         </div>
 
         {pendingTags.length > 0 && (

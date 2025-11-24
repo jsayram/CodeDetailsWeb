@@ -34,6 +34,7 @@ import { useUser, useAuth, SignedOut } from "@clerk/nextjs";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { createProject, updateProject } from "@/app/actions/projects";
+import { approveRejectedTagSubmission } from "@/app/actions/tag-submissions";
 import { TagSelector } from "./TagSelectorComponent";
 import { TagInfo } from "@/db/operations/tag-operations";
 import { Input } from "@/components/ui/input";
@@ -192,6 +193,34 @@ export function ProjectContent({
     }
   }, [project, isEditMode]);
 
+  // Handle tag query parameter - auto-populate tag from URL
+  useEffect(() => {
+    if (!isEditMode) return;
+    
+    const tagFromUrl = searchParams?.get("tag");
+    if (!tagFromUrl) return;
+
+    // Check if tag already exists in selected tags
+    const tagExists = selectedTags.some(
+      (tag) => tag.name.toLowerCase() === tagFromUrl.toLowerCase()
+    );
+
+    if (!tagExists) {
+      // Add the tag from URL to selected tags
+      const newTag: TagInfo = {
+        id: `tag-${tagFromUrl}`,
+        name: tagFromUrl,
+      };
+      
+      setSelectedTags((prev) => [...prev, newTag]);
+      
+      // Show a toast to inform the user
+      toast.info(`Tag "${tagFromUrl}" has been added to the tag field`, {
+        description: "You can save the project to save the tag to your project, or cancel the edit to discard.",
+      });
+    }
+  }, [isEditMode, searchParams, selectedTags]);
+
   const generateSlug = useCallback(() => {
     if (formData.title) {
       const newSlug = slugify(formData.title);
@@ -210,6 +239,8 @@ export function ProjectContent({
       url.searchParams.set("edit", "true");
     } else {
       url.searchParams.delete("edit");
+      // Remove tag parameter when exiting edit mode
+      url.searchParams.delete("tag");
     }
 
     router.replace(url.pathname + url.search, {
@@ -306,12 +337,36 @@ export function ProjectContent({
         if (result.success) {
           toast.success("Project updated successfully!");
 
+          // Check if there was a tag from URL that was added
+          const tagFromUrl = searchParams?.get("tag");
+          if (tagFromUrl && user?.primaryEmailAddress?.emailAddress) {
+            // Check if the tag from URL is in the saved tags
+            const tagWasAdded = projectData.tags.some(
+              (tag) => tag.toLowerCase() === tagFromUrl.toLowerCase()
+            );
+            
+            if (tagWasAdded) {
+              // Approve the rejected tag submission
+              try {
+                await approveRejectedTagSubmission(
+                  project.id,
+                  tagFromUrl,
+                  user.primaryEmailAddress.emailAddress
+                );
+              } catch (error) {
+                console.error("Failed to approve rejected tag submission:", error);
+                // Don't throw - project was saved successfully
+              }
+            }
+          }
+
           // Reset form initialization state
           formInitializedRef.current = false;
 
           // Exit edit mode
           const url = new URL(window.location.href);
           url.searchParams.delete("edit");
+          url.searchParams.delete("tag");
 
           // If slug changed, navigate to new URL
           if (result.data && result.data.slug !== project.slug) {
@@ -595,10 +650,11 @@ export function ProjectContent({
                     variant="outline"
                     onClick={handleCancel}
                     disabled={isUpdating}
+                    className="cursor-pointer"
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleSaveChanges} disabled={isUpdating}>
+                  <Button onClick={handleSaveChanges} disabled={isUpdating} className="cursor-pointer">
                     {isUpdating ? (
                       <div className="flex items-center gap-2">
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>

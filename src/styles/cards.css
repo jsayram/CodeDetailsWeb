@@ -1,7 +1,11 @@
 /* Project Cards and Grid Layout */
 
 /* Fixed dimensions for project cards */
-
+.project-card {
+  min-height: 620px;
+  max-height: 620px;
+  height: 620px;
+}
 
 /* Card actions container */
 .project-card .card-actions {
@@ -238,13 +242,7 @@
 
 /* Card description */
 .card-description {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 0.5rem 0;
-  min-height: 5rem; /* Increased from 2.5rem */
+  min-height: 7rem; 
 }
 
 /* Project metadata section */
@@ -331,23 +329,35 @@
 .project-grid {
   display: grid;
   width: 100%;
-  gap: 2rem;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   justify-items: stretch;
   align-items: stretch;
   justify-content: center;
 }
 
+/* Small screens only - single column */
+@media (max-width: 639px) {
+  .project-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
 /* Mobile and Responsive breakpoints */
 @media (max-width: 767px) {
   .project-card {
-    min-height: 380px;
-    max-height: 400px; /* Allow cards to expand on mobile */
+    min-height: 620px;
+    max-height: 620px; /* Match desktop height */
+    height: 620px;
   }
   
   .card-content {
     padding: 1rem;
     padding-top: 4rem; /* More space for action buttons on mobile */
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 
   .card-footer {
@@ -395,29 +405,16 @@
 @media (min-width: 800px) and (max-width: 1279px) {
   .project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2rem;
+    gap: 1rem;
   }
   
   .project-card {
-    min-height: 400px;
-    max-height: 600px;
+    min-height: 620px;
+    max-height: 620px;
+    height: 620px;
     width: 100%;
     min-width: 0;
     max-width: 100%;
-  }
-  
-  /* If screen width is in the range where sidebar would cause overflow */
-  /* @media (max-width: 1100px) {
-    .project-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  } */
-}
-/* Account for sidebar on medium-large screens */
-@media (min-width: 820px) and (max-width: 1100px) {
-  /* When sidebar is likely open and could cause overflow */
-  .has-sidebar .project-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }
 
@@ -426,11 +423,61 @@
   .project-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-  
-  /* Handle sidebar open case on smaller desktop screens */
-  @media (max-width: 1440px) {
-    .has-sidebar .project-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+}
+
+/* Large Desktop - Full HD */
+@media (min-width: 1920px) {
+  .project-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 2K/QHD Screens */
+@media (min-width: 2560px) {
+  .project-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* 4K/Ultrawide Screens */
+@media (min-width: 3440px) {
+  .project-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+/* Responsive adjustments accounting for sidebar width */
+/* When sidebar is open on smaller desktop screens, reduce to 2 columns */
+@media (min-width: 1280px) and (max-width: 1600px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Sidebar open on large screens */
+@media (min-width: 1920px) and (max-width: 2559px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Sidebar open on 2K screens */
+@media (min-width: 2560px) and (max-width: 3439px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Sidebar open on 4K screens */
+@media (min-width: 3440px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+/* When sidebar is open on tablet, keep 2 columns (sidebar accounts for width) */
+@media (min-width: 640px) and (max-width: 1279px) {
+  body:has([data-state="expanded"]) .project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

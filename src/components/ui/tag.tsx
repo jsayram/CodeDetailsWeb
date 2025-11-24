@@ -55,7 +55,7 @@ export function Tag({
         <button
           type="button"
           onClick={handleRemoveClick}
-          className="ml-1 rounded-full hover:bg-gray-300/80 dark:hover:bg-gray-600/80 p-1 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500"
+          className="ml-1 rounded-full hover:bg-gray-300/80 dark:hover:bg-gray-600/80 p-1 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 cursor-pointer"
           aria-label="Remove tag"
         >
           <XIcon className="h-3 w-3" />

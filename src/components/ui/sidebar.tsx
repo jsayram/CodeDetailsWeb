@@ -259,22 +259,51 @@ function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, open, isMobile } = useSidebar();
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
     <Button
       data-sidebar="trigger"
       data-slot="sidebar-trigger"
-      variant="ghost"
+      variant={isScrolled && !isMobile ? "outline" : "ghost"}
       size="icon"
-      className={cn("size-7", className)}
+      className={cn(
+        "cursor-pointer transition-all duration-300 ease-in-out",
+        // When scrolled: transform into floating tab (shared styles)
+        isScrolled && [
+          "!fixed z-50 h-16 w-8 shadow-lg",
+          "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+          "border border-border rounded-r-xl rounded-l-none border-l-0"
+        ],
+        // Desktop scrolled: positioned at sidebar edge
+        isScrolled && !isMobile && [
+          "hover:bg-accent hover:text-accent-foreground",
+          "top-1/2 -translate-y-1/2",
+          open ? "left-[16rem]" : "left-0"
+        ],
+        // Mobile scrolled: positioned below header
+        isScrolled && isMobile && "top-20 left-0",
+        // Default state in header
+        !isScrolled && "size-7",
+        className
+      )}
       onClick={(event) => {
         onClick?.(event);
         toggleSidebar();
       }}
       {...props}
     >
-      <PanelLeftIcon />
+      <PanelLeftIcon className={isScrolled ? "h-5 w-5" : undefined} />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );
@@ -292,7 +321,7 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
       onClick={toggleSidebar}
       title="Toggle Sidebar"
       className={cn(
-        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex",
+        "hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex cursor-pointer",
         "in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full",

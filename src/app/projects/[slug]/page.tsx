@@ -43,7 +43,7 @@ export default async function ProjectPage({
 
   // Get auth data
   const { userId } = await auth();
-  // For server components, we'll use the JWT directly from cookies //NEED TO REVISIT THIS INCASE THERE AUTH IS NOT SET
+  // For server components, we'll use the JWT directly from cookies //TODO:NEED TO REVISIT THIS INCASE THERE AUTH IS NOT SET
   const cookieStore = await cookies();
   const token = cookieStore.get("__supabase_auth_token")?.value || null;
 

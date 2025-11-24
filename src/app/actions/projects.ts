@@ -12,7 +12,7 @@ import {
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
 import { projects } from "@/db/schema/projects";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache, revalidateTag } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
 import { favorites } from "@/db/schema/favorites";
@@ -44,6 +44,15 @@ export async function getProjectById(projectId: string) {
   });
 }
 
+export const getCachedProjectById = unstable_cache(
+  async (projectId: string) => getProjectById(projectId),
+  ['project-by-id'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects', 'project-detail']
+  }
+);
+
 // Get a single project by slug
 export async function getProjectBySlugServer(slug: string) {
   return executeQuery(async (db) => {
@@ -56,6 +65,15 @@ export async function getProjectBySlugServer(slug: string) {
     return results[0] || null;
   });
 }
+
+export const getCachedProjectBySlug = unstable_cache(
+  async (slug: string) => getProjectBySlugServer(slug),
+  ['project-by-slug'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects', 'project-detail']
+  }
+);
 
 // Server action to create a new project
 export async function createProject(project: InsertProject, userId: string) {
@@ -87,6 +105,9 @@ export async function createProject(project: InsertProject, userId: string) {
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
+    revalidateTag('projects');
+    revalidateTag('user-projects');
+    revalidateTag('user-own-projects');
     return {
       success: true,
       data: mapDrizzleProjectToProject(newProject),
@@ -123,6 +144,15 @@ export async function getProject(slug: string) {
   }
 }
 
+export const getCachedProject = unstable_cache(
+  async (slug: string) => getProject(slug),
+  ['project'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects', 'project-detail']
+  }
+);
+
 // Server action to delete a project
 export async function removeProject(id: string, userId: string) {
   try {
@@ -145,12 +175,16 @@ export async function removeProject(id: string, userId: string) {
 
     const deletedProject = await deleteProjectServer(id);
     revalidatePath(pathToRevalidate);
+    revalidateTag('projects');
+    revalidateTag('user-projects');
+    revalidateTag('user-own-projects');
+    revalidateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(deletedProject),
     };
   } catch (error) {
-    console.error("Failed to delete project:", error);
+    console.error("Failed to remove project:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -212,6 +246,10 @@ export async function updateProject(
     const updatedProject = await updateProjectServer(id, trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
+    revalidateTag('projects');
+    revalidateTag('user-projects');
+    revalidateTag('user-own-projects');
+    revalidateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(updatedProject),
@@ -255,6 +293,15 @@ export async function getUserProjects(userId: string) {
   }
 }
 
+export const getCachedUserProjects = unstable_cache(
+  async (userId: string) => getUserProjects(userId),
+  ['user-projects'],
+  {
+    revalidate: 180, // 3 minutes
+    tags: ['projects', 'user-projects']
+  }
+);
+
 // Server action to get all projects (previously free tier only)
 export async function getAllProjects() {
   try {
@@ -268,6 +315,15 @@ export async function getAllProjects() {
     return [];
   }
 }
+
+export const getCachedAllProjects = unstable_cache(
+  async () => getAllProjects(),
+  ['all-projects'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects']
+  }
+);
 
 // Server action to get projects created by the current user
 export async function getUserOwnProjects(userId: string) {
@@ -298,6 +354,15 @@ export async function getUserOwnProjects(userId: string) {
     };
   }
 }
+
+export const getCachedUserOwnProjects = unstable_cache(
+  async (userId: string) => getUserOwnProjects(userId),
+  ['user-own-projects'],
+  {
+    revalidate: 180, // 3 minutes
+    tags: ['projects', 'user-own-projects']
+  }
+);
 
 // Server action to permanently delete a project
 export async function permanentlyDeleteProject(id: string, userId: string) {
@@ -341,6 +406,10 @@ export async function permanentlyDeleteProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
+    revalidateTag('projects');
+    revalidateTag('user-projects');
+    revalidateTag('user-own-projects');
+    revalidateTag('project-detail');
     return {
       success: true,
       data: null,
@@ -394,6 +463,10 @@ export async function restoreProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
+    revalidateTag('projects');
+    revalidateTag('user-projects');
+    revalidateTag('user-own-projects');
+    revalidateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(restoredProject),
@@ -466,6 +539,7 @@ export async function addProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
+    revalidateTag('project-detail');
     return { success: true };
   } catch (error) {
     console.error("Failed to add favorite:", error);
@@ -523,6 +597,7 @@ export async function removeProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
+    revalidateTag('project-detail');
     return { success: true };
   } catch (error) {
     console.error("Failed to remove favorite:", error);

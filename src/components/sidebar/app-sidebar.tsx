@@ -49,21 +49,6 @@ const data = {
       url: "/dashboard",
       icon: PieChart,
       isActive: true,
-      items: [
-        {
-          title: "Project API Test Page",
-          url: API_ROUTES.PROJECTS.TEST_PAGE,
-          isNew: true,
-        },
-        {
-          title: "Dark Mode Test Page",
-          url: API_ROUTES.THEME.TEST_PAGE,
-        },
-        {
-          title: "Toast Test Page",
-          url: API_ROUTES.TOAST.TEST_PAGE,
-        },
-      ],
     },
     {
       title: "Search",
@@ -237,54 +222,54 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="sm" asChild>
-              <div className="flex items-center justify-center w-full h-15 mt-1 rounded-lg">
-                <Logo
-                  size="md"
-                  showTagline={false}
-                  taglineSize="xs"
-                  className="flex items-center justify-center mt-4 mb-4"
-                />
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        {/* COMMENTED OUT: NavProjects - Sample projects not linked to real pages */}
-        {/* <NavProjects projects={data.projects} /> */}
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
-      </SidebarContent>
-      <SidebarFooter>
-        <SignedIn>
-          {/* <NavUser user={userData} /> */}
-          <SignOutButton>
-            <Button
-              size="sm"
-              className="hover:scale-105 transition-transform cursor-pointer"
-            >
-              Sign out
-            </Button>
-          </SignOutButton>
-        </SignedIn>
-        <SignedOut>
+        <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild>
-                <SignInButtonComponent
-                  text="Sign In"
-                  useTypingEffect={false}
-                  variant="plain"
-                />
+              <SidebarMenuButton size="sm" asChild>
+                <div className="flex items-center justify-center w-full h-15 mt-1 rounded-lg">
+                  <Logo
+                    size="md"
+                    showTagline={false}
+                    taglineSize="xs"
+                    className="flex items-center justify-center mt-4 mb-4"
+                  />
+                </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
-        </SignedOut>
-      </SidebarFooter>
-    </Sidebar>
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={data.navMain} />
+          {/* COMMENTED OUT: NavProjects - Sample projects not linked to real pages */}
+          {/* <NavProjects projects={data.projects} /> */}
+          <NavSecondary items={data.navSecondary} className="mt-auto" />
+        </SidebarContent>
+        <SidebarFooter>
+          <SignedIn>
+            {/* <NavUser user={userData} /> */}
+            <SignOutButton>
+              <Button
+                size="sm"
+                className="hover:scale-105 transition-transform cursor-pointer"
+              >
+                Sign out
+              </Button>
+            </SignOutButton>
+          </SignedIn>
+          <SignedOut>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg" asChild>
+                  <SignInButtonComponent
+                    text="Sign In"
+                    useTypingEffect={false}
+                    variant="plain"
+                  />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SignedOut>
+        </SidebarFooter>
+      </Sidebar>
   );
 }

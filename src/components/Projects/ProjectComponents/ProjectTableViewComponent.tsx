@@ -332,6 +332,7 @@ export function ProjectTableView({
             variant="outline"
             size="sm"
             onClick={() => setShowColumnSettings((s) => !s)}
+            className="cursor-pointer"
           >
             <Settings2 className="h-4 w-4 mr-2" />
             Columns
@@ -350,7 +351,7 @@ export function ProjectTableView({
                       checked={!hiddenColumns.includes(column.key)}
                       onCheckedChange={() => toggleColumnVisibility(column.key)}
                     />
-                    <label htmlFor={`col-${column.key}`} className="text-sm">
+                    <label htmlFor={`col-${column.key}`} className="text-sm cursor-pointer">
                       {column.label}
                     </label>
                   </div>

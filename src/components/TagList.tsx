@@ -87,36 +87,38 @@ export function TagList() {
 
       {/* Active Tags Section */}
       <section className="transition-all">
-        <h2 className="text-lg font-semibold mb-4 bg-gradient-to-r from-primary/80 to-primary text-transparent bg-clip-text">
+        <h2 className="text-sm font-semibold mb-3 bg-gradient-to-r from-primary/80 to-primary text-transparent bg-clip-text">
           Active Tags ({activeTags.length})
         </h2>
         <div
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+          className="grid grid-cols-2 gap-2"
           role="list"
         >
           {activeTags.map((tag) => (
             <div
               key={tag.id}
               className="group relative bg-card hover:bg-primary/5 hover:border-primary/20 border border-border
-                text-card-foreground rounded-lg p-4 shadow-sm transition-all duration-200 
-                hover:shadow-md cursor-pointer transform hover:-translate-y-0.5"
+                text-card-foreground rounded-md p-2.5 shadow-sm transition-all duration-200 
+                hover:shadow-md cursor-pointer transform hover:-translate-y-0.5 min-w-0"
               role="listitem"
               onClick={() => handleTagClick(tag.name)}
             >
-              <h3 className="text-sm font-medium group-hover:text-primary transition-colors">
-                {clickedTag === tag.name ? (
-                  <span className="flex items-center gap-2">
-                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    #{tag.name}
-                  </span>
-                ) : (
-                  <>#{tag.name}</>
-                )}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
-                <span className="inline-block w-2 h-2 rounded-full bg-primary/60"></span>
-                {tag.count} project{tag.count === 1 ? "" : "s"}
-              </p>
+              <div className="flex items-center justify-between min-w-0">
+                <h3 className="text-sm font-medium group-hover:text-primary transition-colors truncate">
+                  {clickedTag === tag.name ? (
+                    <span className="flex items-center gap-2">
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+                      <span className="truncate">#{tag.name}</span>
+                    </span>
+                  ) : (
+                    <span className="truncate">#{tag.name}</span>
+                  )}
+                </h3>
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-shrink-0 ml-2">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-primary/60"></span>
+                  {tag.count}
+                </p>
+              </div>
             </div>
           ))}
         </div>
@@ -125,28 +127,28 @@ export function TagList() {
       {/* Inactive Tags Section */}
       {inactiveTags.length > 0 && !searchQuery && (
         <section className="transition-all">
-          <h2 className="text-lg font-semibold mb-4 text-muted-foreground">
+          <h2 className="text-sm font-semibold mb-3 text-muted-foreground">
             Tags Without Projects ({inactiveTags.length})
           </h2>
-          <div className="bg-muted/30 rounded-lg p-4 space-y-4">
-            <p className="text-sm text-muted-foreground">
+          <div className="bg-muted/30 rounded-lg p-3 space-y-3">
+            <p className="text-xs text-muted-foreground">
               Be the first to create projects for these tags! 🚀
             </p>
             <div
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+              className="grid grid-cols-2 gap-2"
               role="list"
             >
               {inactiveTags.map((tag) => (
                 <div
                   key={tag.id}
                   className="bg-background/50 text-muted-foreground/60
-                    rounded-lg p-3 shadow-sm select-none
+                    rounded-md p-2 shadow-sm select-none
                     border border-dashed border-muted-foreground/20
-                    hover:border-primary/20 hover:text-muted-foreground/80 transition-all duration-200"
+                    hover:border-primary/20 hover:text-muted-foreground/80 transition-all duration-200 min-w-0"
                   role="listitem"
                   aria-disabled="true"
                 >
-                  <h3 className="text-sm font-medium">#{tag.name}</h3>
+                  <h3 className="text-sm font-medium truncate">#{tag.name}</h3>
                 </div>
               ))}
             </div>

@@ -47,7 +47,7 @@ function CategoriesContent() {
   if (loading) {
     return (
       <div className="flex justify-center w-full mb-20">
-        <div className="w-full max-w-7xl px-4">
+        <div className="w-full px-4 2xl:px-8 3xl:px-12">
           <div className="flex flex-col gap-4 mb-6 py-3">
             <PageBanner
               icon={<Folder className="h-8 w-8 text-primary" />}
@@ -94,7 +94,7 @@ function CategoriesContent() {
 
   return (
     <div className="flex justify-center w-full mb-20">
-      <div className="w-full max-w-7xl px-4">
+      <div className="w-full px-4 2xl:px-8 3xl:px-12">
         <div className="flex flex-col gap-4 mb-6 py-3">
           <PageBanner
             icon={<Folder className="h-8 w-8 text-primary" />}
@@ -117,7 +117,7 @@ function CategoriesContent() {
               return (
                 <Card
                   key={key}
-                  className={`category-card ${!hasProjects ? "disabled" : ""}`}
+                  className={`category-card cursor-pointer ${!hasProjects ? "disabled" : ""}`}
                   onClick={() => handleCategoryClick(key, hasProjects)}
                 >
                   <CardHeader className="flex flex-row justify-between items-center">

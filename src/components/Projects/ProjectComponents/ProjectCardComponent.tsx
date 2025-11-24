@@ -13,6 +13,7 @@ import {
   User,
   Undo2,
   Share2,
+  ImageIcon,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -64,6 +65,7 @@ export const ProjectCard = React.memo(
       useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
+    const [showFullDescription, setShowFullDescription] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const [loadingTag, setLoadingTag] = useState<string | null>(null);
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
@@ -85,7 +87,7 @@ export const ProjectCard = React.memo(
 
     // This is the number of tags that will be shown on the card
     // If there are more than this number of tags, a "+N" button will be displayed
-    let tagShowLimitOnCard = 5;
+    let tagShowLimitOnCard = 3;
     if (isMobile) {
       tagShowLimitOnCard = 2;
     }
@@ -242,6 +244,19 @@ export const ProjectCard = React.memo(
         "??";
       return getInitials(nameForInitials);
     }, [project.profile]);
+
+    // Get consistent random emoji for project placeholder
+    const projectEmoji = useMemo(() => {
+      const emojis = [
+        "🎨", "🚀", "💡", "⚡", "🔥", "✨", "🌟", "💻", 
+        "🎯", "🎪", "🎭", "🎬", "🎮", "🎲", "🎰", "🎸",
+        "🎹", "🎺", "🎻", "🎼", "🔮", "💎", "🏆", "🚁",
+        "🛸", "🌈", "🦄", "🐉", "🦋", "🌺", "🌸", "🍄"
+      ];
+      // Use project ID to get consistent emoji
+      const hash = project.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return emojis[hash % emojis.length];
+    }, [project.id]);
 
     const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.preventDefault();
@@ -422,7 +437,7 @@ export const ProjectCard = React.memo(
               </div>
               <ExternalLink
                 size={30}
-                className="text-muted-foreground ml-2 hover:cursor-pointer"
+                className="text-muted-foreground ml-2 hover:cursor-pointer cursor-pointer"
                 onClick={() => {
                   window.open(`/projects/${project.slug}`, "_blank");
                 }}
@@ -438,7 +453,7 @@ export const ProjectCard = React.memo(
     return (
       <>
         <Card
-          className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
+          className={`group relative overflow-hidden w-full flex flex-col transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
             project.category
           }
             ${project.deleted_at ? "deleted" : ""} ${
@@ -451,7 +466,7 @@ export const ProjectCard = React.memo(
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
-          <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
+          <div className="flex justify-between items-start px-4 -mt-1 absolute w-full z-[5]">
             {/* Category Badge */}
             <div className={` category-${project.category} border-0`}>
               <Badge
@@ -573,33 +588,45 @@ export const ProjectCard = React.memo(
             </div>
           </div>
 
-          {/* Content area */}
-          <div className="card-content mx-2">
-            {/* Project title and description */}
-            <h3
-              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 min-h-[3rem] ${
-                project.deleted_at ? "text-foreground dark:text-foreground" : ""
-              }`}
-            >
-              {project.title}
-            </h3>
+          {/* Content area with fixed heights */}
+          <div className="card-content mx-2 flex flex-col flex-1 min-h-0">
+            {/* Image placeholder section */}
+            <div className="h-[120px] mb-3 rounded-lg bg-muted/30 border border-muted flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="text-7xl">
+                  {projectEmoji}
+                </div>
+              </div>
+            </div>
 
-            <div className="min-h-[4rem]">
-              <p
-                className={`card-description text-xs sm:text-sm ${
+            {/* Project title - fixed height */}
+            <div className="h-[60px] flex items-start mb-1 flex-shrink-0">
+              <h3
+                className={`text-lg sm:text-xl font-semibold line-clamp-2 ${
+                  project.deleted_at ? "text-foreground dark:text-foreground" : ""
+                }`}
+              >
+                {project.title}
+              </h3>
+            </div>
+
+            {/* Description - fills remaining space and fully scrollable */}
+            <div className="flex-1 min-h-0 mb-2 rounded-md p-3">
+              <div
+                className={`card-description text-xs sm:text-sm leading-relaxed h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 ${
                   project.deleted_at
                     ? "text-foreground dark:text-foreground/90"
                     : ""
                 }`}
               >
                 {project.description || "No description provided"}
-              </p>
+              </div>
             </div>
           </div>
 
-          {/* Card footer with extended section for tags */}
-          <div className="flex flex-col">
-            <div className="card-footer border-t">
+          {/* Card footer with extended section for tags - fixed at bottom */}
+          <div className="flex flex-col flex-shrink-0 -mt-5">
+            <div className="card-footer border-t h-[60px] flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 {/* Avatar navigates to user profile */}
                 <button
@@ -646,7 +673,7 @@ export const ProjectCard = React.memo(
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0"
+                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0 cursor-pointer"
                       onClick={handleShareClick}
                       aria-label="Share project"
                     >
@@ -681,9 +708,9 @@ export const ProjectCard = React.memo(
               </div>
             </div>
 
-            {/* Tags section below footer with minimum height */}
-            <div className="px-6 py-6 border-t bg-muted/5 min-h-[4rem] relative">
-              <div className="flex flex-wrap gap-1.5">
+            {/* Tags section below footer with fixed height and scroll */}
+            <div className="px-6 py-3 border-t bg-muted/5 h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 flex-shrink-0">
+              <div className="flex flex-wrap gap-1.5 content-start">
                 {tags.length > 0 ? (
                   <>
                     {(showAllTags
@@ -695,7 +722,7 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } ${
+                        } cursor-pointer text-xs px-2 py-0.5 ${
                           loadingTag === tag
                             ? "opacity-70 pointer-events-none"
                             : ""
@@ -717,25 +744,26 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } hover:bg-accent cursor-pointer`}
+                        } hover:bg-accent cursor-pointer text-xs px-2 py-0.5`}
                         onClick={handleTagExpandClick}
                       >
                         +{tags.length - tagShowLimitOnCard}
                       </Badge>
                     )}
                     {showAllTags && tags.length > tagShowLimitOnCard && (
-                      <Badge
-                        variant="secondary"
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } hover:bg-accent cursor-pointer ml-auto mt-2`}
+                        } bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 cursor-pointer ml-auto mt-2 text-xs px-3 py-1 rounded-sm`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowAllTags(false);
                         }}
                       >
-                        close tags
-                      </Badge>
+                        ❌ Close Tags
+                      </Button>
                     )}
                   </>
                 ) : (

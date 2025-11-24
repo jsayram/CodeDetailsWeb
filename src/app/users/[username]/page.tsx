@@ -246,9 +246,10 @@ export default function UserProfilePage({ params }: PageProps) {
                           }
                         />
                         <div className="flex gap-2">
-                          <Button onClick={handleSaveProfile}>Save</Button>
+                          <Button onClick={handleSaveProfile} className="cursor-pointer">Save</Button>
                           <Button
                             variant="outline"
+                            className="cursor-pointer"
                             onClick={() => setIsEditing(false)}
                           >
                             Cancel
@@ -266,7 +267,7 @@ export default function UserProfilePage({ params }: PageProps) {
                         {isOwnProfile && (
                           <Button
                             variant="outline"
-                            className="mt-2"
+                            className="mt-2 cursor-pointer"
                             onClick={() => setIsEditing(true)}
                           >
                             Edit Profile
@@ -331,7 +332,7 @@ export default function UserProfilePage({ params }: PageProps) {
                       <div>
                         <dt className="text-sm text-muted-foreground">Title</dt>
                         <dd className="text-xl font-semibold">
-                          {stats.mostLikedProject.title || "No projects yet"}
+                          {stats.mostLikedProject?.title || "No projects yet"}
                         </dd>
                       </div>
                       <div>
@@ -339,7 +340,7 @@ export default function UserProfilePage({ params }: PageProps) {
                           Favorites
                         </dt>
                         <dd className="text-2xl font-semibold">
-                          {stats.mostLikedProject.favorites}
+                          {stats.mostLikedProject?.favorites || 0}
                         </dd>
                       </div>
                     </dl>
@@ -357,7 +358,7 @@ export default function UserProfilePage({ params }: PageProps) {
                   <CardContent>
                     <Button
                       variant="link"
-                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2 p-0"
+                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2 p-0 cursor-pointer"
                       onClick={handleProjectsClick}
                     >
                       Check out their projects →

@@ -1,1 +1,1 @@
-export const MAX_PROJECT_TAGS = 10;
+export const MAX_PROJECT_TAGS = 15;

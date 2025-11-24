@@ -60,7 +60,7 @@ export async function submitNewTag(
       };
     }
 
-    // Check for existing pending submission from the same user for the same project and tag
+    // Check for any existing submission from the same user for the same project and tag
     const existingSubmission = await db
       .select()
       .from(tag_submissions)
@@ -68,14 +68,22 @@ export async function submitNewTag(
         and(
           eq(tag_submissions.project_id, projectId),
           eq(tag_submissions.tag_name, normalizedTagName),
-          eq(tag_submissions.submitter_email, submitterEmail),
-          eq(tag_submissions.status, "pending")
+          eq(tag_submissions.submitter_email, submitterEmail)
         )
       )
       .limit(1);
 
     if (existingSubmission.length > 0) {
-      throw new Error("You already have a pending submission for this tag");
+      const status = existingSubmission[0].status;
+      
+      if (status === "pending") {
+        throw new Error("You already have a pending submission for this tag");
+      } else if (status === "approved") {
+        throw new Error("This tag has already been approved for this project");
+      }
+      // Note: We don't block rejected submissions here because the tag might have been
+      // approved by another user since the rejection. The check at the top of this function
+      // will auto-approve if the tag now exists in the tags table.
     }
 
     // Create new tag submission for review
@@ -310,5 +318,37 @@ export async function rejectTagSubmission(submissionId: string, adminNotes: stri
       .where(eq(tag_submissions.id, submissionId));
 
     revalidatePath("/administrator/dashboard");
+  });
+}
+
+export async function approveRejectedTagSubmission(
+  projectId: string,
+  tagName: string,
+  submitterEmail: string
+) {
+  return executeQuery(async (db) => {
+    const normalizedTagName = tagName.trim().toLowerCase();
+
+    // Update the rejected submission to approved status
+    await db
+      .update(tag_submissions)
+      .set({
+        status: "approved",
+        reviewed_at: new Date(),
+        admin_notes: "Auto-approved: Tag was added to project after becoming available system-wide",
+      })
+      .where(
+        and(
+          eq(tag_submissions.project_id, projectId),
+          eq(tag_submissions.tag_name, normalizedTagName),
+          eq(tag_submissions.submitter_email, submitterEmail),
+          eq(tag_submissions.status, "rejected")
+        )
+      );
+
+    // Revalidate relevant paths
+    revalidatePath("/administrator/dashboard");
+    revalidatePath("/dashboard");
+    revalidatePath(`/projects/${projectId}`);
   });
 }
