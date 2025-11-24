@@ -418,7 +418,7 @@ function ProjectCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <Badge variant="outline" className={`absolute top-2 left-2 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+        <Badge variant="outline" className={`absolute top-2 left-2 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
           {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
         {created_at && (
@@ -486,7 +486,7 @@ function FavoriteCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <Badge variant="outline" className={`absolute top-2 left-2 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+        <Badge variant="outline" className={`absolute top-2 left-2 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
           {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
         <CardHeader className="flex-1 min-h-0 pb-4 pt-12">
@@ -1089,7 +1089,7 @@ function DashboardMain({
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {stats.myProjects.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {stats.myProjects.slice(0, 6).map((project) => (
                 <ProjectCard key={project.id} {...project} />
               ))}
@@ -1119,7 +1119,7 @@ function DashboardMain({
             <Heart className="h-4 w-4 text-red-500 fill-red-500" />
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {stats.myFavorites.slice(0, 6).map((favorite) => (
                 <FavoriteCard key={favorite.id} {...favorite} />
               ))}
