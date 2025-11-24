@@ -289,7 +289,7 @@ function TagsCard({ title, value, icon, tags }: TagsCardProps) {
                     variant="secondary"
                     className="text-xs h-5"
                   >
-                    {tag.name}
+                    <span className="text-foreground">#</span>{tag.name}
                   </Badge>
                 ))}
               </div>
@@ -374,7 +374,7 @@ function SingleUseTagItem({
 
   return (
     <div className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors gap-2 min-w-0">
-      <span className="text-sm font-medium truncate min-w-0">{tag.name}</span>
+      <span className="text-sm font-medium truncate min-w-0">#{tag.name}</span>
       {tag.projects && tag.projects.length > 0 && (
         <Link
           href={`/projects/${tag.projects[0].slug}`}
@@ -424,7 +424,9 @@ function ProjectCard({
           </div>
         </CardHeader>
         <CardFooter className="flex justify-between flex-shrink-0 pt-3">
-          <Badge variant="outline" className="truncate max-w-[140px]">{category}</Badge>
+          <Badge variant="outline" className="truncate max-w-[140px]">
+            <span className="text-primary">❖❖</span>{category}
+          </Badge>
           <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
             <Heart className="h-3 w-3" />
             {total_favorites}
@@ -461,7 +463,9 @@ function FavoriteCard({
           <p className="text-xs text-muted-foreground truncate">by {owner_username}</p>
         </CardHeader>
         <CardFooter className="flex-shrink-0">
-          <Badge variant="outline" className="truncate max-w-[140px]">{category}</Badge>
+          <Badge variant="outline" className="truncate max-w-[140px]">
+            <span className="text-primary">❖❖</span>{category}
+          </Badge>
         </CardFooter>
       </Card>
     </Link>
@@ -493,12 +497,29 @@ function TagSubmissionCard({
   return (
     <div className="p-3 rounded-lg bg-muted/30">
       <div className="flex items-center justify-between mb-2 gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{tag_name}</p>
-          <p className="text-xs text-muted-foreground truncate">for {project_title}</p>
+        <div className="flex-1 min-w-0 space-y-2">
+          <Badge variant={statusColor} className="text-xs"><span className="text-foreground">#</span>{tag_name}</Badge>
+          <Link
+            href={`/projects/${project_slug}`}
+            className="cursor-pointer block"
+            onClick={() => setIsNavigating(true)}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto w-full px-2 py-1 hover:cursor-pointer hover:text-primary transition-colors text-left justify-start overflow-hidden"
+              disabled={isNavigating}
+            >
+              <div className="flex items-start gap-1 min-w-0 w-full overflow-hidden">
+                {isNavigating && (
+                  <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mt-0.5" />
+                )}
+                <span className="truncate text-xs">for {project_title}</span>
+              </div>
+            </Button>
+          </Link>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={statusColor}>{status}</Badge>
+        <div className="flex items-center gap-2 flex-shrink-0">
           {is_now_available && (
             <Badge
               variant="outline"
@@ -952,7 +973,7 @@ function DashboardMain({
                           <AccordionTrigger className="px-3 py-2 hover:no-underline">
                             <div className="flex items-center justify-between w-full pr-2">
                               <span className="text-sm font-medium truncate">
-                                {tag.name}
+                                <span className="text-foreground">#</span>{tag.name}
                               </span>
                               <div className="flex items-center gap-1">
                                 <span className="text-xs text-muted-foreground">
