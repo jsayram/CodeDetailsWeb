@@ -1086,13 +1086,18 @@ function DashboardMain({
       {/* My Projects Section */}
       <Card className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px]">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
-          <CardTitle>My Recent Projects</CardTitle>
+          <div className="flex-1">
+            <CardTitle>My Recent Projects ({Math.min(stats.myProjects.length, 8)})</CardTitle>
+            <CardDescription className="text-xs mt-1">
+              Your most recently created or updated projects
+            </CardDescription>
+          </div>
           <Code className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {stats.myProjects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {stats.myProjects.slice(0, 6).map((project) => (
+              {stats.myProjects.slice(0, 8).map((project) => (
                 <ProjectCard key={project.id} {...project} />
               ))}
             </div>
@@ -1110,24 +1115,29 @@ function DashboardMain({
             </div>
           )}
         </CardContent>
-        {stats.myProjects.length > 6 && <ViewAllProjectsButton />}
+        {stats.myProjects.length > 8 && <ViewAllProjectsButton />}
       </Card>
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
         <Card className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
-            <CardTitle>Projects I've Favorited ❤️</CardTitle>
+            <div className="flex-1">
+              <CardTitle>Projects I've Favorited ❤️ ({Math.min(stats.myFavorites.length, 8)})</CardTitle>
+              <CardDescription className="text-xs mt-1">
+                Projects you most recently favorited from the community
+              </CardDescription>
+            </div>
             <Heart className="h-4 w-4 text-red-500 fill-red-500" />
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {stats.myFavorites.slice(0, 6).map((favorite) => (
+              {stats.myFavorites.slice(0, 8).map((favorite) => (
                 <FavoriteCard key={favorite.id} {...favorite} />
               ))}
             </div>
           </CardContent>
-          {stats.myFavorites.length > 6 && <ViewAllFavoritesButton />}
+          {stats.myFavorites.length > 8 && <ViewAllFavoritesButton />}
         </Card>
       )}
 
