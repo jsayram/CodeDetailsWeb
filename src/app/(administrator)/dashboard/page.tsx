@@ -208,7 +208,7 @@ function FavoritesReceivedCard({
         {/* Right side - Scrollable project list */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {projectsWithFavorites.length > 0 ? (
-            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <div className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               <div className="space-y-1">
                 {projectsWithFavorites.map((project) => (
                   <FavoriteProjectItem key={project.id} project={project} />
@@ -283,7 +283,7 @@ function TagsCard({ title, value, icon, tags }: TagsCardProps) {
         {/* Right side - Scrollable tags */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {tags && tags.length > 0 ? (
-            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <div className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               <div className="flex flex-wrap gap-1.5 content-start">
                 {tags.map((tag, index) => (
                   <Badge
@@ -930,7 +930,7 @@ function DashboardMain({
             </CardTitle>
             <Heart className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentAppreciation
@@ -959,7 +959,7 @@ function DashboardMain({
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.recentActivity.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentActivity.map((activity) => (
@@ -993,7 +993,7 @@ function DashboardMain({
               Most frequently used tags (number shows project count)
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.topTags.length > 0 ? (
               <>
                 <div className="space-y-2">
@@ -1086,7 +1086,7 @@ function DashboardMain({
           <CardTitle>My Recent Projects</CardTitle>
           <Code className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {stats.myProjects.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {stats.myProjects.slice(0, 6).map((project) => (
@@ -1117,7 +1117,7 @@ function DashboardMain({
             <CardTitle>Projects I've Favorited ❤️</CardTitle>
             <Heart className="h-4 w-4 text-red-500 fill-red-500" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {stats.myFavorites.slice(0, 6).map((favorite) => (
                 <FavoriteCard key={favorite.id} {...favorite} />
@@ -1141,7 +1141,7 @@ function DashboardMain({
             </div>
             <TagIcon className="h-4 w-4 text-primary" />
           </CardHeader>
-          <CardContent className="pt-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {/* Tag Contribution Info Accordion */}
             <Accordion type="single" collapsible className="mb-6">
               <AccordionItem
@@ -1210,7 +1210,7 @@ function DashboardMain({
                     )
                   </h3>
                 </div>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "pending")
                     .length > 0 ? (
                     stats.myTagSubmissions
@@ -1240,7 +1240,7 @@ function DashboardMain({
                     )
                   </h3>
                 </div>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "approved")
                     .length > 0 ? (
                     stats.myTagSubmissions
@@ -1290,7 +1290,7 @@ function DashboardMain({
                     </AccordionItem>
                   </Accordion>
                 )}
-                <div className="space-y-2 max-h-[500px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "rejected")
                     .length > 0 ? (
                     stats.myTagSubmissions

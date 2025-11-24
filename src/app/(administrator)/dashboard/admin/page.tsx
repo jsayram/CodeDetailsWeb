@@ -203,13 +203,13 @@ function ChartSkeleton() {
 // Simple stats card component
 function StatsCard({ title, value, description, icon }: StatsCardProps) {
   return (
-    <Card className="h-[250px] flex flex-col">
+    <Card className="h-[180px] flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         {icon}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col justify-center items-center">
-        <div className="text-5xl font-bold">{value}</div>
+        <div className="text-3xl md:text-4xl font-bold">{value}</div>
         <p className="text-xs text-muted-foreground mt-2 text-center">{description}</p>
       </CardContent>
     </Card>
@@ -1001,7 +1001,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             Showing {users.length} of {total} users {debouncedSearch && `(filtered)`}
           </p>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -1271,7 +1271,7 @@ function DashboardContent() {
           Distribution of projects across categories
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-3 md:gap-4">
             {stats.stats.categoryDistribution.map((cat) => (
               <div
@@ -1312,7 +1312,7 @@ function DashboardContent() {
               A comprehensive view of all projects and their favorites
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-2 sm:px-4 md:px-6 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="px-2 sm:px-4 md:px-6 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <Overview
               data={stats.stats.allProjects.map((p) => ({
                 name:
@@ -1341,7 +1341,7 @@ function DashboardContent() {
             </CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="space-y-2">
               {stats.stats.recentActivity.map((activity) => (
                 <ActivityItem
@@ -1367,7 +1367,7 @@ function DashboardContent() {
             </CardTitle>
             <AlertCircle className="h-4 w-4 text-amber-500" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.stats.projectsNeedingAttention.length > 0 ? (
               <div className="space-y-2">
                   {stats.stats.projectsNeedingAttention.map((project) => (
@@ -1399,7 +1399,7 @@ function DashboardContent() {
             </CardTitle>
             <Heart className="h-4 w-4 text-red-500 fill-red-500" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.stats.mostPopularProjects.length > 0 ? (
               <div className="space-y-2">
                 {stats.stats.mostPopularProjects.slice(0, 10).map((project, index) => (
@@ -1432,7 +1432,7 @@ function DashboardContent() {
             </CardTitle>
             <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.stats.allProjects.filter(p => p.total_favorites === 0).length > 0 ? (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground mb-3">
@@ -1475,7 +1475,7 @@ function DashboardContent() {
               </CardTitle>
               <Users className="h-4 w-4 text-amber-500" />
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               {stats.stats.newUsersList.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground mb-3">
@@ -1516,7 +1516,7 @@ function DashboardContent() {
               </CardTitle>
               <Users className="h-4 w-4 text-amber-500" />
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               {stats.stats.newUsersList.length > 0 ? (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground mb-3">
@@ -1562,7 +1562,7 @@ function DashboardContent() {
               rejection
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-0 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <TagSubmissionManagement initialSubmissions={stats.submissions} />
           </CardContent>
         </Card>
@@ -1576,7 +1576,7 @@ function DashboardContent() {
             <CardHeader className="flex-shrink-0">
               <CardTitle className="text-base md:text-lg">Popular Tags</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               <div className="grid grid-cols-2 gap-2">
                 {stats.stats.topTags.map((tag) => (
                   <div
@@ -1599,7 +1599,7 @@ function DashboardContent() {
           <CardHeader className="flex-shrink-0">
             <CardTitle className="text-base md:text-xl">Tag List</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <TagList />
           </CardContent>
         </Card>
@@ -1661,7 +1661,7 @@ function DashboardContent() {
               Developer testing and debugging tools - Admin access only
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3 md:gap-4">
               <a
                 href="/api/projects/test"
