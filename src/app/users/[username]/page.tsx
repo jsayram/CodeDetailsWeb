@@ -332,7 +332,7 @@ export default function UserProfilePage({ params }: PageProps) {
                       <div>
                         <dt className="text-sm text-muted-foreground">Title</dt>
                         <dd className="text-xl font-semibold">
-                          {stats.mostLikedProject.title || "No projects yet"}
+                          {stats.mostLikedProject?.title || "No projects yet"}
                         </dd>
                       </div>
                       <div>
@@ -340,7 +340,7 @@ export default function UserProfilePage({ params }: PageProps) {
                           Favorites
                         </dt>
                         <dd className="text-2xl font-semibold">
-                          {stats.mostLikedProject.favorites}
+                          {stats.mostLikedProject?.favorites || 0}
                         </dd>
                       </div>
                     </dl>

@@ -6,6 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
+import { fetchTopContributorsPublic } from "@/app/actions/advanced-analytics";
+import type { TopContributor } from "@/app/actions/advanced-analytics";
+import { Trophy, Star, FileCode, Tag, Heart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type UserWithProjectCount = SelectProfile & {
   project_count: number;
@@ -15,8 +19,10 @@ type UserWithProjectCount = SelectProfile & {
 
 export function UserList() {
   const [users, setUsers] = useState<UserWithProjectCount[]>([]);
+  const [topContributors, setTopContributors] = useState<TopContributor[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [contributorsLoading, setContributorsLoading] = useState(true);
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -36,6 +42,22 @@ export function UserList() {
     }
   }, []);
 
+  // Load top contributors from analytics
+  useEffect(() => {
+    async function loadContributors() {
+      try {
+        const contributors = await fetchTopContributorsPublic(20);
+        setTopContributors(contributors);
+      } catch (error) {
+        console.error("Failed to load top contributors:", error);
+      } finally {
+        setContributorsLoading(false);
+      }
+    }
+
+    loadContributors();
+  }, []);
+
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
@@ -44,36 +66,28 @@ export function UserList() {
   const activeUsers = users.filter((user) => user.project_count > 0);
   const inactiveUsers = users.filter((user) => user.project_count === 0);
 
-  // First sort all active users to determine the true leaders (before filtering)
-  const sortedActiveUsers = [...activeUsers].sort((a, b) => {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    // Calculate scores with heavy weight on projects and favorites
-    const aIsActive = a.last_activity_date && new Date(a.last_activity_date) >= sevenDaysAgo;
-    const bIsActive = b.last_activity_date && new Date(b.last_activity_date) >= sevenDaysAgo;
-    
-    // Projects: 100 points each, Favorites: 50 points each, Active: 5 points
-    const aScore = (a.project_count * 100) + (a.total_favorites * 50) + (aIsActive ? 5 : 0);
-    const bScore = (b.project_count * 100) + (b.total_favorites * 50) + (bIsActive ? 5 : 0);
-    
-    // Sort by score descending
-    if (bScore !== aScore) {
-      return bScore - aScore;
-    }
-    
-    // If scores are equal, sort by updated_at date
+  // Filter top contributors based on search (username, email, tier)
+  const filteredTopContributors = topContributors.filter((contributor) => {
+    const searchLower = searchQuery.toLowerCase().trim();
+    if (!searchLower) return true;
+
+    // Get the user's email from the users array if available
+    const userProfile = users.find(u => u.user_id === contributor.user_id);
+    const email = userProfile?.email_address || "";
+
     return (
-      new Date(b.updated_at ?? 0).getTime() -
-      new Date(a.updated_at ?? 0).getTime()
+      (contributor.username || "").toLowerCase().includes(searchLower) ||
+      (contributor.full_name || "").toLowerCase().includes(searchLower) ||
+      (contributor.tier || "").toLowerCase().includes(searchLower) ||
+      email.toLowerCase().includes(searchLower)
     );
   });
 
-  // Get the actual top 3 users (these are our true leaders)
-  const leaderboardUsers = sortedActiveUsers.slice(0, 3);
-  const leaderIds = new Set(leaderboardUsers.map((user) => user.id));
+  // Get top 3 for leaderboard display
+  const leaderboardTop3 = filteredTopContributors.slice(0, 3);
+  const topContributorUserIds = new Set(topContributors.map((c) => c.user_id));
 
-  // Then filter users based on search
+  // Then filter users based on search (username, full name, email, tier)
   const filteredActiveUsers = activeUsers.filter((user) => {
     const searchLower = searchQuery.toLowerCase().trim();
     if (!searchLower) return true;
@@ -81,51 +95,38 @@ export function UserList() {
     return (
       (user.username || "").toLowerCase().includes(searchLower) ||
       (user.full_name || "").toLowerCase().includes(searchLower) ||
-      (user.email_address || "").toLowerCase().includes(searchLower)
+      (user.email_address || "").toLowerCase().includes(searchLower) ||
+      (user.tier || "").toLowerCase().includes(searchLower)
     );
   });
-
-  // Helper function to get the leader position (if any) for a user
-  const getLeaderPosition = (userId: string): number => {
-    const position = leaderboardUsers.findIndex(
-      (leader) => leader.id === userId
-    );
-    return position;
-  };
 
   const getLeaderboardBadge = (position: number) => {
     switch (position) {
       case 0:
         return (
           <div
-            className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center"
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center"
             title="1st Place"
           >
-            <span className="text-xl" role="img" aria-label="gold medal">
-              🥇
-            </span>
+            <Trophy className="h-6 w-6 text-yellow-500 drop-shadow-lg" />
           </div>
         );
       case 1:
         return (
           <div
-            className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center"
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center"
             title="2nd Place"
           >
-            <span className="text-xl" role="img" aria-label="silver medal">
-              🥈
-            </span>
+            <Trophy className="h-6 w-6 text-gray-400 drop-shadow-lg" />
           </div>
         );
       case 2:
         return (
           <div
-            className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center"
+            className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center"
             title="3rd Place"
           >
-            <span className="text-xl" role="img" aria-label="bronze medal">
-              🥉
-            </span>
+            <Trophy className="h-6 w-6 text-orange-600 drop-shadow-lg" />
           </div>
         );
       default:
@@ -136,22 +137,33 @@ export function UserList() {
   const getLeaderboardCardStyle = (position: number) => {
     switch (position) {
       case 0:
-        return "border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 to-transparent dark:from-yellow-950/20";
+        return "border-2 border-yellow-400 dark:bg-gradient-to-br dark:from-yellow-950/20 dark:to-transparent ring-2 ring-yellow-400/20";
       case 1:
-        return "border-2 border-gray-300 bg-gradient-to-br from-gray-50 to-transparent dark:from-gray-950/20";
+        return "border-2 border-gray-300 dark:bg-gradient-to-br dark:from-gray-950/20 dark:to-transparent ring-2 ring-gray-400/20";
       case 2:
-        return "border-2 border-amber-600 bg-gradient-to-br from-amber-50 to-transparent dark:from-amber-950/20";
+        return "border-2 border-orange-600 dark:bg-gradient-to-br dark:from-orange-950/20 dark:to-transparent ring-2 ring-orange-600/20";
       default:
         return "";
     }
   };
 
-  const handleUserClick = (user: UserWithProjectCount) => {
-    setLoadingUserId(user.id);
-    router.push(`/users/${user.username}`);
+  const getTierBadgeVariant = (tier: string | null) => {
+    switch (tier?.toLowerCase()) {
+      case 'diamond':
+        return 'default';
+      case 'pro':
+        return 'secondary';
+      default:
+        return 'outline';
+    }
   };
 
-  if (isLoading) {
+  const handleUserClick = (username: string, userId: string) => {
+    setLoadingUserId(userId);
+    router.push(`/users/${username}`);
+  };
+
+  if (isLoading || contributorsLoading) {
     return (
       <div aria-live="polite" aria-busy="true">
         <GenericLoadingState
@@ -174,114 +186,114 @@ export function UserList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex gap-4 items-center">
         <Input
           type="search"
-          placeholder="Search users by name or email..."
+          placeholder="Search by username, email, or tier (free/pro/diamond)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
+          className="max-w-md"
         />
       </div>
 
-      {/* Leaderboard Section - Show only when not searching or when leaders are in filtered results */}
-      {(!searchQuery ||
-        filteredActiveUsers.some((user) => leaderIds.has(user.id))) && (
+      {/* Top Contributors Leaderboard - Enhanced with contribution scores */}
+      {leaderboardTop3.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-pink-600 text-transparent bg-clip-text">
-            Top Contributors
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {leaderboardUsers
-              .filter(
-                (user) =>
-                  !searchQuery ||
-                  (user.username || "")
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                  (user.full_name || "")
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase()) ||
-                  (user.email_address || "")
-                    .toLowerCase()
-                    .includes(searchQuery.toLowerCase())
-              )
-              .map((user, index) => {
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                const isActive =
-                  user.last_activity_date &&
-                  new Date(user.last_activity_date) >= sevenDaysAgo;
-
-                return (
-                  <Card
-                    key={user.id}
-                    className={`p-4 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${
-                      loadingUserId === user.id ? "opacity-50" : ""
-                    } ${getLeaderboardCardStyle(index)}`}
-                    onClick={() => handleUserClick(user)}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="relative">
-                        {loadingUserId === user.id ? (
-                          <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full z-10">
-                            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        ) : null}
-                        {user.profile_image_url ? (
-                          <div className="relative">
-                            <img
-                              src={user.profile_image_url}
-                              alt={user.username}
-                              className="w-12 h-12 rounded-full object-cover ring-2 ring-offset-2 ring-offset-background"
-                            />
-                            {getLeaderboardBadge(index)}
-                          </div>
-                        ) : (
-                          <div className="relative">
-                            <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
-                              {user.username?.[0]?.toUpperCase()}
-                            </div>
-                            {getLeaderboardBadge(index)}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium truncate">{user.username}</h3>
-                        {user.full_name && (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {user.full_name}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 flex-wrap mt-2">
-                          <span className="text-sm text-muted-foreground px-2 py-0.5 bg-accent rounded-md whitespace-nowrap">
-                            {user.project_count}{" "}
-                            {user.project_count === 1 ? "project" : "projects"}
-                          </span>
-                          {user.total_favorites > 0 && (
-                            <span className="text-sm text-amber-600 dark:text-amber-400 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 rounded-md whitespace-nowrap">
-                              ⭐ {user.total_favorites}
-                            </span>
-                          )}
-                          {isActive && (
-                            <span className="text-sm text-green-600 dark:text-green-400 px-2 py-0.5 bg-green-100 dark:bg-green-950 rounded-md whitespace-nowrap">
-                              Active
-                            </span>
-                          )}
+          <div className="flex items-center gap-3 mb-4">
+            <Trophy className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-transparent bg-clip-text">
+              Top Contributors
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Ranked by contribution score: Projects × 10 + Favorites Received × 5
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            {leaderboardTop3.map((contributor, index) => (
+              <Card
+                key={contributor.user_id}
+                className={`w-full md:w-[calc(50%-0.5rem)] xl:flex-1 xl:max-w-[calc(33.333%-0.667rem)] max-w-md p-10 cursor-pointer hover:bg-accent/50 transition-all transform hover:scale-105 ${
+                  loadingUserId === contributor.user_id ? "opacity-50" : ""
+                } ${getLeaderboardCardStyle(index)}`}
+                onClick={() => handleUserClick(contributor.username, contributor.user_id)}
+              >
+                {getLeaderboardBadge(index)}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="relative">
+                      {loadingUserId === contributor.user_id && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-full z-10">
+                          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         </div>
-                      </div>
+                      )}
+                      {contributor.profile_image_url ? (
+                        <div className="relative">
+                          <img
+                            src={contributor.profile_image_url}
+                            alt={contributor.username}
+                            className="w-14 h-14 rounded-full object-cover ring-2 ring-offset-2 ring-offset-background ring-primary/30"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center text-xl font-semibold ring-2 ring-offset-2 ring-offset-background ring-primary/30">
+                            {contributor.username?.[0]?.toUpperCase()}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </Card>
-                );
-              })}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-lg truncate">
+                          {contributor.full_name || contributor.username}
+                        </h3>
+                        {contributor.tier && contributor.tier !== 'free' && (
+                          <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
+                            {contributor.tier}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground truncate">
+                        @{contributor.username}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contribution Stats */}
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <FileCode className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <p className="text-2xl font-bold">{contributor.projects_count}</p>
+                      <p className="text-xs text-muted-foreground">Projects</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-1 mb-1">
+                        <Heart className="h-3.5 w-3.5 text-pink-500" />
+                      </div>
+                      <p className="text-2xl font-bold">{contributor.favorites_received}</p>
+                      <p className="text-xs text-muted-foreground">Favorites</p>
+                    </div>
+                  </div>
+
+                  {/* Contribution Score */}
+                  <div className="text-center pt-2 border-t bg-primary/5 rounded-lg p-2">
+                    <p className="text-xs text-muted-foreground mb-1">Contribution Score</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {contributor.contribution_score.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Rest of the users - show all filtered users that aren't in the leaderboard */}
-      {filteredActiveUsers.filter((user) => !leaderIds.has(user.id)).length >
-        0 && (
+      {/* Honorable Mentions - Rest of top contributors (4-20) with score > 0 */}
+      {filteredTopContributors.slice(3).filter(c => c.contribution_score > 0).length > 0 && (
         <>
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -289,14 +301,177 @@ export function UserList() {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                ⭐️ Honerable Mentions ⭐️
+                ⭐️ Honorable Mentions ⭐️
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="max-h-[600px] overflow-y-auto pr-2">
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              {filteredTopContributors.slice(3).filter(c => c.contribution_score > 0).map((contributor, index) => (
+                <Card
+                  key={contributor.user_id}
+                  className={`w-full md:w-[calc(50%-0.5rem)] xl:w-[calc(33.333%-0.667rem)] max-w-md md:max-w-none mx-auto md:mx-0 p-4 cursor-pointer hover:bg-accent transition-colors ${
+                    loadingUserId === contributor.user_id ? "opacity-50" : ""
+                  }`}
+                  onClick={() => handleUserClick(contributor.username, contributor.user_id)}
+                >
+                <div className="flex items-center gap-4">
+                  {loadingUserId === contributor.user_id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-muted-foreground min-w-[28px]">
+                      #{index + 4}
+                    </span>
+                    {contributor.profile_image_url ? (
+                      <img
+                        src={contributor.profile_image_url}
+                        alt={contributor.username}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                        {contributor.username?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium truncate">
+                        {contributor.full_name || contributor.username}
+                      </h3>
+                      {contributor.tier && contributor.tier !== 'free' && (
+                        <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
+                          {contributor.tier}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      @{contributor.username}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-md">
+                        <FileCode className="h-3 w-3 text-primary" />
+                        {contributor.projects_count}
+                      </span>
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-pink-100 dark:bg-pink-950 rounded-md">
+                        <Heart className="h-3 w-3 text-pink-500" />
+                        {contributor.favorites_received}
+                      </span>
+                      <span className="font-bold text-primary ml-auto text-sm">
+                        Score: {contributor.contribution_score}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Just Happy to Be Here - Contributors with score of 0 */}
+      {filteredTopContributors.filter(c => c.contribution_score === 0).length > 0 && (
+        <>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                🙂 Just happy to be here 🙂
+              </span>
+            </div>
+          </div>
+
+          <div className="max-h-[600px] overflow-y-auto pr-2">
+            <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+              {filteredTopContributors.filter(c => c.contribution_score === 0).map((contributor) => (
+                <Card
+                  key={contributor.user_id}
+                  className={`w-full md:w-[calc(50%-0.5rem)] xl:w-[calc(33.333%-0.667rem)] max-w-md md:max-w-none mx-auto md:mx-0 p-4 cursor-pointer hover:bg-accent transition-colors ${
+                    loadingUserId === contributor.user_id ? "opacity-50" : ""
+                  }`}
+                  onClick={() => handleUserClick(contributor.username, contributor.user_id)}
+                >
+                <div className="flex items-center gap-4">
+                  {loadingUserId === contributor.user_id && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    {contributor.profile_image_url ? (
+                      <img
+                        src={contributor.profile_image_url}
+                        alt={contributor.username}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-xl font-semibold">
+                        {contributor.username?.[0]?.toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-medium truncate">
+                        {contributor.full_name || contributor.username}
+                      </h3>
+                      {contributor.tier && contributor.tier !== 'free' && (
+                        <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
+                          {contributor.tier}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      @{contributor.username}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-md">
+                        <FileCode className="h-3 w-3 text-primary" />
+                        {contributor.projects_count}
+                      </span>
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-pink-100 dark:bg-pink-950 rounded-md">
+                        <Heart className="h-3 w-3 text-pink-500" />
+                        {contributor.favorites_received}
+                      </span>
+                      <span className="font-bold text-muted-foreground ml-auto text-sm">
+                        Score: {contributor.contribution_score}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* All Other Users - only show if not matching top contributors */}
+      {filteredActiveUsers.filter((user) => 
+        !topContributorUserIds.has(user.user_id)
+      ).length > 0 && (
+        <>
+          <div className="relative mt-8">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                All Contributing Users
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-4 justify-center md:justify-start">
             {filteredActiveUsers
-              .filter((user) => !leaderIds.has(user.id))
+              .filter((user) => !topContributorUserIds.has(user.user_id))
               .map((user) => {
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -307,17 +482,17 @@ export function UserList() {
                 return (
                   <Card
                     key={user.id}
-                    className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
+                    className={`w-full md:w-[calc(50%-0.5rem)] xl:w-[calc(33.333%-0.667rem)] max-w-md md:max-w-none mx-auto md:mx-0 p-4 cursor-pointer hover:bg-accent transition-colors ${
                       loadingUserId === user.id ? "opacity-50" : ""
                     }`}
-                    onClick={() => handleUserClick(user)}
+                    onClick={() => handleUserClick(user.username, user.id)}
                   >
                     <div className="flex items-center gap-4">
-                      {loadingUserId === user.id ? (
+                      {loadingUserId === user.id && (
                         <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
                           <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                         </div>
-                      ) : null}
+                      )}
                       {user.profile_image_url ? (
                         <img
                           src={user.profile_image_url}
@@ -337,13 +512,14 @@ export function UserList() {
                           </p>
                         )}
                         <div className="flex items-center gap-2 flex-wrap mt-2">
-                          <span className="text-sm text-muted-foreground px-2 py-0.5 bg-accent rounded-md whitespace-nowrap">
-                            {user.project_count}{" "}
-                            {user.project_count === 1 ? "project" : "projects"}
+                          <span className="text-sm flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-md whitespace-nowrap">
+                            <FileCode className="h-3 w-3 text-primary" />
+                            {user.project_count}
                           </span>
                           {user.total_favorites > 0 && (
-                            <span className="text-sm text-amber-600 dark:text-amber-400 px-2 py-0.5 bg-amber-100 dark:bg-amber-950 rounded-md whitespace-nowrap">
-                              ⭐ {user.total_favorites}
+                            <span className="text-sm flex items-center gap-1 px-2 py-0.5 bg-pink-100 dark:bg-pink-950 rounded-md whitespace-nowrap">
+                              <Heart className="h-3 w-3 text-pink-500" />
+                              {user.total_favorites}
                             </span>
                           )}
                           {isActive && (

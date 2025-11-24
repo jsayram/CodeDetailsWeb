@@ -112,7 +112,8 @@ export async function fetchTopContributors(limit: number = 20): Promise<TopContr
       .orderBy(desc(sql<number>`count(distinct ${projects.id})`));
 
     // Calculate contribution score for each user
-    // Score = (projects * 10) + (favorites_received * 2) + (approved_tags * 5)
+    // Score = (projects * 10) + (favorites_received * 5) + (approved_tags * 5)
+    // Full score with tags for admin dashboard
     const scoredContributors = contributors.map(contributor => {
       const projectsCount = Number(contributor.projects_count || 0);
       const favoritesReceived = Number(contributor.favorites_received || 0);
@@ -120,7 +121,7 @@ export async function fetchTopContributors(limit: number = 20): Promise<TopContr
       
       const contributionScore = 
         (projectsCount * 10) + 
-        (favoritesReceived * 2) + 
+        (favoritesReceived * 5) + 
         (approvedTagsCount * 5);
 
       return {
@@ -133,6 +134,65 @@ export async function fetchTopContributors(limit: number = 20): Promise<TopContr
         favorites_received: favoritesReceived,
         tag_submissions_count: Number(contributor.tag_submissions_count || 0),
         approved_tags_count: approvedTagsCount,
+        contribution_score: contributionScore,
+      };
+    });
+
+    // Sort by contribution score and return top contributors
+    return scoredContributors
+      .sort((a, b) => b.contribution_score - a.contribution_score)
+      .slice(0, limit);
+  });
+}
+
+// Public version for user list - excludes tag metrics to prevent spam
+export async function fetchTopContributorsPublic(limit: number = 20): Promise<TopContributor[]> {
+  return executeQuery(async (db) => {
+    // Get contributor stats without tag submissions (public view)
+    const contributors = await db
+      .select({
+        user_id: profiles.user_id,
+        username: profiles.username,
+        full_name: profiles.full_name,
+        profile_image_url: profiles.profile_image_url,
+        tier: profiles.tier,
+        projects_count: sql<number>`count(distinct ${projects.id})`,
+        favorites_received: sql<number>`coalesce(sum(${projects.total_favorites}), 0)`,
+      })
+      .from(profiles)
+      .leftJoin(projects, eq(projects.user_id, profiles.user_id))
+      .where(isNull(projects.deleted_at))
+      .groupBy(
+        profiles.id,
+        profiles.user_id,
+        profiles.username,
+        profiles.full_name,
+        profiles.profile_image_url,
+        profiles.tier
+      )
+      .orderBy(desc(sql<number>`count(distinct ${projects.id})`));
+
+    // Calculate contribution score for public view
+    // Score = (projects * 10) + (favorites_received * 5)
+    // No tags to avoid spam incentive
+    const scoredContributors = contributors.map(contributor => {
+      const projectsCount = Number(contributor.projects_count || 0);
+      const favoritesReceived = Number(contributor.favorites_received || 0);
+      
+      const contributionScore = 
+        (projectsCount * 10) + 
+        (favoritesReceived * 5);
+
+      return {
+        user_id: contributor.user_id,
+        username: contributor.username,
+        full_name: contributor.full_name,
+        profile_image_url: contributor.profile_image_url,
+        tier: contributor.tier,
+        projects_count: projectsCount,
+        favorites_received: favoritesReceived,
+        tag_submissions_count: 0, // Not included in public view
+        approved_tags_count: 0,    // Not included in public view
         contribution_score: contributionScore,
       };
     });
