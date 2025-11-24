@@ -644,7 +644,7 @@ function EditUserDialog({
               <SelectContent>
                 <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
+                <SelectItem value="diamond">Diamond</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -893,7 +893,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const [editingUser, setEditingUser] = React.useState<UserProfile | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<'recent-edit' | 'alphabetical' | 'most-active'>('recent-edit');
-  const [tierFilter, setTierFilter] = React.useState<'all' | 'free' | 'pro' | 'enterprise'>('all');
+  const [tierFilter, setTierFilter] = React.useState<'all' | 'free' | 'pro' | 'diamond'>('all');
 
   // Debounce search
   React.useEffect(() => {
@@ -969,7 +969,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                 <SelectItem value="all">All Tiers</SelectItem>
                 <SelectItem value="free">Free</SelectItem>
                 <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="enterprise">Enterprise</SelectItem>
+                <SelectItem value="diamond">Diamond</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>

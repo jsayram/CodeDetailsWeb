@@ -30,7 +30,7 @@ export interface UpdateProfileData {
 }
 
 export type SortOption = 'recent-edit' | 'alphabetical' | 'most-active';
-export type TierFilter = 'all' | 'free' | 'pro' | 'enterprise';
+export type TierFilter = 'all' | 'free' | 'pro' | 'diamond';
 
 /**
  * Get paginated list of all users with optional search

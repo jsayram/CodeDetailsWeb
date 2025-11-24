@@ -60,7 +60,7 @@ export async function updateUserAction(
     throw new Error("Username must be at least 3 characters");
   }
 
-  if (updates.tier && !['free', 'pro', 'enterprise'].includes(updates.tier)) {
+  if (updates.tier && !['free', 'pro', 'diamond'].includes(updates.tier)) {
     throw new Error("Invalid tier value");
   }
 
