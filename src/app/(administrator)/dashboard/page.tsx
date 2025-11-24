@@ -923,6 +923,11 @@ function DashboardMain({
             </CardTitle>
             <Heart className="h-4 w-4 text-primary" />
           </CardHeader>
+          <CardHeader className="flex-shrink-0 pt-0">
+            <CardDescription className="text-xs">
+              Favorites received in the last 90 days
+            </CardDescription>
+          </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
               <div className="space-y-2">
@@ -936,7 +941,7 @@ function DashboardMain({
               <div className="text-center py-8">
                 <Heart className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  No favorites yet. Don't worry someone will like your
+                  No favorites received in the last 90 days. Don't worry someone will like your
                   masterpiece soon!
                 </p>
               </div>
@@ -951,6 +956,11 @@ function DashboardMain({
               Recent Activity
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardHeader className="flex-shrink-0 pt-0">
+            <CardDescription className="text-xs">
+              Projects created or updated in the last 60 days
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.recentActivity.length > 0 ? (
@@ -967,7 +977,7 @@ function DashboardMain({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No recent activity
+                No activity in the last 60 days
               </p>
             )}
           </CardContent>

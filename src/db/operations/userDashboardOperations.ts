@@ -159,7 +159,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .orderBy(desc(projects.total_favorites))
       .limit(1);
 
-    // Get recent activity for user's projects
+    // Get recent activity for user's projects (last 60 days)
     const recentActivity = await db
       .select({
         id: projects.id,
@@ -176,7 +176,8 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .where(
         and(
           eq(projects.user_id, userId),
-          isNull(projects.deleted_at)
+          isNull(projects.deleted_at),
+          sql`${projects.updated_at} > now() - interval '60 days'`
         )
       )
       .orderBy(desc(projects.updated_at))
@@ -376,7 +377,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         project_tag_count: tagCountMap.get(sub.project_id) || 0,
       }));
 
-    // Get recent users who favorited user's projects (Recent Appreciation)
+    // Get recent users who favorited user's projects (Recent Appreciation - last 90 days)
     const recentAppreciation = await db
       .select({
         project_id: projects.id,
@@ -392,7 +393,8 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .where(
         and(
           eq(projects.user_id, userId),
-          isNull(projects.deleted_at)
+          isNull(projects.deleted_at),
+          sql`${favorites.created_at} > now() - interval '90 days'`
         )
       )
       .orderBy(desc(favorites.created_at))
