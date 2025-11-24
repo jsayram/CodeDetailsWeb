@@ -245,6 +245,19 @@ export const ProjectCard = React.memo(
       return getInitials(nameForInitials);
     }, [project.profile]);
 
+    // Get consistent random emoji for project placeholder
+    const projectEmoji = useMemo(() => {
+      const emojis = [
+        "🎨", "🚀", "💡", "⚡", "🔥", "✨", "🌟", "💻", 
+        "🎯", "🎪", "🎭", "🎬", "🎮", "🎲", "🎰", "🎸",
+        "🎹", "🎺", "🎻", "🎼", "🔮", "💎", "🏆", "🚁",
+        "🛸", "🌈", "🦄", "🐉", "🦋", "🌺", "🌸", "🍄"
+      ];
+      // Use project ID to get consistent emoji
+      const hash = project.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return emojis[hash % emojis.length];
+    }, [project.id]);
+
     const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.preventDefault();
       e.stopPropagation();
@@ -579,9 +592,10 @@ export const ProjectCard = React.memo(
           <div className="card-content mx-2 flex flex-col flex-1 min-h-0">
             {/* Image placeholder section */}
             <div className="h-[120px] mb-3 rounded-lg bg-muted/30 border border-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-              <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                <ImageIcon className="h-8 w-8" />
-                <span className="text-xs">No image</span>
+              <div className="flex flex-col items-center justify-center gap-2">
+                <div className="text-7xl">
+                  {projectEmoji}
+                </div>
               </div>
             </div>
 
@@ -597,7 +611,7 @@ export const ProjectCard = React.memo(
             </div>
 
             {/* Description - fills remaining space and fully scrollable */}
-            <div className="flex-1 min-h-0 mb-2 bg-black/10 dark:bg-muted/10 rounded-md p-3">
+            <div className="flex-1 min-h-0 mb-2 rounded-md p-3">
               <div
                 className={`card-description text-xs sm:text-sm leading-relaxed h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 ${
                   project.deleted_at
