@@ -68,6 +68,8 @@ interface ProjectCardProps {
   description: string | null;
   total_favorites: number;
   category: string;
+  tags?: string[];
+  created_at?: Date | null;
 }
 
 interface FavoriteCardProps {
@@ -398,6 +400,8 @@ function ProjectCard({
   description,
   total_favorites,
   category,
+  tags = [],
+  created_at,
 }: ProjectCardProps) {
   const [isNavigating, setIsNavigating] = useState(false);
 
@@ -413,20 +417,43 @@ function ProjectCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <CardHeader className="flex-1 min-h-0">
+        <Badge variant="outline" className={`absolute top-2 left-2 truncate max-w-[140px] category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+          {category}
+        </Badge>
+        {created_at && (
+          <div className="absolute top-2 right-2 text-[10px] text-muted-foreground">
+            <FormattedDate date={created_at} />
+          </div>
+        )}
+        <CardHeader className="flex-1 min-h-0 pb-3 pt-10">
           <div className="flex items-start justify-between h-full">
-            <div className="flex-1 min-h-0 flex flex-col">
-              <CardTitle className="text-base line-clamp-2 mb-2">{title}</CardTitle>
-              <p className="text-xs text-muted-foreground line-clamp-3 flex-1">
-                {description || "No description provided"}
-              </p>
+            <div className="flex-1 min-h-0 flex flex-col justify-between">
+              <CardTitle className="text-base line-clamp-2 mb-3">{title}</CardTitle>
+              {tags && tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.slice(0, 3).map((tag, index) => (
+                    <Badge 
+                      key={index} 
+                      variant="secondary" 
+                      className="text-[10px] px-2 py-0.5 h-5"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {tags.length > 3 && (
+                    <Badge 
+                      variant="secondary" 
+                      className="text-[10px] px-2 py-0.5 h-5"
+                    >
+                      +{tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
-        <CardFooter className="flex justify-between flex-shrink-0 pt-3">
-          <Badge variant="outline" className="truncate max-w-[140px]">
-            <span className="text-primary">❖❖</span>{category}
-          </Badge>
+        <CardFooter className="flex justify-end items-center flex-shrink-0 pt-3 pb-3">
           <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
             <Heart className="h-3 w-3" />
             {total_favorites}
@@ -458,14 +485,20 @@ function FavoriteCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <CardHeader className="flex-1 min-h-0 overflow-hidden">
-          <CardTitle className="text-base line-clamp-2 mb-2">{title}</CardTitle>
-          <p className="text-xs text-muted-foreground truncate">by {owner_username}</p>
+        <Badge variant="outline" className={`absolute top-2 left-2 truncate max-w-[140px] category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+          {category}
+        </Badge>
+        <CardHeader className="flex-1 min-h-0 pb-4 pt-12">
+          <div className="flex items-start justify-between h-full">
+            <div className="flex-1 min-h-0 flex flex-col">
+              <CardTitle className="text-base line-clamp-2 mb-2">{title}</CardTitle>
+              <p className="text-xs text-muted-foreground line-clamp-2 flex-1 mb-2">
+                by {owner_username}
+              </p>
+            </div>
+          </div>
         </CardHeader>
-        <CardFooter className="flex-shrink-0">
-          <Badge variant="outline" className="truncate max-w-[140px]">
-            <span className="text-primary">❖❖</span>{category}
-          </Badge>
+        <CardFooter className="flex justify-end flex-shrink-0 pt-4">
         </CardFooter>
       </Card>
     </Link>
@@ -1048,7 +1081,7 @@ function DashboardMain({
       </div>
 
       {/* My Projects Section */}
-      <Card className="mb-6 flex flex-col max-h-[800px]">
+      <Card className="mb-6 flex flex-col h-[600px]">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
           <CardTitle>My Recent Projects</CardTitle>
           <Code className="h-4 w-4 text-primary" />
@@ -1079,7 +1112,7 @@ function DashboardMain({
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
-        <Card className="mb-6 flex flex-col max-h-[800px]">
+        <Card className="mb-6 flex flex-col h-[600px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <CardTitle>Projects I've Favorited ❤️</CardTitle>
             <Heart className="h-4 w-4 text-red-500 fill-red-500" />
@@ -1097,7 +1130,7 @@ function DashboardMain({
 
       {/* My Tag Submissions */}
       {stats.myTagSubmissions.length > 0 && (
-        <Card className="flex flex-col max-h-[900px]">
+        <Card className="flex flex-col h-[600px]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
             <div className="flex-1">
             <CardTitle className="text-lg">My Tag Submissions</CardTitle>

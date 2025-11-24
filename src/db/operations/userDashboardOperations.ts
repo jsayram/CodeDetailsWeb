@@ -35,6 +35,7 @@ export interface UserDashboardStats {
     total_favorites: number;
     category: string;
     created_at: Date | null;
+    tags: string[];
   }[];
   myFavorites: {
     id: string;
@@ -116,8 +117,8 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         )
       );
 
-    // Get user's projects
-    const myProjects = await db
+    // Get user's projects with tags
+    const myProjectsRaw = await db
       .select({
         id: projects.id,
         slug: projects.slug,
@@ -126,14 +127,18 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         total_favorites: sql<number>`coalesce(${projects.total_favorites}, 0)`,
         category: projects.category,
         created_at: projects.created_at,
+        tags: sql<string[]>`COALESCE(array_agg(${tags.name}) FILTER (WHERE ${tags.name} IS NOT NULL), ARRAY[]::text[])`,
       })
       .from(projects)
+      .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
+      .leftJoin(tags, eq(tags.id, project_tags.tag_id))
       .where(
         and(
           eq(projects.user_id, userId),
           isNull(projects.deleted_at)
         )
       )
+      .groupBy(projects.id, projects.slug, projects.title, projects.description, projects.total_favorites, projects.category, projects.created_at)
       .orderBy(desc(projects.created_at))
       .limit(10);
 
@@ -410,9 +415,10 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         ...activity,
         timestamp: activity.timestamp ? new Date(activity.timestamp) : new Date()
       })),
-      myProjects: myProjects.map(project => ({
+      myProjects: myProjectsRaw.map(project => ({
         ...project,
         total_favorites: Number(project.total_favorites || 0),
+        tags: project.tags || [],
       })),
       myFavorites: myFavorites.map(fav => ({
         ...fav,

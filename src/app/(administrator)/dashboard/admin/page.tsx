@@ -57,7 +57,7 @@ import { Input } from "@/components/ui/input";
 import type { UserProfile } from "@/db/operations/userManagementOperations";
 import { toast } from "sonner";
 import { TopContributorsCard } from "@/components/administrator/TopContributorsCard";
-import { TagPipelineCard } from "@/components/administrator/TagPipelineCard";
+import { TagPipelineCard, TopSubmittersCard, RecentSubmissionsCard } from "@/components/administrator/TagPipelineCard";
 
 // Type definitions
 interface StatsCardProps {
@@ -1606,20 +1606,47 @@ function DashboardContent() {
       </div>
 
       {/* Advanced Analytics Section */}
-      <div className="mt-6 md:mt-8 space-y-6">
-        {/* Top Contributors Leaderboard */}
-        {analyticsLoading ? (
-          <ChartSkeleton />
-        ) : (
-          <TopContributorsCard contributors={topContributors} />
-        )}
+      <div className="mt-6 md:mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          {/* Top Contributors Leaderboard - 60% width (3 columns) */}
+          <div className="md:col-span-3">
+            {analyticsLoading ? (
+              <ChartSkeleton />
+            ) : (
+              <TopContributorsCard contributors={topContributors} />
+            )}
+          </div>
 
-        {/* Tag Pipeline Analytics */}
-        {analyticsLoading ? (
-          <ChartSkeleton />
-        ) : tagPipelineMetrics ? (
-          <TagPipelineCard metrics={tagPipelineMetrics} />
-        ) : null}
+          {/* Tag Pipeline Analytics - 40% width (2 columns) */}
+          <div className="md:col-span-2">
+            {analyticsLoading ? (
+              <ChartSkeleton />
+            ) : tagPipelineMetrics ? (
+              <TagPipelineCard metrics={tagPipelineMetrics} />
+            ) : null}
+          </div>
+        </div>
+
+        {/* Top Submitters and Recent Submissions - Below Pipeline */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          {/* Top Tag Submitters */}
+          <div>
+            {analyticsLoading ? (
+              <ChartSkeleton />
+            ) : tagPipelineMetrics ? (
+              <TopSubmittersCard metrics={tagPipelineMetrics} />
+            ) : null}
+          </div>
+
+          {/* Recent Tag Submissions */}
+          <div>
+            {analyticsLoading ? (
+              <ChartSkeleton />
+            ) : tagPipelineMetrics ? (
+              <RecentSubmissionsCard metrics={tagPipelineMetrics} />
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {/* Admin Test Pages Section */}

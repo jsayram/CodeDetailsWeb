@@ -1,225 +1,253 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
+import React from "react";
+import {
   TrendingUp,
-  GitBranch
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 import type { TagPipelineMetrics } from "@/app/actions/advanced-analytics";
-import { FormattedDate } from "@/lib/FormattedDate";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 interface TagPipelineCardProps {
-  metrics: TagPipelineMetrics;
+  metrics: TagPipelineMetrics | null;
 }
 
 export function TagPipelineCard({ metrics }: TagPipelineCardProps) {
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-50 dark:bg-muted/60 text-yellow-900 dark:text-yellow-500';
-      case 'approved':
-        return 'bg-green-700 dark:bg-green-400 text-white';
-      case 'rejected':
-        return 'bg-red-700 dark:bg-red-400 text-white';
+  if (!metrics) {
+    return (
+      <Card className="h-[600px]">
+        <CardHeader>
+          <CardTitle>Tag Submission Pipeline</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No tag submission data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="h-[600px] flex flex-col">
+      <CardHeader className="flex-shrink-0">
+        <CardTitle className="text-sm font-medium">Tag Submission Pipeline</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <div className="grid grid-cols-1 gap-4">
+          {/* Total Tags */}
+          <div className="p-3 md:p-4 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border border-primary/20">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium">Total Tags</p>
+              </div>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold text-primary">
+              {metrics.totalSubmissions}
+            </p>
+          </div>
+
+          {/* Pending */}
+          <div className="p-3 md:p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
+                <p className="text-sm font-medium">Pending</p>
+              </div>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {metrics.pendingCount}
+            </p>
+          </div>
+
+          {/* Approved */}
+          <div className="p-3 md:p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-500" />
+                <p className="text-sm font-medium">Approved</p>
+              </div>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {metrics.approvedCount}
+            </p>
+          </div>
+
+          {/* Rejected */}
+          <div className="p-3 md:p-4 bg-muted/30 rounded-lg border">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-red-600 dark:text-red-500" />
+                <p className="text-sm font-medium">Rejected</p>
+              </div>
+            </div>
+            <p className="text-2xl md:text-3xl font-bold">
+              {metrics.rejectedCount}
+            </p>
+          </div>
+
+          {/* Avg Review Time */}
+          {metrics.avgReviewTimeHours !== null && (
+            <div className="p-3 md:p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-purple-600 dark:text-purple-500" />
+                  <p className="text-sm font-medium">Avg Review Time</p>
+                </div>
+              </div>
+              <p className="text-2xl md:text-3xl font-bold">
+                {metrics.avgReviewTimeHours.toFixed(1)}h
+              </p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function TopSubmittersCard({ metrics }: TagPipelineCardProps) {
+  if (!metrics) {
+    return (
+      <Card className="h-[600px]">
+        <CardHeader>
+          <CardTitle>Top Tag Submitters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No submitter data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="h-[600px] flex flex-col">
+      <CardHeader className="flex-shrink-0">
+        <CardTitle className="text-sm font-medium">Top Tag Submitters</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <div className="space-y-4">
+          {metrics.topSubmitters.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No submitter data available</p>
+          ) : (
+            metrics.topSubmitters.map((submitter, index) => (
+              <div
+                key={submitter.submitter_email}
+                className="flex items-center gap-3 md:gap-4 p-2.5 md:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex-shrink-0 w-6 h-6 md:w-8 md:h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-xs md:text-sm font-bold text-primary">#{index + 1}</span>
+                  </div>
+                  <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
+                    <AvatarFallback className="text-xs">
+                      {submitter.submitter_email?.slice(0, 2).toUpperCase() || "??"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {submitter.submitter_email || "Unknown User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {submitter.total_submissions} submission{submitter.total_submissions !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
+                  <Badge variant="outline" className="text-xs px-1.5 md:px-2">
+                    <CheckCircle className="h-3 w-3 mr-1 text-green-600 dark:text-green-500" />
+                    {submitter.approved}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 md:px-2">
+                    <Clock className="h-3 w-3 mr-1 text-yellow-600 dark:text-yellow-500" />
+                    {submitter.pending}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 md:px-2">
+                    <XCircle className="h-3 w-3 mr-1 text-red-600 dark:text-red-500" />
+                    {submitter.rejected}
+                  </Badge>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function RecentSubmissionsCard({ metrics }: TagPipelineCardProps) {
+  if (!metrics) {
+    return (
+      <Card className="h-[600px]">
+        <CardHeader>
+          <CardTitle>Recent Tag Submissions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">No recent submissions available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "approved":
+        return <Badge variant="outline" className="text-xs">Approved</Badge>;
+      case "rejected":
+        return <Badge variant="outline" className="text-xs">Rejected</Badge>;
+      case "pending":
       default:
-        return '';
+        return <Badge variant="outline" className="text-xs">Pending</Badge>;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Overview Stats */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <GitBranch className="h-5 w-5 text-primary" />
-            <CardTitle>Tag Submission Pipeline</CardTitle>
-          </div>
-          <CardDescription>
-            Analytics for tag submission workflow and review process
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Total Submissions */}
-            <div className="p-4 rounded-lg bg-muted/20">
-              <p className="text-sm text-muted-foreground">Total Submissions</p>
-              <p className="text-2xl font-bold text-foreground mt-1">
-                {metrics.totalSubmissions}
-              </p>
-            </div>
-
-            {/* Pending */}
-            <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-yellow-600 dark:text-yellow-500" />
-                <p className="text-sm text-yellow-800 dark:text-yellow-500">Pending</p>
-              </div>
-              <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-400 mt-1">
-                {metrics.pendingCount}
-              </p>
-              <p className="text-xs text-yellow-700 dark:text-yellow-600 mt-1">
-                {metrics.submissionsByStatus.find(s => s.status === 'pending')?.percentage || 0}% of total
-              </p>
-            </div>
-
-            {/* Approved */}
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-500" />
-                <p className="text-sm text-green-800 dark:text-green-500">Approved</p>
-              </div>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-400 mt-1">
-                {metrics.approvedCount}
-              </p>
-              <p className="text-xs text-green-700 dark:text-green-600 mt-1">
-                {metrics.approvalRate}% approval rate
-              </p>
-            </div>
-
-            {/* Rejected */}
-            <div className="p-4 rounded-lg bg-red-50 dark:bg-red-950/20">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-600 dark:text-red-500" />
-                <p className="text-sm text-red-800 dark:text-red-500">Rejected</p>
-              </div>
-              <p className="text-2xl font-bold text-red-900 dark:text-red-400 mt-1">
-                {metrics.rejectedCount}
-              </p>
-              <p className="text-xs text-red-700 dark:text-red-600 mt-1">
-                {metrics.rejectionRate}% rejection rate
-              </p>
-            </div>
-          </div>
-
-          {/* Average Review Time */}
-          {metrics.avgReviewTimeHours !== null && (
-            <div className="mt-4 p-4 rounded-lg bg-muted/20 border border-muted-foreground/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                  <p className="text-sm font-medium">Average Review Time</p>
+    <Card className="h-[600px] flex flex-col">
+      <CardHeader className="flex-shrink-0">
+        <CardTitle className="text-sm font-medium">Recent Tag Submissions</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <div className="space-y-4">
+          {metrics.recentSubmissions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recent submissions</p>
+          ) : (
+            metrics.recentSubmissions.map((submission) => (
+              <div
+                key={submission.id}
+                className="p-2.5 md:p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <Badge variant="secondary" className="text-xs">{submission.tag_name}</Badge>
+                      {getStatusBadge(submission.status)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-5 w-5 md:h-6 md:w-6 flex-shrink-0">
+                        <AvatarFallback className="text-xs">
+                          {submission.submitter_email?.slice(0, 2).toUpperCase() || "??"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {submission.submitter_email || "Unknown User"}
+                      </p>
+                      <span className="text-xs text-muted-foreground flex-shrink-0">•</span>
+                      <p className="text-xs text-muted-foreground flex-shrink-0">
+                        {new Date(submission.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-lg font-bold text-primary">
-                  {metrics.avgReviewTimeHours < 1 
-                    ? `${Math.round(metrics.avgReviewTimeHours * 60)} minutes`
-                    : metrics.avgReviewTimeHours < 24
-                    ? `${metrics.avgReviewTimeHours.toFixed(1)} hours`
-                    : `${(metrics.avgReviewTimeHours / 24).toFixed(1)} days`
-                  }
-                </p>
               </div>
-            </div>
+            ))
           )}
-        </CardContent>
-      </Card>
-
-      {/* Top Submitters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Top Tag Submitters</CardTitle>
-          <CardDescription>
-            Most active users submitting tag suggestions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {metrics.topSubmitters.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No submissions yet
-              </p>
-            ) : (
-              metrics.topSubmitters.map((submitter, index) => (
-                <div
-                  key={submitter.submitter_email}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/20"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="text-sm font-semibold text-muted-foreground min-w-[24px]">
-                      #{index + 1}
-                    </span>
-                    <p className="text-sm font-medium truncate">
-                      {submitter.submitter_email}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-xs">
-                    <div className="text-center min-w-[50px]">
-                      <p className="text-muted-foreground">Total</p>
-                      <p className="font-bold">{submitter.total_submissions}</p>
-                    </div>
-                    <div className="text-center min-w-[50px]">
-                      <p className="text-green-600 dark:text-green-500">Approved</p>
-                      <p className="font-bold text-green-700 dark:text-green-400">
-                        {submitter.approved}
-                      </p>
-                    </div>
-                    <div className="text-center min-w-[60px]">
-                      <p className="text-muted-foreground">Rate</p>
-                      <p className="font-bold text-primary">
-                        {submitter.approval_rate}%
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Submissions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Recent Tag Submissions</CardTitle>
-          <CardDescription>
-            Latest 50 tag submissions with review status
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {metrics.recentSubmissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No recent submissions
-              </p>
-            ) : (
-              metrics.recentSubmissions.slice(0, 20).map((submission) => (
-                <div
-                  key={submission.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Badge className={getStatusBadgeStyle(submission.status)}>
-                      <span className="opacity-70">#</span>{submission.tag_name}
-                    </Badge>
-                    <p className="text-sm text-muted-foreground truncate">
-                      by {submission.submitter_email}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <FormattedDate date={submission.created_at} />
-                    {submission.review_time_hours !== null && (
-                      <span className="text-primary font-medium">
-                        Reviewed in {submission.review_time_hours < 1 
-                          ? `${Math.round(submission.review_time_hours * 60)}m`
-                          : submission.review_time_hours < 24
-                          ? `${submission.review_time_hours.toFixed(1)}h`
-                          : `${(submission.review_time_hours / 24).toFixed(1)}d`
-                        }
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
