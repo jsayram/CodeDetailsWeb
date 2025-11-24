@@ -418,15 +418,21 @@ function ProjectCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <Badge variant="outline" className={`absolute top-2 left-2 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+        <Badge variant="outline" className={`absolute top-3 left-3 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
           {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
         {created_at && (
-          <div className="absolute top-2 right-2 text-[10px] text-muted-foreground">
-            <FormattedDate date={created_at} />
+          <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+            <div className="text-[10px] text-muted-foreground">
+              <FormattedDate date={created_at} />
+            </div>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Heart className={`h-3 w-3 ${total_favorites > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+              {total_favorites}
+            </div>
           </div>
         )}
-        <CardHeader className="flex-1 min-h-0 pb-3 pt-10">
+        <CardHeader className="flex-1 min-h-0 pb-3 pt-12 px-4">
           <div className="flex items-start justify-between h-full">
             <div className="flex-1 min-h-0 flex flex-col justify-between">
               <CardTitle className="text-base line-clamp-2 mb-3">{title}</CardTitle>
@@ -438,7 +444,7 @@ function ProjectCard({
                       variant="secondary" 
                       className="text-[10px] px-2 py-0.5 h-5"
                     >
-                      {tag}
+                      #{tag}
                     </Badge>
                   ))}
                   {tags.length > 3 && (
@@ -455,10 +461,6 @@ function ProjectCard({
           </div>
         </CardHeader>
         <CardFooter className="flex justify-end items-center flex-shrink-0 pt-3 pb-3">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-shrink-0">
-            <Heart className="h-3 w-3" />
-            {total_favorites}
-          </div>
         </CardFooter>
       </Card>
     </Link>
