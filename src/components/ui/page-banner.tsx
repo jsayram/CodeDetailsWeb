@@ -10,7 +10,7 @@ interface PageBannerProps {
   icon?: React.ReactNode; // Made icon optional
   userName?: string; // Made optional since community banners won't have a user
   bannerTitle: string;
-  description?: string; // Added description prop
+  description?: string | React.ReactNode; // Updated to accept React elements
   userTier?: string; // Made optional for community banners
   gradientFrom: string;
   gradientVia?: string;
@@ -83,9 +83,9 @@ export function PageBanner({
             )}
           </h2>
           {description && (
-            <p className="text-sm 3xl:text-base 4xl:text-lg text-foreground mt-2">
+            <div className="text-sm 3xl:text-base 4xl:text-lg text-foreground mt-2">
               {description}
-            </p>
+            </div>
           )}
         </div>
         {isUserBanner && userTier && tierBgColor && (

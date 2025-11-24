@@ -138,7 +138,7 @@ function MyProjectsCard({ totalProjects, activeThisWeek }: { totalProjects: numb
   const [isNavigating, setIsNavigating] = useState(false);
 
   return (
-    <Card className="h-[250px] flex flex-col">
+    <Card className="stat-card h-[250px] flex flex-col">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
         <CardTitle className="text-sm font-medium">My Projects</CardTitle>
         <Code className="h-4 w-4 text-primary" />
@@ -488,20 +488,20 @@ function FavoriteCard({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <Badge variant="outline" className={`absolute top-2 left-2 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
+        <Badge variant="outline" className={`absolute top-3 left-3 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
           {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
-        <CardHeader className="flex-1 min-h-0 pb-4 pt-12">
+        <CardHeader className="flex-1 min-h-0 pb-3 pt-12 px-4">
           <div className="flex items-start justify-between h-full">
-            <div className="flex-1 min-h-0 flex flex-col">
-              <CardTitle className="text-base line-clamp-2 mb-2">{title}</CardTitle>
-              <p className="text-xs text-muted-foreground line-clamp-2 flex-1 mb-2">
+            <div className="flex-1 min-h-0 flex flex-col justify-between">
+              <CardTitle className="text-base line-clamp-2 mb-3">{title}</CardTitle>
+              <p className="text-xs text-muted-foreground line-clamp-2">
                 by {owner_username}
               </p>
             </div>
           </div>
         </CardHeader>
-        <CardFooter className="flex justify-end flex-shrink-0 pt-4">
+        <CardFooter className="flex justify-end flex-shrink-0 pt-3 pb-3">
         </CardFooter>
       </Card>
     </Link>
@@ -869,29 +869,13 @@ function DashboardMain({
             bannerTitle="Dashboard - Your Personal Analytics Hub (Private)"
             description={
               stats.totalProjects > 0
-                ? `Welcome back! You've shared ${stats.totalProjects} amazing project${
-                    stats.totalProjects > 1 ? "s" : ""
-                  } with the community, collectively receiving ${stats.totalFavorites} favorite${
-                    stats.totalFavorites !== 1 ? "s" : ""
-                  } from appreciative developers. You've explored ${stats.myFavorites.length} project${
-                    stats.myFavorites.length !== 1 ? "s" : ""
-                  } and given ${stats.totalFavoritesGiven} favorite${
-                    stats.totalFavoritesGiven !== 1 ? "s" : ""
-                  } to support other creators. ${
-                    stats.projectStats.activeThisWeek > 0
-                      ? `${stats.projectStats.activeThisWeek} of your project${
-                          stats.projectStats.activeThisWeek > 1 ? "s were" : " was"
-                        } active this week. `
-                      : ""
-                  }${
-                    stats.allTags.length > 0
-                      ? `You've organized your work with ${stats.allTags.length} tag${
-                          stats.allTags.length > 1 ? "s" : ""
-                        }${stats.myTagSubmissions.length > 0 ? ` and have ${stats.myTagSubmissions.length} tag submission${
-                          stats.myTagSubmissions.length > 1 ? "s" : ""
-                        } pending review` : ""}.`
-                      : ""
-                  } Keep up the great work! This dashboard is only visible to you.`
+                ? (
+                  <div className="space-y-1">
+                    <div>👋 Welcome back!</div>
+                    <div>📂 You have shared <a href="#my-projects-card" className="font-semibold text-primary hover:underline cursor-pointer scroll-smooth" onClick={(e) => { e.preventDefault(); const el = document.getElementById('my-projects-card'); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); const card = el.querySelector('.stat-card'); if (card) { setTimeout(() => card?.classList.add('highlight-flash'), 500); setTimeout(() => card?.classList.remove('highlight-flash'), 3000); } } }}>{stats.totalProjects}</a> project{stats.totalProjects > 1 ? "s" : ""} with the community</div>
+                    <div className="pt-2">🔒 This dashboard is only visible to you. Keep up the great work! </div>
+                  </div>
+                )
                 : "Welcome back! Your creative journey starts here. Share your first project and inspire the community! This dashboard is only visible to you."
             }
             isUserBanner={false}
@@ -906,24 +890,30 @@ function DashboardMain({
 
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
-        <MyProjectsCard 
-          totalProjects={stats.totalProjects} 
-          activeThisWeek={stats.projectStats.activeThisWeek}
-        />
-        <FavoritesReceivedCard 
-          totalFavorites={stats.totalFavorites}
-          projectsWithFavorites={stats.projectsWithFavorites}
-        />
-        <FavoritesGivenCard totalFavoritesGiven={stats.totalFavoritesGiven} />
-        <TagsCard
+        <div id="my-projects-card" className="scroll-mt-20">
+          <MyProjectsCard 
+            totalProjects={stats.totalProjects} 
+            activeThisWeek={stats.projectStats.activeThisWeek}
+          />
+        </div>
+        <div id="favorites-received-card" className="scroll-mt-20">
+          <FavoritesReceivedCard
+            totalFavorites={stats.totalFavorites}
+            projectsWithFavorites={stats.projectsWithFavorites}
+          />
+        </div>
+        <div id="favorites-given-card" className="scroll-mt-20">
+          <FavoritesGivenCard totalFavoritesGiven={stats.totalFavoritesGiven} />
+        </div>
+        <div id="my-tags-card" className="scroll-mt-20">
+          <TagsCard
           title="My Tags"
           value={(stats.allTags?.length || 0).toString()}
           icon={<TagIcon className="h-4 w-4 text-primary" />}
-          tags={stats.allTags || []}
-        />
-      </div>
-
-      {/* Main Content - Three Columns */}
+            tags={stats.allTags || []}
+          />
+        </div>
+      </div>      {/* Main Content - Three Columns */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 mb-6">
         {/* Left Column - Recent Appreciation */}
         <Card className="md:col-span-2 xl:col-span-1 flex flex-col h-[600px]">
@@ -1084,7 +1074,7 @@ function DashboardMain({
       </div>
 
       {/* My Projects Section */}
-      <Card className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px]">
+      <Card id="my-projects" className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
           <div className="flex-1">
             <CardTitle>My Recent Projects ({Math.min(stats.myProjects.length, 8)})</CardTitle>
@@ -1120,7 +1110,7 @@ function DashboardMain({
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
-        <Card className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px]">
+        <Card id="favorites-given" className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <div className="flex-1">
               <CardTitle>Projects I've Favorited ❤️ ({Math.min(stats.myFavorites.length, 8)})</CardTitle>
@@ -1143,7 +1133,7 @@ function DashboardMain({
 
       {/* My Tag Submissions */}
       {stats.myTagSubmissions.length > 0 && (
-        <Card className="flex flex-col h-[600px] 3xl:h-[1200px]">
+        <Card id="tag-submissions" className="flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
             <div className="flex-1">
             <CardTitle className="text-lg">My Tag Submissions</CardTitle>
