@@ -318,6 +318,9 @@ export function TagSubmissionModal({
                       ({currentTagCount}/{MAX_PROJECT_TAGS} tags used)
                     </span>
                   </p>
+                  <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded-md border border-blue-200 dark:border-blue-900">
+                    💡 <strong>Why {MAX_PROJECT_TAGS} tags?</strong> Research shows 6-15 tags is the sweet spot for discoverability. Too few limits searchability, too many dilutes relevance. {MAX_PROJECT_TAGS} tags perfectly balance detailed categorization with optimal cognitive processing.
+                  </p>
                   {remainingTagSlots > 0 ? (
                     <p className="text-sm bg-muted/50 p-2 rounded-md">
                       You can request up to{" "}
