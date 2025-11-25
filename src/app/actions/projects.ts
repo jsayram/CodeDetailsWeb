@@ -607,3 +607,27 @@ export async function removeProjectFavorite(
     };
   }
 }
+
+export async function getProjectTagCounts(projectIds: string[]) {
+  return executeQuery(async (db) => {
+    if (projectIds.length === 0) return {};
+
+    const { project_tags } = await import("@/db/schema/project_tags");
+    
+    const tagCounts = await db
+      .select({
+        project_id: project_tags.project_id,
+        count: sql<number>`count(*)`,
+      })
+      .from(project_tags)
+      .where(sql`${project_tags.project_id} IN (${sql.join(projectIds.map(id => sql.raw(`'${id}'`)), sql.raw(', '))})`)
+      .groupBy(project_tags.project_id);
+
+    const result: Record<string, number> = {};
+    tagCounts.forEach(({ project_id, count }) => {
+      result[project_id] = Number(count);
+    });
+
+    return result;
+  });
+}

@@ -142,7 +142,11 @@ export async function getPendingTagSubmissions() {
   });
 }
 
-export async function approveTagSubmission(submissionId: string, adminNotes?: string) {
+export async function approveTagSubmission(
+  submissionId: string, 
+  adminNotes?: string,
+  approvalType: "system" | "project" = "project"
+) {
   return executeQuery(async (db) => {
     // Get the submission
     const [submission] = await db
@@ -152,16 +156,18 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
 
     if (!submission) throw new Error("Submission not found");
 
-    // Count current project tags
-    const currentProjectTags = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(project_tags)
-      .where(eq(project_tags.project_id, submission.project_id));
+    // Count current project tags only if we're approving for the project
+    if (approvalType === "project") {
+      const currentProjectTags = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(project_tags)
+        .where(eq(project_tags.project_id, submission.project_id));
 
-    const currentTagCount = Number(currentProjectTags[0]?.count) || 0;
+      const currentTagCount = Number(currentProjectTags[0]?.count) || 0;
 
-    if (currentTagCount >= MAX_PROJECT_TAGS) {
-      throw new Error(`Cannot approve tag - project already has the maximum of ${MAX_PROJECT_TAGS} tags`);
+      if (currentTagCount >= MAX_PROJECT_TAGS) {
+        throw new Error(`Cannot approve tag for project - project already has the maximum of ${MAX_PROJECT_TAGS} tags`);
+      }
     }
 
     // Create or get the tag
@@ -205,14 +211,16 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
         .update(tag_submissions)
         .set({
           status: "approved",
-          admin_notes: adminNotes,
+          admin_notes: adminNotes || (approvalType === "system" 
+            ? "Approved for system-wide use only" 
+            : "Approved for system and project"),
           reviewed_at: new Date(),
         })
         .where(eq(tag_submissions.id, submissionId))
     );
 
-    // Only create project-tag association if it doesn't exist
-    if (existingProjectTag.length === 0) {
+    // Only create project-tag association if approving for project AND it doesn't exist
+    if (approvalType === "project" && existingProjectTag.length === 0) {
       updates.push(
         db.insert(project_tags).values({
           project_id: submission.project_id,

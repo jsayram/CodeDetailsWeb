@@ -91,6 +91,8 @@ interface TagSubmissionCardProps {
   created_at: Date | null;
   is_now_available: boolean;
   project_tag_count: number;
+  is_on_original_project?: boolean;
+  other_projects_using_tag?: { slug: string; title: string }[];
 }
 
 interface RecentAppreciationItemProps {
@@ -519,6 +521,8 @@ function TagSubmissionCard({
   created_at,
   is_now_available,
   project_tag_count,
+  is_on_original_project,
+  other_projects_using_tag,
 }: TagSubmissionCardProps) {
   const [isNavigating, setIsNavigating] = useState(false);
   
@@ -536,9 +540,22 @@ function TagSubmissionCard({
     <div className="p-3 rounded-lg bg-muted/30">
       <div className="flex items-center justify-between mb-2 gap-2">
         <div className="flex-1 min-w-0 space-y-2">
-          <Badge variant="outline" className={badgeClassName}>
-            <span className="opacity-70">#</span>{tag_name}
-          </Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Badge variant="outline" className={badgeClassName}>
+              <span className="opacity-70">#</span>{tag_name}
+            </Badge>
+            {status === "approved" && (
+              is_on_original_project ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800 text-xs">
+                  ✅ In Project
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-xs">
+                  ⚠️ System Only
+                </Badge>
+              )
+            )}
+          </div>
           <Link
             href={`/projects/${project_slug}`}
             className="cursor-pointer block"
@@ -554,10 +571,28 @@ function TagSubmissionCard({
                 {isNavigating && (
                   <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mt-0.5" />
                 )}
-                <span className="truncate text-xs">for {project_title}</span>
+                <span className="truncate text-xs">
+                  Originally submitted for: {project_title}
+                </span>
               </div>
             </Button>
           </Link>
+          {status === "approved" && other_projects_using_tag && other_projects_using_tag.length > 0 && (
+            <div className="text-xs text-muted-foreground pt-1">
+              <span className="font-medium">Also used in:</span>{" "}
+              {other_projects_using_tag.map((proj, idx) => (
+                <span key={proj.slug}>
+                  <Link 
+                    href={`/projects/${proj.slug}`}
+                    className="text-primary hover:underline"
+                  >
+                    {proj.title}
+                  </Link>
+                  {idx < other_projects_using_tag.length - 1 && ", "}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {is_now_available && (

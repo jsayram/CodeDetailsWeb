@@ -74,6 +74,8 @@ export interface UserDashboardStats {
     created_at: Date | null;
     is_now_available: boolean;
     project_tag_count: number;
+    is_on_original_project?: boolean;
+    other_projects_using_tag?: { slug: string; title: string }[];
   }[];
   recentAppreciation: {
     project_id: string;
@@ -352,30 +354,89 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
 
     // Filter to only show the latest submission per tag name
     const seenTags = new Set<string>();
-    const myTagSubmissions = allSubmissions
-      .filter(submission => {
-        const key = `${submission.tag_name}`;
-        if (seenTags.has(key)) {
-          return false;
-        }
-        seenTags.add(key);
-        return true;
-      })
-      .slice(0, 10)
-      .map(sub => ({
-        id: sub.id,
-        tag_name: sub.tag_name,
-        project_id: sub.project_id,
-        project_slug: sub.project_slug,
-        project_title: sub.project_title,
-        status: sub.status,
-        admin_notes: sub.admin_notes,
-        created_at: sub.created_at,
-        // Flag if this rejected tag is now available system-wide
-        is_now_available: sub.status === 'rejected' && approvedTagNames.has(sub.tag_name),
-        // Current tag count for the project
-        project_tag_count: tagCountMap.get(sub.project_id) || 0,
-      }));
+    const myTagSubmissions = await Promise.all(
+      allSubmissions
+        .filter(submission => {
+          const key = `${submission.tag_name}`;
+          if (seenTags.has(key)) {
+            return false;
+          }
+          seenTags.add(key);
+          return true;
+        })
+        .slice(0, 10)
+        .map(async sub => {
+          let is_on_original_project = false;
+          let other_projects_using_tag: { slug: string; title: string }[] = [];
+
+          // For approved tags, check if tag is on original project and find other projects using it
+          if (sub.status === 'approved') {
+            // Find the tag ID
+            const tagRecord = await db
+              .select({ id: tags.id })
+              .from(tags)
+              .where(eq(tags.name, sub.tag_name))
+              .limit(1);
+
+            if (tagRecord.length > 0) {
+              const tagId = tagRecord[0].id;
+
+              // Check if tag is on original project
+              const originalProjectTag = await db
+                .select()
+                .from(project_tags)
+                .where(
+                  and(
+                    eq(project_tags.project_id, sub.project_id),
+                    eq(project_tags.tag_id, tagId)
+                  )
+                )
+                .limit(1);
+
+              is_on_original_project = originalProjectTag.length > 0;
+
+              // Find all user's projects using this tag (excluding the original)
+              const projectsUsingTag = await db
+                .select({
+                  slug: projects.slug,
+                  title: projects.title,
+                })
+                .from(project_tags)
+                .innerJoin(projects, eq(projects.id, project_tags.project_id))
+                .where(
+                  and(
+                    eq(project_tags.tag_id, tagId),
+                    eq(projects.user_id, userId),
+                    isNull(projects.deleted_at),
+                    sql`${projects.id} != ${sub.project_id}`
+                  )
+                )
+                .orderBy(projects.title);
+
+              other_projects_using_tag = projectsUsingTag;
+            }
+          }
+
+          return {
+            id: sub.id,
+            tag_name: sub.tag_name,
+            project_id: sub.project_id,
+            project_slug: sub.project_slug,
+            project_title: sub.project_title,
+            status: sub.status,
+            admin_notes: sub.admin_notes,
+            created_at: sub.created_at,
+            // Flag if this rejected tag is now available system-wide
+            is_now_available: sub.status === 'rejected' && approvedTagNames.has(sub.tag_name),
+            // Current tag count for the project
+            project_tag_count: tagCountMap.get(sub.project_id) || 0,
+            // For approved tags: whether it's on the original project
+            is_on_original_project,
+            // For approved tags: other user projects using this tag
+            other_projects_using_tag,
+          };
+        })
+    );
 
     // Get recent users who favorited user's projects (Recent Appreciation - last 90 days)
     const recentAppreciation = await db

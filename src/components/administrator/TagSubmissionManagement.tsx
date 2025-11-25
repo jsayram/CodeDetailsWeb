@@ -27,6 +27,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useTagCache } from "@/hooks/use-tag-cache";
+import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import Link from "next/link";
+import { getProjectTagCounts } from "@/app/actions/projects";
 
 interface GroupedTagSubmission {
   tag_name: string;
@@ -46,6 +49,7 @@ export function TagSubmissionManagement({
   const [isProcessing, setIsProcessing] = useState<Record<string, boolean>>({});
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
   const [projectTagCounts, setProjectTagCounts] = useState<Record<string, number>>({});
+  const [projectSlugs, setProjectSlugs] = useState<Record<string, string>>({});
   const { refreshCache } = useTagCache();
 
   const handleApprove = async (groupedTag: GroupedTagSubmission) => {
@@ -116,21 +120,26 @@ export function TagSubmissionManagement({
     }
   };
 
-  const handleIndividualApprove = async (submissionId: string, tagName: string) => {
+  const handleIndividualApprove = async (
+    submissionId: string, 
+    tagName: string,
+    approvalType: "system" | "project"
+  ) => {
     if (isProcessing[submissionId]) return;
     
     setIsProcessing((prev) => ({ ...prev, [submissionId]: true }));
 
     try {
-      await approveTagSubmission(submissionId, adminNotes[submissionId]);
-      toast.success(`Tag "${tagName}" approved successfully`);
+      await approveTagSubmission(submissionId, adminNotes[submissionId], approvalType);
+      const approvalMessage = approvalType === "system" 
+        ? `Tag "${tagName}" approved for system only`
+        : `Tag "${tagName}" approved for system and project`;
+      toast.success(approvalMessage);
       
-      // Refresh the tag cache and wait for it to complete
+      // Refresh the tag cache
       await refreshCache();
       
-      // Force an immediate refresh of project data
-      window.location.reload();
-
+      // Update state to remove the approved submission
       setSubmissions((prevSubmissions) => {
         const updatedSubmissions = prevSubmissions
           .map((group) => ({
@@ -191,15 +200,23 @@ export function TagSubmissionManagement({
 
       const uniqueProjectIds = Array.from(new Set(projectIds));
       const projectNameMap: Record<string, string> = {};
+      const projectSlugMap: Record<string, string> = {};
 
+      // Fetch project details
       for (const projectId of uniqueProjectIds) {
         const project = await getProjectById(projectId);
         if (project) {
           projectNameMap[projectId] = project.title;
+          projectSlugMap[projectId] = project.slug;
         }
       }
 
+      // Fetch tag counts for all projects at once
+      const projectTagCountMap = await getProjectTagCounts(uniqueProjectIds);
+
       setProjectNames((prev) => ({ ...prev, ...projectNameMap }));
+      setProjectTagCounts((prev) => ({ ...prev, ...projectTagCountMap }));
+      setProjectSlugs((prev) => ({ ...prev, ...projectSlugMap }));
     };
 
     if (submissions.length > 0) {
@@ -242,17 +259,41 @@ export function TagSubmissionManagement({
                   <AccordionTrigger className="text-sm py-2">View All Submissions</AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-3">
-                      {groupedTag.submissions.map((submission) => (
+                      {groupedTag.submissions.map((submission) => {
+                        const tagCount = projectTagCounts[submission.project_id] || 0;
+                        const isAtMax = tagCount >= MAX_PROJECT_TAGS;
+                        
+                        return (
                         <div
                           key={submission.id}
-                          className="border rounded-lg p-3 space-y-3 overflow-hidden"
+                          className={`border rounded-lg p-3 space-y-3 overflow-hidden ${
+                            isAtMax ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''
+                          }`}
                         >
                           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                             <div className="min-w-0 flex-1 space-y-1">
-                              <p className="font-medium text-sm truncate">
-                                Project:{" "}
-                                {projectNames[submission.project_id] || "Loading..."}
-                              </p>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-sm">
+                                  Project:{" "}
+                                  {projectNames[submission.project_id] && projectSlugs[submission.project_id] ? (
+                                    <Link 
+                                      href={`/projects/${projectSlugs[submission.project_id]}`}
+                                      className="text-primary hover:underline"
+                                      target="_blank"
+                                    >
+                                      {projectNames[submission.project_id]}
+                                    </Link>
+                                  ) : (
+                                    projectNames[submission.project_id] || "Loading..."
+                                  )}
+                                </p>
+                                <Badge 
+                                  variant={isAtMax ? "destructive" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {tagCount}/{MAX_PROJECT_TAGS} tags
+                                </Badge>
+                              </div>
                               <p className="text-xs text-muted-foreground truncate">
                                 Submitted by: {submission.submitter_email}
                               </p>
@@ -264,6 +305,11 @@ export function TagSubmissionManagement({
                                   "N/A"
                                 )}
                               </p>
+                              {isAtMax && (
+                                <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
+                                  ⚠️ Project has maximum tags - can only approve for system
+                                </p>
+                              )}
                             </div>
                             <div className="flex gap-2 flex-shrink-0">
                               <Button
@@ -272,13 +318,30 @@ export function TagSubmissionManagement({
                                 onClick={() =>
                                   handleIndividualApprove(
                                     submission.id,
-                                    groupedTag.tag_name
+                                    groupedTag.tag_name,
+                                    "system"
                                   )
                                 }
                                 disabled={isProcessing[submission.id]}
-                                className="flex-1 sm:flex-initial"
+                                className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-xs"
                               >
-                                Approve
+                                Approve for System
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() =>
+                                  handleIndividualApprove(
+                                    submission.id,
+                                    groupedTag.tag_name,
+                                    "project"
+                                  )
+                                }
+                                disabled={isProcessing[submission.id] || isAtMax}
+                                className="flex-1 sm:flex-initial text-xs"
+                                title={isAtMax ? "Project has maximum tags (15/15)" : "Approve and add to project"}
+                              >
+                                Approve for Project
                               </Button>
                               <Button
                                 variant="outline"
@@ -287,7 +350,7 @@ export function TagSubmissionManagement({
                                   handleReject(submission.id, groupedTag.tag_name)
                                 }
                                 disabled={isProcessing[submission.id]}
-                                className="flex-1 sm:flex-initial"
+                                className="flex-1 sm:flex-initial text-xs"
                               >
                                 Reject
                               </Button>
@@ -324,7 +387,8 @@ export function TagSubmissionManagement({
                             />
                           </div>
                         </div>
-                      ))}
+                      )}
+                    )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>
