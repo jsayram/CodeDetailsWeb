@@ -42,6 +42,26 @@ export function PageBanner({
   isUserBanner = true, // Default to user banner for backward compatibility
   logo,
 }: PageBannerProps) {
+  // Extract first name or fallback to username/email prefix
+  const getDisplayName = (name: string | undefined): string => {
+    if (!name) return "User";
+    
+    // If it contains a space, assume it's a full name and extract first name
+    if (name.includes(" ")) {
+      return name.split(" ")[0];
+    }
+    
+    // If it contains @, it's an email, extract the part before @
+    if (name.includes("@")) {
+      return name.split("@")[0];
+    }
+    
+    // Otherwise, return as is (it's likely a username)
+    return name;
+  };
+
+  const displayName = getDisplayName(userName);
+
   return (
     <div className="flex justify-between items-center mb-4">
       <div
@@ -67,7 +87,7 @@ export function PageBanner({
           <h2 className="text-3xl 3xl:text-4xl 4xl:text-5xl font-extrabold text-foreground dark:text-foreground drop-shadow-lg flex flex-col md:flex-row items-center gap-2">
             {isUserBanner ? (
               <>
-                {userName}&apos;s{" "}
+                {displayName}&apos;s{" "}
                 <span
                   className={`bg-gradient-to-r ${textGradient} bg-clip-text text-transparent animate-gradient-x`}
                 >

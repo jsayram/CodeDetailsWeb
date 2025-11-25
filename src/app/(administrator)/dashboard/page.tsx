@@ -5,7 +5,7 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
-import { SignedIn } from "@clerk/nextjs";
+import { SignedIn, useUser } from "@clerk/nextjs";
 import {
   Card,
   CardContent,
@@ -837,6 +837,7 @@ function DashboardMain({
   stats: UserDashboardStats;
   refresh: () => void;
 }) {
+  const { user } = useUser();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -866,19 +867,18 @@ function DashboardMain({
           </div>
           <PageBanner
             icon={<PieChart className="h-8 w-8 text-purple-500" />}
-            bannerTitle="Dashboard - Your Personal Analytics Hub (Private)"
+            userName={user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress || "User"}
+            bannerTitle="Personal Analytics Dashboard"
             description={
               stats.totalProjects > 0
                 ? (
                   <div className="space-y-1">
-                    <div>👋 Welcome back!</div>
                     <div>📂 You have shared <a href="#my-projects-card" className="font-semibold text-primary hover:underline cursor-pointer scroll-smooth" onClick={(e) => { e.preventDefault(); const el = document.getElementById('my-projects-card'); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); const card = el.querySelector('.stat-card'); if (card) { setTimeout(() => card?.classList.add('highlight-flash'), 500); setTimeout(() => card?.classList.remove('highlight-flash'), 3000); } } }}>{stats.totalProjects}</a> project{stats.totalProjects > 1 ? "s" : ""} with the community</div>
-                    <div className="pt-2">🔒 This dashboard is only visible to you. Keep up the great work! </div>
                   </div>
                 )
                 : "Welcome back! Your creative journey starts here. Share your first project and inspire the community! This dashboard is only visible to you."
             }
-            isUserBanner={false}
+            isUserBanner={true}
             gradientFrom="purple-900"
             gradientVia="indigo-800"
             gradientTo="violet-800"
