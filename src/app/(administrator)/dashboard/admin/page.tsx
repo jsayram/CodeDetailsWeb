@@ -859,10 +859,15 @@ function EditableUserItem({
                     <HighlightText text={user.tier} highlight={searchQuery} />
                   </span>
                 )}
+                {user.created_at && (
+                  <p className="sm:hidden text-xs text-muted-foreground flex-shrink-0">
+                    <FormattedDate date={user.created_at} format="date" />
+                  </p>
+                )}
               </div>
             </div>
             {user.created_at && (
-              <p className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap">
+              <p className="hidden sm:block text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap">
                 <FormattedDate date={user.created_at} format="date" />
               </p>
             )}
@@ -1013,37 +1018,39 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             </CardTitle>
             <Users className="h-4 w-4 text-primary" />
           </div>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 h-4 sm:h-5 w-4 sm:w-5 text-muted-foreground transition-colors duration-200" />
               <Input
                 placeholder="Search by username, email, tier, or ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
+                className="pl-9 sm:pl-12 h-10 sm:h-12 text-sm sm:text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
               />
             </div>
-            <Select value={tierFilter} onValueChange={(value: any) => setTierFilter(value)}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="All Tiers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Tiers</SelectItem>
-                <SelectItem value="free">Free</SelectItem>
-                <SelectItem value="pro">Pro</SelectItem>
-                <SelectItem value="diamond">Diamond</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="recent-edit">Recently Edited</SelectItem>
-                <SelectItem value="alphabetical">Alphabetical</SelectItem>
-                <SelectItem value="most-active">Most Active</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={tierFilter} onValueChange={(value: any) => setTierFilter(value)}>
+                <SelectTrigger className="w-[120px] sm:w-[140px] h-10 sm:h-12 text-sm">
+                  <SelectValue placeholder="All Tiers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tiers</SelectItem>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="pro">Pro</SelectItem>
+                  <SelectItem value="diamond">Diamond</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <SelectTrigger className="w-[140px] sm:w-[180px] h-10 sm:h-12 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recent-edit">Recently Edited</SelectItem>
+                  <SelectItem value="alphabetical">Alphabetical</SelectItem>
+                  <SelectItem value="most-active">Most Active</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <p className="text-xs text-muted-foreground">
             Showing {users.length} of {total} users {debouncedSearch && `(filtered)`}
@@ -1123,6 +1130,18 @@ function DashboardContent() {
   const [analyticsLoading, setAnalyticsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [isClearingCache, setIsClearingCache] = React.useState(false);
+  
+  // Individual card refresh states
+  const [refreshingStats, setRefreshingStats] = React.useState(false);
+  const [refreshingActivity, setRefreshingActivity] = React.useState(false);
+  const [refreshingAttention, setRefreshingAttention] = React.useState(false);
+  const [refreshingPopular, setRefreshingPopular] = React.useState(false);
+  const [refreshingNoFavorites, setRefreshingNoFavorites] = React.useState(false);
+  const [refreshingUsers, setRefreshingUsers] = React.useState(false);
+  const [refreshingNewUsers, setRefreshingNewUsers] = React.useState(false);
+  const [refreshingTagSubmissions, setRefreshingTagSubmissions] = React.useState(false);
+  const [refreshingTags, setRefreshingTags] = React.useState(false);
+  const [refreshingAnalytics, setRefreshingAnalytics] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     try {
@@ -1188,6 +1207,76 @@ function DashboardContent() {
     await Promise.all([loadData(), loadAnalytics()]);
     setIsRefreshing(false);
   }, [loadData, loadAnalytics]);
+
+  const refreshStatsCards = React.useCallback(async () => {
+    setRefreshingStats(true);
+    await loadData();
+    setRefreshingStats(false);
+    toast.success('Stats refreshed');
+  }, [loadData]);
+
+  const refreshActivity = React.useCallback(async () => {
+    setRefreshingActivity(true);
+    await loadData();
+    setRefreshingActivity(false);
+    toast.success('Activity refreshed');
+  }, [loadData]);
+
+  const refreshAttention = React.useCallback(async () => {
+    setRefreshingAttention(true);
+    await loadData();
+    setRefreshingAttention(false);
+    toast.success('Projects needing attention refreshed');
+  }, [loadData]);
+
+  const refreshPopular = React.useCallback(async () => {
+    setRefreshingPopular(true);
+    await loadData();
+    setRefreshingPopular(false);
+    toast.success('Popular projects refreshed');
+  }, [loadData]);
+
+  const refreshNoFavorites = React.useCallback(async () => {
+    setRefreshingNoFavorites(true);
+    await loadData();
+    setRefreshingNoFavorites(false);
+    toast.success('Projects without favorites refreshed');
+  }, [loadData]);
+
+  const refreshUsers = React.useCallback(async () => {
+    setRefreshingUsers(true);
+    await loadData();
+    setRefreshingUsers(false);
+    toast.success('User management refreshed');
+  }, [loadData]);
+
+  const refreshNewUsers = React.useCallback(async () => {
+    setRefreshingNewUsers(true);
+    await loadData();
+    setRefreshingNewUsers(false);
+    toast.success('New users refreshed');
+  }, [loadData]);
+
+  const refreshTagSubmissions = React.useCallback(async () => {
+    setRefreshingTagSubmissions(true);
+    await loadData();
+    setRefreshingTagSubmissions(false);
+    toast.success('Tag submissions refreshed');
+  }, [loadData]);
+
+  const refreshTags = React.useCallback(async () => {
+    setRefreshingTags(true);
+    await loadData();
+    setRefreshingTags(false);
+    toast.success('Tags refreshed');
+  }, [loadData]);
+
+  const refreshAnalyticsSection = React.useCallback(async () => {
+    setRefreshingAnalytics(true);
+    await loadAnalytics();
+    setRefreshingAnalytics(false);
+    toast.success('Analytics refreshed');
+  }, [loadAnalytics]);
 
   React.useEffect(() => {
     loadData();
@@ -1438,7 +1527,18 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium">
               Recent Activity
             </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshActivity}
+                disabled={refreshingActivity}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingActivity ? 'animate-spin' : ''}`} />
+              </Button>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <div className="space-y-2">
@@ -1464,7 +1564,18 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium">
               Projects Needing Attention
             </CardTitle>
-            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshAttention}
+                disabled={refreshingAttention}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingAttention ? 'animate-spin' : ''}`} />
+              </Button>
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+            </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.stats.projectsNeedingAttention.length > 0 ? (
@@ -1496,7 +1607,18 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium">
               Top 10 Most Liked Projects
             </CardTitle>
-            <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshPopular}
+                disabled={refreshingPopular}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingPopular ? 'animate-spin' : ''}`} />
+              </Button>
+              <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+            </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.stats.mostPopularProjects.length > 0 ? (
@@ -1529,7 +1651,18 @@ function DashboardContent() {
             <CardTitle className="text-sm font-medium">
               Projects With No Favorites
             </CardTitle>
-            <Heart className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshNoFavorites}
+                disabled={refreshingNoFavorites}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingNoFavorites ? 'animate-spin' : ''}`} />
+              </Button>
+              <Heart className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             {stats.stats.allProjects.filter(p => p.total_favorites === 0).length > 0 ? (
@@ -1562,17 +1695,29 @@ function DashboardContent() {
 
       {/* User Management and New Users Section */}
       {isSuperAdmin ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* User Management - Super Admin Only */}
-          <AllUsersCard isSuperAdmin={isSuperAdmin} />
+        <div className="space-y-6 mb-6">
+          {/* User Management - Super Admin Only - Full width on small/medium, side by side on large */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <AllUsersCard isSuperAdmin={isSuperAdmin} />
           
-          {/* New Users (30d) */}
-          <Card id="new-users-list" className="flex flex-col h-[600px] scroll-mt-4">
+            {/* New Users (30d) */}
+            <Card id="new-users-list" className="flex flex-col h-[600px] scroll-mt-4">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
               <CardTitle className="text-sm font-medium">
                 New Users (Last 30 Days)
               </CardTitle>
-              <Users className="h-4 w-4 text-amber-500" />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                  onClick={refreshNewUsers}
+                  disabled={refreshingNewUsers}
+                >
+                  <RefreshCcw className={`h-3.5 w-3.5 ${refreshingNewUsers ? 'animate-spin' : ''}`} />
+                </Button>
+                <Users className="h-4 w-4 text-amber-500" />
+              </div>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               {stats.stats.newUsersList.length > 0 ? (
@@ -1604,6 +1749,7 @@ function DashboardContent() {
               )}
             </CardContent>
           </Card>
+          </div>
         </div>
       ) : (
         <div className="mb-6">
@@ -1652,14 +1798,27 @@ function DashboardContent() {
       <div className="mt-4 md:mt-6">
         <Card className="flex flex-col h-[600px]">
           <CardHeader className="pb-3 flex-shrink-0">
-            <CardTitle className="text-base md:text-lg">
-              Tag Submissions for Review
-            </CardTitle>
-            <CardDescription className="text-xs md:text-sm">
-              {stats.submissions.length} pending tag
-              {stats.submissions.length !== 1 ? "s" : ""} awaiting approval or
-              rejection
-            </CardDescription>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-base md:text-lg">
+                  Tag Submissions for Review
+                </CardTitle>
+                <CardDescription className="text-xs md:text-sm">
+                  {stats.submissions.length} pending tag
+                  {stats.submissions.length !== 1 ? "s" : ""} awaiting approval or
+                  rejection
+                </CardDescription>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer flex-shrink-0"
+                onClick={refreshTagSubmissions}
+                disabled={refreshingTagSubmissions}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingTagSubmissions ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <TagSubmissionManagement initialSubmissions={stats.submissions} />
@@ -1672,8 +1831,17 @@ function DashboardContent() {
         {/* Popular Tags */}
         <ClientOnly fallback={<ChartSkeleton />}>
           <Card className="flex flex-col h-[600px]">
-            <CardHeader className="flex-shrink-0">
+            <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
               <CardTitle className="text-base md:text-lg">Popular Tags</CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshTags}
+                disabled={refreshingTags}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingTags ? 'animate-spin' : ''}`} />
+              </Button>
             </CardHeader>
             <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
               <div className="grid grid-cols-2 gap-2">
@@ -1695,8 +1863,17 @@ function DashboardContent() {
 
         {/* Tag List */}
         <Card className="flex flex-col h-[600px]">
-          <CardHeader className="flex-shrink-0">
+          <CardHeader className="flex flex-row items-center justify-between flex-shrink-0">
             <CardTitle className="text-base md:text-xl">Tag List</CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+              onClick={refreshTags}
+              disabled={refreshingTags}
+            >
+              <RefreshCcw className={`h-3.5 w-3.5 ${refreshingTags ? 'animate-spin' : ''}`} />
+            </Button>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
             <TagList />
@@ -1706,9 +1883,21 @@ function DashboardContent() {
 
       {/* Advanced Analytics Section */}
       <div className="mt-6 md:mt-8">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl md:text-2xl font-bold">Advanced Analytics</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refreshAnalyticsSection}
+            disabled={refreshingAnalytics}
+          >
+            <RefreshCcw className={`h-4 w-4 mr-2 ${refreshingAnalytics ? 'animate-spin' : ''}`} />
+            {refreshingAnalytics ? 'Refreshing...' : 'Refresh Analytics'}
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           {/* Top Contributors Leaderboard - 60% width (3 columns) */}
-          <div className="md:col-span-3">
+          <div className="xl:col-span-3">
             {analyticsLoading ? (
               <ChartSkeleton />
             ) : (
@@ -1717,7 +1906,7 @@ function DashboardContent() {
           </div>
 
           {/* Tag Pipeline Analytics - 40% width (2 columns) */}
-          <div className="md:col-span-2">
+          <div className="xl:col-span-2">
             {analyticsLoading ? (
               <ChartSkeleton />
             ) : tagPipelineMetrics ? (
@@ -1727,7 +1916,7 @@ function DashboardContent() {
         </div>
 
         {/* Top Submitters and Recent Submissions - Below Pipeline */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
           {/* Top Tag Submitters */}
           <div>
             {analyticsLoading ? (
