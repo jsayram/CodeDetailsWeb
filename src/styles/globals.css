@@ -9,7 +9,7 @@
 @import "./table.css";
 
 /* Increase base font size for XL screens and above */
-@media (min-width: 1280px) {
+@media (min-width: 1920px) {
   html {
     font-size: 18px;
   }
