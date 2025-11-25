@@ -150,7 +150,7 @@ function MyProjectsCard({ totalProjects, activeThisWeek }: { totalProjects: numb
       <CardContent className="flex-1 flex flex-col justify-center items-center">
         <div className="text-5xl font-bold">{totalProjects}</div>
         <p className="text-xs text-muted-foreground mt-2 text-center">{activeThisWeek} updated this week</p>
-        <Link href="/projects" className="mt-3">
+        <Link href="/projects/projects-portfolio" className="mt-3">
           <Button 
             variant="outline" 
             size="sm" 
