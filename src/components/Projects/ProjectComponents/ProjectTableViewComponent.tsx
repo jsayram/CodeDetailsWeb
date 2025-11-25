@@ -349,37 +349,6 @@ export function ProjectTableView({
     });
   };
 
-  const handleColumnResize = (columnKey: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.pageX;
-    const startWidth = columnWidths[columnKey] || 150;
-
-    const handleMouseMove = (moveEvent: MouseEvent) => {
-      const diff = moveEvent.pageX - startX;
-      const newWidth = Math.max(100, startWidth + diff);
-      
-      setColumnWidths(prev => {
-        const updated = { ...prev, [columnKey]: newWidth };
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('projectTableColumnWidths', JSON.stringify(updated));
-        }
-        return updated;
-      });
-    };
-
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  };
-
   const columns = [
     { key: "title", label: "Title", required: true },
     { key: "description", label: "Description", required: false },
@@ -389,11 +358,53 @@ export function ProjectTableView({
     { key: "created_at", label: "Created", required: false },
   ];
 
+  const startColumnResize = (
+    event: React.MouseEvent<HTMLDivElement>,
+    columnKey: keyof typeof columnWidths
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startWidth = columnWidths[columnKey] ?? 150;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const delta = e.clientX - startX;
+      const newWidth = Math.min(Math.max(startWidth + delta, 100), 800);
+
+      setColumnWidths((prev) => ({
+        ...prev,
+        [columnKey]: newWidth,
+      }));
+    };
+
+    const handleMouseUp = () => {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "projectTableColumnWidths",
+          JSON.stringify(columnWidths)
+        );
+      }
+
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
+
   const dimOpacityValue = 0.2;
+  const ROW_HEIGHT = "h-30";
+  const ROW_MAX_HEIGHT = "max-h-40";
 
   return (
-    <div className="w-full overflow-auto flex justify-center">
-      <div className="w-full max-w-[95%] mb-8">
+    <div className="w-full overflow-x-auto">
+      <div className="w-full max-w-[95%] mb-8 mx-auto">
         <div className="mb-4 flex justify-end">
           <div className="relative">
             <Button
@@ -429,9 +440,10 @@ export function ProjectTableView({
         </div>
       </div>
 
-      <table className="responsive-table w-full border-separate border-spacing-y-2" style={{ tableLayout: 'fixed' }}>
-        <thead>
-          <tr>
+      <div className="overflow-x-auto overflow-y-auto">
+        <table className="responsive-table w-full border-separate border-spacing-y-2" style={{ tableLayout: 'fixed', minWidth: '100%' }}>
+          <thead className="sticky top-0 bg-background z-20">
+            <tr>
             {columns.map(
               (column) =>
                 !hiddenColumns.includes(column.key) && (
@@ -445,9 +457,9 @@ export function ProjectTableView({
                       )
                     }
                     className="cursor-pointer hover:bg-muted/50 transition-colors relative"
-                    style={{ width: `${columnWidths[column.key]}px`, minWidth: '100px' }}
+                    style={{ width: `${columnWidths[column.key]}px` }}
                   >
-                    <div className="flex items-center space-x-1 overflow-hidden">
+                    <div className="flex items-center space-x-1">
                       <span className="truncate">{column.label}</span>
                       {sortConfig.key ===
                         (column.key === "creator" ? "profile" : column.key) && (
@@ -459,18 +471,18 @@ export function ProjectTableView({
                       )}
                     </div>
                     <div
-                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize bg-primary/50 hover:bg-primary transition-colors"
-                      onMouseDown={(e) => handleColumnResize(column.key, e)}
+                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize bg-border/30 hover:bg-primary transition-colors"
+                      onMouseDown={(e) => startColumnResize(e, column.key as keyof typeof columnWidths)}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </th>
                 )
             )}
-            <th className="relative" style={{ width: `${columnWidths.actions}px`, minWidth: '100px' }}>
+            <th className="relative" style={{ width: `${columnWidths.actions}px` }}>
               <span>Actions</span>
               <div
-                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize bg-primary/50 hover:bg-primary transition-colors"
-                onMouseDown={(e) => handleColumnResize('actions', e)}
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize bg-border/30 hover:bg-primary transition-colors"
+                onMouseDown={(e) => startColumnResize(e, 'actions')}
                 onClick={(e) => e.stopPropagation()}
               />
             </th>
@@ -485,17 +497,17 @@ export function ProjectTableView({
               <tr
                 key={project.id}
                 onClick={() => handleRowClick(project)}
-                className="cursor-pointer relative transition-all duration-200 ease-in-out 
+                className={`cursor-pointer relative transition-all duration-200 ease-in-out 
             hover:shadow-lg hover:shadow-primary/15 hover:-translate-y-1 
             hover:z-10 hover:border-primary/50 hover:scale-[1.01] 
             hover:ring-1 hover:ring-primary/30
-            group border border-transparent"
+            group border border-transparent ${ROW_HEIGHT}`}
               >
                 {/* Apply the spinner overlay to the first cell and use it as a positioning context */}
                 {!hiddenColumns.includes("title") && (
                   <td
-                    className="transition-opacity duration-200 relative"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.title}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                    className={`transition-opacity duration-200 relative ${ROW_HEIGHT} align-middle p-0`}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.title}px` }}
                   >
                     {isNavigating && (
                       <span
@@ -512,30 +524,25 @@ export function ProjectTableView({
                         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       </span>
                     )}
-                    <div className="font-medium">{project.title}</div>
+                    <div className={`font-medium h-full ${ROW_MAX_HEIGHT} overflow-y-auto p-2`}>{project.title}</div>
                   </td>
                 )}
 
                 {/* Rest of the cells */}
                 {!hiddenColumns.includes("description") && (
                   <td
-                    className="table-description-cell transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.description}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                    className={`transition-opacity duration-200 ${ROW_HEIGHT} align-middle p-0`}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.description}px` }}
                   >
-                    <div className="table-description-content relative">
+                    <div className={`h-full ${ROW_MAX_HEIGHT} overflow-y-auto p-2 text-sm text-muted-foreground`}>
                       {project.description || "No description provided"}
-                      <div
-                        className="resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-ns-resize 
-                                 hover:bg-primary/10 transition-colors"
-                        title="Drag to resize"
-                      />
                     </div>
                   </td>
                 )}
                 {!hiddenColumns.includes("category") && (
                   <td
-                    className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.category}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                    className={`transition-opacity duration-200 ${ROW_HEIGHT} overflow-hidden align-middle`}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.category}px` }}
                   >
                     <Badge
                       variant={
@@ -562,10 +569,10 @@ export function ProjectTableView({
                 )}
                 {!hiddenColumns.includes("tags") && (
                   <td
-                    className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.tags}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                    className={`transition-opacity duration-200 ${ROW_HEIGHT} align-middle p-0`}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.tags}px` }}
                   >
-                    <div className="flex flex-wrap gap-1">
+                    <div className={`flex flex-wrap gap-1 h-full ${ROW_MAX_HEIGHT} overflow-y-auto p-2`}>
                       {project.tags && project.tags.length > 0 ? (
                         project.tags.map((tag, index) => {
                           const isTagLoading = loadingTag === tag;
@@ -599,8 +606,8 @@ export function ProjectTableView({
                 )}
                 {!hiddenColumns.includes("creator") && (
                   <td
-                    className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.creator}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                    className={`transition-opacity duration-200 ${ROW_HEIGHT} overflow-hidden align-middle`}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.creator}px` }}
                   >
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
@@ -621,8 +628,8 @@ export function ProjectTableView({
                 )}
                 {!hiddenColumns.includes("created_at") && (
                   <td
-                    className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.created_at}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                    className={`transition-opacity duration-200 ${ROW_HEIGHT} overflow-hidden align-middle`}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.created_at}px` }}
                   >
                     {project.created_at ? (
                       <FormattedDate date={project.created_at} />
@@ -632,8 +639,8 @@ export function ProjectTableView({
                   </td>
                 )}
                 <td
-                  className="transition-opacity duration-200"
-                  style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.actions}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
+                  className={`transition-opacity duration-200 ${ROW_HEIGHT} overflow-hidden align-middle`}
+                  style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.actions}px` }}
                 >
                   <div className="flex items-center gap-2">
                     <FavoriteButton
@@ -682,6 +689,7 @@ export function ProjectTableView({
           })}
         </tbody>
       </table>
+      </div>
       </div>
     </div>
   );
