@@ -407,7 +407,7 @@ export function ProjectContent({
 
   if (!project || !userProfile || error) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
         <Card>
           <CardContent className="py-8">
             <div className="text-center">
@@ -433,7 +433,7 @@ export function ProjectContent({
     "Anonymous User";
 
   const renderContent = () => (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
       <div className="flex items-row justify-between mb-4">
       {!create && (
         <div className="flex items-between gap-2">
