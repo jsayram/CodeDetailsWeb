@@ -6,7 +6,91 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Hash, Folder, Users } from "lucide-react";
+
+export function SearchContentSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 mb-6 py-3">
+              {/* Centered Hero Section Loading */}
+              <div className="flex flex-col items-center justify-center gap-6 py-8">
+                <div className="text-center space-y-4">
+                  <Skeleton className="h-12 w-96 mx-auto rounded-lg bg-gradient-to-r from-muted via-muted-foreground/20 to-muted animate-pulse" />
+                  <Skeleton className="h-6 w-[500px] mx-auto" />
+                </div>
+
+                {/* Mascot with Speech Bubble Loading */}
+                <div className="flex items-start justify-center gap-4 mb-4">
+                  <Skeleton className="w-32 h-32 rounded-2xl" />
+                  <div className="max-w-md bg-card border-2 border-muted rounded-2xl p-4 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-5/6" />
+                    <div className="flex gap-2 mt-2">
+                      <Skeleton className="h-5 w-20 rounded-md" />
+                      <Skeleton className="h-5 w-16 rounded-md" />
+                      <Skeleton className="h-5 w-16 rounded-md" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Centered Search Input Loading */}
+                <div className="relative w-full max-w-2xl">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Skeleton className="w-full h-14 rounded-xl" />
+                </div>
+              </div>
+
+              {/* Loading Results */}
+              <div className="space-y-8 pt-8">
+                {/* Users Loading */}
+                <div className="space-y-4">
+                  <Skeleton className="h-6 w-48" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="p-4 rounded-lg border bg-card">
+                        <div className="flex items-start gap-4">
+                          <Skeleton className="w-12 h-12 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                            <div className="flex gap-2 mt-2">
+                              <Skeleton className="h-5 w-16 rounded-full" />
+                              <Skeleton className="h-5 w-12 rounded-full" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tags Loading */}
+                <div className="space-y-4">
+                  <Skeleton className="h-6 w-32" />
+                  <div className="flex flex-wrap gap-2">
+                    {[...Array(12)].map((_, i) => (
+                      <Skeleton key={i} className="h-8 w-24 rounded-full" />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categories Loading */}
+                <div className="space-y-4">
+                  <Skeleton className="h-6 w-40" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="p-4 rounded-lg border bg-card space-y-2">
+                        <Skeleton className="h-5 w-2/3" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-5/6" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+    </div>
+  );
+}
 
 export default function SearchPageLoading() {
   return (
@@ -15,38 +99,8 @@ export default function SearchPageLoading() {
       <SidebarInset>
         <HeaderSection />
         <div className="flex justify-center w-full mb-20">
-          <div className="w-full px-4 2xl:px-8 3xl:px-12">
-            <div className="flex flex-col gap-6 mb-6 py-3">
-              {/* Page Banner Loading */}
-              <div className="relative overflow-hidden rounded-2xl border p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <Search className="h-8 w-8 text-primary animate-pulse" />
-                  <Skeleton className="h-8 w-[120px]" />
-                </div>
-                <Skeleton className="h-4 w-full max-w-md" />
-              </div>
-
-              {/* Search Input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search categories, tags, or users..."
-                  className="pl-10 text-base"
-                  disabled
-                />
-              </div>
-
-              {/* Empty State - matches what users see before searching */}
-              <div className="text-center py-20">
-                <Search className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4 animate-pulse" />
-                <Skeleton className="h-7 w-[180px] mx-auto mb-2" />
-                <div className="max-w-md mx-auto space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-[90%] mx-auto" />
-                </div>
-              </div>
-            </div>
+          <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
+            <SearchContentSkeleton />
           </div>
         </div>
         <FooterSection />

@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
+import { SearchContentSkeleton } from "./loading";
 
 function SearchContent() {
   const router = useRouter();
@@ -41,6 +41,9 @@ function SearchContent() {
       setDebouncedSearchQuery(searchQuery);
       if (searchQuery.trim()) {
         setHasSearched(true);
+      } else {
+        // Reset to initial state when search is cleared
+        setHasSearched(false);
       }
     }, 400);
 
@@ -92,9 +95,7 @@ function SearchContent() {
       .filter(([key, category]) => {
         return (
           category.label.toLowerCase().includes(searchLower) ||
-          category.description.toLowerCase().includes(searchLower) ||
-          key.toLowerCase().includes(searchLower) ||
-          (category.keywords && category.keywords.toLowerCase().includes(searchLower))
+          key.toLowerCase().includes(searchLower)
         );
       })
       .slice(0, 20);
@@ -126,37 +127,13 @@ function SearchContent() {
     // When searching, filter and then apply same logic
     const filteredActive = sortedActiveTags.filter((tag) => {
       const tagLower = tag.name.toLowerCase();
-      
-      // Check tag name
-      if (tagLower.includes(searchLower)) return true;
-      
-      // Check tag description and keywords from tag-descriptions.ts
-      const tagInfo = getTagInfo(tag.name);
-      if (tagInfo) {
-        return (
-          tagInfo.description.toLowerCase().includes(searchLower) ||
-          tagInfo.keywords.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      return false;
+      // Only match on tag name
+      return tagLower.includes(searchLower);
     });
     const filteredInactive = sortedInactiveTags.filter((tag) => {
       const tagLower = tag.name.toLowerCase();
-      
-      // Check tag name
-      if (tagLower.includes(searchLower)) return true;
-      
-      // Check tag description and keywords
-      const tagInfo = getTagInfo(tag.name);
-      if (tagInfo) {
-        return (
-          tagInfo.description.toLowerCase().includes(searchLower) ||
-          tagInfo.keywords.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      return false;
+      // Only match on tag name
+      return tagLower.includes(searchLower);
     });
     
     const top30Active = filteredActive.slice(0, 30);
@@ -262,29 +239,16 @@ function SearchContent() {
       return b.createdAt.getTime() - a.createdAt.getTime();
     });
     
-    // Apply search filter with enhanced tag-based matching
+    // Apply search filter - only match on user info
     const matchesSearch = (user: typeof allUsers[0]) => {
       if (!searchLower) return true;
       
-      // Check username, fullName, email
-      const basicMatch = 
+      // Check username, fullName, email only
+      return (
         user.username.toLowerCase().includes(searchLower) ||
         (user.fullName?.toLowerCase().includes(searchLower)) ||
-        (user.email?.toLowerCase().includes(searchLower));
-      
-      if (basicMatch) return true;
-      
-      // Check if user has any project tags matching the search
-      const userTags = userTagsMap.get(user.username);
-      if (userTags) {
-        for (const tag of userTags) {
-          if (tag.includes(searchLower)) {
-            return true;
-          }
-        }
-      }
-      
-      return false;
+        (user.email?.toLowerCase().includes(searchLower))
+      );
     };
 
     const filteredActive = sortedActive.filter(matchesSearch);
@@ -322,52 +286,133 @@ function SearchContent() {
 
   return (
     <div className="flex justify-center w-full mb-20">
-      <div className="w-full px-4 2xl:px-8 3xl:px-12">
+      <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
         <div className="flex flex-col gap-6 mb-6 py-3">
-          <PageBanner
-            icon={<Search className="h-8 w-8 text-primary" />}
-            bannerTitle="Search"
-            description="Search across categories, tags, and users"
-            isUserBanner={false}
-            gradientFrom="indigo-900"
-            gradientVia="blue-800"
-            gradientTo="purple-800"
-            borderColor="border-indigo-700/40"
-            textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
-          />
+          {/* Centered Hero Section with Mascot */}
+          <div className="flex flex-col items-center justify-center gap-6 py-8">
+            <div className="text-center">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 text-transparent bg-clip-text mb-4">
+                Search Code Details
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Discover projects, explore categories, find tags, and connect with developers
+              </p>
+            </div>
 
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search categories, tags, or users..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 text-base"
-              autoFocus
-            />
-            {isSearching && (
-              <div className="absolute right-3 top-2.5">
-                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            {/* Mascot with Speech Bubble */}
+            <div className="relative flex items-start justify-center gap-4 mb-4">
+              <div className="relative">
+                <img 
+                  src="/images/mascot.png" 
+                  alt="Code Details Mascot" 
+                  className="w-40 h-40 object-contain animate-bounce-slow"
+                />
               </div>
-            )}
+              <div className="relative max-w-md bg-card border-2 border-primary/30 rounded-2xl p-4 shadow-lg">
+                <div className="absolute -left-3 top-6 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-card border-b-8 border-b-transparent"></div>
+                <div className="absolute -left-4 top-6 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-primary/30 border-b-8 border-b-transparent"></div>
+                <p className="text-sm leading-relaxed">
+                  <span className="font-semibold text-primary">Hey there! 👋</span> 
+                  <br />
+                  I can help you find what you're looking for! Try searching for:
+                  <br />
+                  <span className="inline-flex items-center gap-1 mt-2">
+                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-xs font-medium">Categories</span>
+                    <span className="px-2 py-0.5 bg-accent/10 text-accent-foreground rounded-md text-xs font-medium">Tags</span>
+                    <span className="px-2 py-0.5 bg-secondary/30 text-secondary-foreground rounded-md text-xs font-medium">Users</span>
+                  </span>
+                  <br />
+                  <span className="text-muted-foreground text-xs mt-1 block">
+                    Just type a keyword and I'll show you all related content!
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Centered Search Input */}
+            <div className="relative w-full max-w-2xl">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200 peer-hover:text-primary peer-focus:text-primary" />
+              <Input
+                type="search"
+                placeholder="Search categories, tags, or users..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="peer pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
+                autoFocus
+              />
+              {isSearching && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Empty State - No search yet */}
           {showEmptyState ? (
-            <div className="text-center py-20">
-              <Search className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-              <h3 className="text-xl 3xl:text-2xl 4xl:text-3xl font-semibold mb-2">Start Searching</h3>
-              <p className="text-muted-foreground max-w-md mx-auto 3xl:text-lg 4xl:text-xl">
-                Type in the search box above to find projects, categories, tags, and users.
-                Search by name, description, or even project tags!
-              </p>
+            <div className="text-center py-12">
+              <div className="max-w-2xl mx-auto space-y-4">
+                <h3 className="text-2xl font-semibold">Ready to explore?</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+                  <div 
+                    className={`p-6 border-2 border-primary/20 rounded-xl hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer relative ${
+                      loadingItem === 'explore-categories' ? 'opacity-50' : ''
+                    }`}
+                    onClick={() => {
+                      setLoadingItem('explore-categories');
+                      router.push('/categories');
+                    }}
+                  >
+                    {loadingItem === 'explore-categories' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-xl z-10">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    <Folder className="h-8 w-8 text-primary mx-auto mb-3" />
+                    <h4 className="font-semibold mb-2">Categories</h4>
+                    <p className="text-sm text-muted-foreground">Browse projects by category like Web Development, AI/ML, and more</p>
+                  </div>
+                  <div 
+                    className={`p-6 border-2 border-accent/20 rounded-xl hover:border-accent/40 transition-all hover:shadow-lg cursor-pointer relative ${
+                      loadingItem === 'explore-tags' ? 'opacity-50' : ''
+                    }`}
+                    onClick={() => {
+                      setLoadingItem('explore-tags');
+                      router.push('/tags');
+                    }}
+                  >
+                    {loadingItem === 'explore-tags' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-xl z-10">
+                        <div className="w-6 h-6 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    <Hash className="h-8 w-8 text-accent-foreground mx-auto mb-3" />
+                    <h4 className="font-semibold mb-2">Tags</h4>
+                    <p className="text-sm text-muted-foreground">Find projects tagged with technologies like React, Python, Docker</p>
+                  </div>
+                  <div 
+                    className={`p-6 border-2 border-secondary/30 rounded-xl hover:border-secondary/50 transition-all hover:shadow-lg cursor-pointer relative ${
+                      loadingItem === 'explore-users' ? 'opacity-50' : ''
+                    }`}
+                    onClick={() => {
+                      setLoadingItem('explore-users');
+                      router.push('/users');
+                    }}
+                  >
+                    {loadingItem === 'explore-users' && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-background/50 rounded-xl z-10">
+                        <div className="w-6 h-6 border-2 border-secondary-foreground border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    <Users className="h-8 w-8 text-secondary-foreground mx-auto mb-3" />
+                    <h4 className="font-semibold mb-2">Users</h4>
+                    <p className="text-sm text-muted-foreground">Discover talented developers and explore their projects</p>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : isLoadingData ? (
-            <div className="space-y-6">
-              <GenericLoadingState type="card" itemsCount={6} />
-            </div>
+            <SearchContentSkeleton />
           ) : (
             <>
           {/* Results Summary */}
@@ -388,12 +433,14 @@ function SearchContent() {
 
           {/* Tabbed Results */}
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 max-w-md">
-              <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="categories">Categories</TabsTrigger>
-              <TabsTrigger value="tags">Tags</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
-            </TabsList>
+            <div className="flex justify-center w-full">
+              <TabsList className="grid w-full grid-cols-4 max-w-md">
+                <TabsTrigger value="all" className="cursor-pointer">All</TabsTrigger>
+                <TabsTrigger value="categories" className="cursor-pointer">Categories</TabsTrigger>
+                <TabsTrigger value="tags" className="cursor-pointer">Tags</TabsTrigger>
+                <TabsTrigger value="users" className="cursor-pointer">Users</TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* All Results Tab */}
             <TabsContent value="all" className="space-y-6 mt-6">
