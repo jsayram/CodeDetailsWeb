@@ -21,7 +21,7 @@ export default function TagsLoading() {
             <div className="flex flex-col gap-6 mb-6 py-3">
               <PageBanner
                 icon={<Hash className="h-8 w-8 text-primary" />}
-                bannerTitle="All Tags"
+                bannerTitle="Browse All Tags"
                 description="Discover projects by technology stack and features"
                 isUserBanner={false}
                 gradientFrom="purple-900"
@@ -45,9 +45,10 @@ export default function TagsLoading() {
                   {/* Search Input Skeleton */}
                   <div className="relative w-full max-w-2xl mx-auto">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <div className="h-10 bg-muted rounded-md w-64 animate-pulse"></div>
+                    <div className="h-12 bg-muted rounded-xl w-full animate-pulse"></div>
                   </div>
 
+                  <div className="space-y-6">
                   {/* Active Tags Section Skeleton */}
                   <Card>
                     <CardHeader className="pb-3">
@@ -95,6 +96,7 @@ export default function TagsLoading() {
                       </div>
                     </CardContent>
                   </Card>
+                  </div>
                 </CardContent>
               </Card>
             </div>

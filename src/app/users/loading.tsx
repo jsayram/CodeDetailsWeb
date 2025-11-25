@@ -36,11 +36,37 @@ export default function UsersLoading() {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <GenericLoadingState
-                    type="card"
-                    itemsCount={6}
-                    className="animate-in fade-in-50"
-                  />
+                  <div className="space-y-6">
+                    {/* Search Input Skeleton */}
+                    <div className="relative max-w-2xl mx-auto">
+                      <div className="h-12 bg-muted rounded-xl w-full animate-pulse"></div>
+                    </div>
+
+                    {/* Top Contributors Section Skeleton */}
+                    <div className="mb-8">
+                      <div className="flex items-center justify-center gap-3 mb-4">
+                        <div className="h-6 w-6 bg-muted rounded animate-pulse"></div>
+                        <div className="h-8 w-48 bg-muted rounded animate-pulse"></div>
+                      </div>
+                      <div className="h-4 w-96 bg-muted rounded mx-auto mb-4 animate-pulse"></div>
+                      <div className="flex flex-wrap gap-4 justify-center">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className="w-full md:w-[calc(50%-0.5rem)] xl:flex-1 xl:max-w-[calc(33.333%-0.667rem)] max-w-md h-64 bg-muted rounded-lg animate-pulse"
+                            style={{ animationDelay: `${i * 100}ms` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* All Users Grid Skeleton */}
+                    <GenericLoadingState
+                      type="card"
+                      itemsCount={6}
+                      className="animate-in fade-in-50"
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </div>

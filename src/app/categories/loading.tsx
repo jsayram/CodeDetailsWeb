@@ -19,7 +19,7 @@ export default function CategoriesLoading() {
             <div className="flex flex-col gap-6 mb-6 py-3">
               <PageBanner
                 icon={<Folder className="h-8 w-8 text-primary" />}
-                bannerTitle="All Categories"
+                bannerTitle="Browse All Categories"
                 description="Explore projects organized by category - from web applications to AI/ML and beyond"
                 isUserBanner={false}
                 gradientFrom="indigo-900"
