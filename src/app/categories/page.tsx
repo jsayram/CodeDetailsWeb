@@ -47,12 +47,12 @@ function CategoriesContent() {
   if (loading) {
     return (
       <div className="flex justify-center w-full mb-20">
-        <div className="w-full px-4 2xl:px-8 3xl:px-12">
-          <div className="flex flex-col gap-4 mb-6 py-3">
+        <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
+          <div className="flex flex-col gap-6 mb-6 py-3">
             <PageBanner
               icon={<Folder className="h-8 w-8 text-primary" />}
-              bannerTitle="Project Categories"
-              description="Browse projects by category"
+              bannerTitle="All Categories"
+              description="Explore projects organized by category - from web applications to AI/ML and beyond"
               isUserBanner={false}
               gradientFrom="indigo-900"
               gradientVia="blue-800"
@@ -61,7 +61,18 @@ function CategoriesContent() {
               textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Main Card with Title and Content */}
+            <Card>
+              <CardHeader className="text-center space-y-4 pb-4">
+                <CardTitle className="text-3xl font-bold">
+                  All Project Categories
+                </CardTitle>
+                <p className="text-muted-foreground text-base">
+                  Browse projects by All available categories
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.entries(PROJECT_CATEGORIES).map(
                 ([key, category], index) => (
                   <Card key={key} className="category-card">
@@ -85,7 +96,9 @@ function CategoriesContent() {
                   </Card>
                 )
               )}
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -94,12 +107,12 @@ function CategoriesContent() {
 
   return (
     <div className="flex justify-center w-full mb-20">
-      <div className="w-full px-4 2xl:px-8 3xl:px-12">
-        <div className="flex flex-col gap-4 mb-6 py-3">
+      <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
+        <div className="flex flex-col gap-6 mb-6 py-3">
           <PageBanner
             icon={<Folder className="h-8 w-8 text-primary" />}
-            bannerTitle="Project Categories"
-            description="Browse projects by category"
+            bannerTitle="All Categories"
+            description="Explore projects organized by category - from web applications to AI/ML and beyond"
             isUserBanner={false}
             gradientFrom="indigo-900"
             gradientVia="blue-800"
@@ -108,7 +121,18 @@ function CategoriesContent() {
             textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Main Card with Title and Content */}
+          <Card>
+            <CardHeader className="text-center space-y-4 pb-4">
+              <CardTitle className="text-3xl font-bold">
+                All Project Categories
+              </CardTitle>
+              <p className="text-muted-foreground text-base">
+                Browse projects by all (<span className="text-secondary-foreground font-semibold">{Object.keys(PROJECT_CATEGORIES).length}</span>) available categories that host projects
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(PROJECT_CATEGORIES).map(([key, category]) => {
               const count = categoryCounts[key] || 0;
               const hasProjects = count > 0;
@@ -155,7 +179,9 @@ function CategoriesContent() {
                 </Card>
               );
             })}
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

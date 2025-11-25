@@ -8,7 +8,7 @@ import { ProjectsProvider } from "@/providers/projects-provider";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { PageBanner } from "@/components/ui/page-banner";
-import { Tag, Hash, Search } from "lucide-react";
+import { Hash, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTagCache } from "@/hooks/use-tag-cache";
@@ -61,24 +61,34 @@ export default function TagsIndexPage() {
           <SidebarInset>
             <HeaderSection />
             <div className="flex justify-center w-full mb-20">
-              <div className="w-full px-4 2xl:px-8 3xl:px-12">
-                <div className="flex flex-col gap-4 mb-6 py-3">
+              <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
+                <div className="flex flex-col gap-6 mb-6 py-3">
                   <PageBanner
-                    icon={<Tag className="h-8 w-8 text-primary" />}
-                    bannerTitle="Project Tags"
-                    description="Browse projects by tags"
+                    icon={<Hash className="h-8 w-8 text-primary" />}
+                    bannerTitle="All Tags"
+                    description="Discover projects by technology stack and features"
                     isUserBanner={false}
-                    gradientFrom="indigo-900"
-                    gradientVia="blue-800"
-                    gradientTo="purple-800"
-                    borderColor="border-indigo-700/40"
-                    textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
+                    gradientFrom="purple-900"
+                    gradientVia="indigo-800"
+                    gradientTo="blue-800"
+                    borderColor="border-purple-700/40"
+                    textGradient="from-fuchsia-400 via-purple-400 to-indigo-400"
                   />
 
-                  <div className="space-y-6">
-                    {/* Search Input Skeleton */}
-                    <div className="relative">
-                      <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  {/* Main Card with Title and Search */}
+                  <Card>
+                    <CardHeader className="text-center space-y-4 pb-4">
+                      <CardTitle className="text-3xl font-bold">
+                        All Project Tags
+                      </CardTitle>
+                      <p className="text-muted-foreground text-base">
+                        Browse and search through all available tags
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Search Input Skeleton */}
+                      <div className="relative w-full max-w-2xl mx-auto">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                       <div className="h-10 bg-muted rounded-md w-64 animate-pulse"></div>
                     </div>
 
@@ -129,7 +139,8 @@ export default function TagsIndexPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </div>
@@ -147,32 +158,44 @@ export default function TagsIndexPage() {
         <SidebarInset>
           <HeaderSection />
           <div className="flex justify-center w-full mb-20">
-            <div className="w-full px-4 2xl:px-8 3xl:px-12">
-              <div className="flex flex-col gap-4 mb-6 py-3">
+            <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
+              <div className="flex flex-col gap-6 mb-6 py-3">
                 <PageBanner
-                  icon={<Tag className="h-8 w-8 text-primary" />}
-                  bannerTitle="Project Tags"
-                  description="Browse projects by tags"
+                  icon={<Hash className="h-8 w-8 text-primary" />}
+                  bannerTitle="All Tags"
+                  description="Discover projects by technology stack and features"
                   isUserBanner={false}
-                  gradientFrom="indigo-900"
-                  gradientVia="blue-800"
-                  gradientTo="purple-800"
-                  borderColor="border-indigo-700/40"
-                  textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
+                  gradientFrom="purple-900"
+                  gradientVia="indigo-800"
+                  gradientTo="blue-800"
+                  borderColor="border-purple-700/40"
+                  textGradient="from-fuchsia-400 via-purple-400 to-indigo-400"
                 />
 
+                {/* Main Card with Title and Search */}
+                <Card>
+                  <CardHeader className="text-center space-y-4 pb-4">
+                    <CardTitle className="text-3xl font-bold">
+                      All Project Tags
+                    </CardTitle>
+                    <p className="text-muted-foreground text-base">
+                      Browse and search through all available tags
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Search Input */}
+                    <div className="relative w-full max-w-2xl mx-auto">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
+                      <Input
+                        type="search"
+                        placeholder="Search tags..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
+                      />
+                    </div>
+
                 <div className="space-y-6">
-                  {/* Search Input */}
-                  <div className="relative max-w-2xl">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
-                    <Input
-                      type="search"
-                      placeholder="Search tags..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
-                    />
-                  </div>
 
                   {/* Active Tags Section */}
                   {(searchQuery || activeTags.length > 0) && (
@@ -275,6 +298,8 @@ export default function TagsIndexPage() {
                     </div>
                   )}
                 </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>

@@ -657,8 +657,21 @@ function SearchContent() {
 
             {/* Categories Only Tab */}
             <TabsContent value="categories" className="mt-6">
+              {/* Banner Section */}
+              <PageBanner
+                icon={<Folder className="h-8 w-8 text-primary" />}
+                bannerTitle="All Categories"
+                description="Explore projects organized by category - from web applications to AI/ML and beyond"
+                isUserBanner={false}
+                gradientFrom="indigo-900"
+                gradientVia="blue-800"
+                gradientTo="purple-800"
+                borderColor="border-indigo-700/40"
+                textGradient="from-fuchsia-400 via-indigo-400 to-cyan-400"
+              />
+              
               {filteredCategories.length > 0 ? (
-                <Card>
+                <Card className="mt-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Folder className="h-5 w-5" />
@@ -713,8 +726,21 @@ function SearchContent() {
 
             {/* Tags Only Tab */}
             <TabsContent value="tags" className="mt-6">
+              {/* Banner Section */}
+              <PageBanner
+                icon={<Hash className="h-8 w-8 text-primary" />}
+                bannerTitle="All Tags"
+                description="Discover projects by technology stack and features"
+                isUserBanner={false}
+                gradientFrom="purple-900"
+                gradientVia="indigo-800"
+                gradientTo="blue-800"
+                borderColor="border-purple-700/40"
+                textGradient="from-fuchsia-400 via-purple-400 to-indigo-400"
+              />
+              
               {filteredTags.length > 0 ? (
-                <Card>
+                <Card className="mt-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Hash className="h-5 w-5" />
@@ -758,8 +784,21 @@ function SearchContent() {
 
             {/* Users Only Tab */}
             <TabsContent value="users" className="mt-6">
+              {/* Banner Section */}
+              <PageBanner
+                icon={<Users className="h-8 w-8 text-primary" />}
+                bannerTitle="All Contributing Users"
+                description="Browse and discover all the amazing contributors to our projects"
+                isUserBanner={true}
+                gradientFrom="purple-900"
+                gradientVia="pink-800"
+                gradientTo="rose-800"
+                borderColor="border-purple-700/40"
+                textGradient="from-fuchsia-400 via-pink-400 to-rose-400"
+              />
+              
               {activeUsers.length > 0 || inactiveUsers.length > 0 ? (
-                <Card>
+                <Card className="mt-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Users className="h-5 w-5" />
