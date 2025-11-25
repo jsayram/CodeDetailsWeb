@@ -29,8 +29,12 @@ export default function DeletedProjects() {
   return (
     <>
       {isLoading ? (
-        <div className="container mx-auto px-4 py-">
-          <ProjectListLoadingState />
+        <div className="flex justify-center w-full mb-20">
+          <div className="w-full px-4 2xl:px-8 3xl:px-12">
+            <div className="flex flex-col gap-4 mb-6 py-3">
+              <ProjectListLoadingState />
+            </div>
+          </div>
         </div>
       ) : (
         <ProjectsProvider
