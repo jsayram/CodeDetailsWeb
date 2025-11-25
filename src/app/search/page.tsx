@@ -23,6 +23,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { SearchContentSkeleton } from "./loading";
 import { HighlightText } from "@/components/HighlightText";
+import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 
 function SearchContent() {
   const router = useRouter();
@@ -286,12 +287,25 @@ function SearchContent() {
   const showEmptyState = !hasSearched && !debouncedSearchQuery.trim();
 
   return (
-    <div className="flex justify-center w-full mb-20">
+    <div className="flex justify-center w-full mb-10">
       <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
         <div className="flex flex-col gap-6 mb-6 py-3">
           {/* Centered Hero Section with Mascot */}
-          <div className="flex flex-col items-center justify-center gap-6 py-8">
-            <div className="text-center">
+          <div className="relative flex flex-col items-center justify-center gap-6 py-8">
+            {/* Code Particles Background */}
+            <CodeParticlesElement
+              quantity="high"
+              speed="slow"
+              size="mixed"
+              includeEmojis={true}
+              includeKeywords={true}
+              includeSymbols={true}
+              syntaxHighlight="vscode"
+              depth="layered"
+              containerClassName="absolute inset-0 -z-5 pointer-events-none opacity-20"
+            />
+            
+            <div className="text-center relative z-10">
               <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 text-transparent bg-clip-text mb-4">
                 Search Code Details
               </h1>
@@ -301,12 +315,12 @@ function SearchContent() {
             </div>
 
             {/* Mascot with Speech Bubble */}
-            <div className="relative flex items-start justify-center gap-4 mb-4">
+            <div className="relative flex items-start justify-center gap-4 mb-4 z-10">
               <div className="relative">
                 <img 
                   src="/images/mascot.png" 
                   alt="Code Details Mascot" 
-                  className="w-40 h-40 object-contain animate-bounce-slow"
+                  className="w-56 h-56 object-contain animate-bounce-slow"
                 />
               </div>
               <div className="relative max-w-md bg-card border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
@@ -340,7 +354,7 @@ function SearchContent() {
             </div>
 
             {/* Centered Search Input */}
-            <div className="relative w-full max-w-2xl">
+            <div className="relative w-full max-w-2xl z-10">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200 peer-hover:text-primary peer-focus:text-primary" />
               <Input
                 type="search"
