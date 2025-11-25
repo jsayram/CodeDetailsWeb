@@ -29,6 +29,7 @@ import {
 import { FormattedDate } from "@/lib/FormattedDate";
 import { Separator } from "@/components/ui/separator";
 import { SelectProject } from "@/db/schema/projects";
+import { validateUrlFormat } from "@/lib/url-validation";
 import { toast } from "sonner";
 import { useUser, useAuth, SignedOut } from "@clerk/nextjs";
 import Image from "next/image";
@@ -49,6 +50,10 @@ import {
 import { slugify } from "@/utils/stringUtils";
 import { ProjectTagSubmissionButton } from "./ProjectTagSubmissionButton";
 import { useProjectTagSubmissions } from "@/hooks/use-project-tag-submissions";
+import { ProjectLinksManager } from "./ProjectLinksManager";
+import { ProjectLinksDisplay } from "./ProjectLinksDisplay";
+import { ProjectLink } from "@/types/project-links";
+import { UnsavedChangesConfirmationModal } from "./UnsavedChangesConfirmationModal";
 
 interface UserProfile extends SelectProject {
   user_id: string;
@@ -88,6 +93,7 @@ export function ProjectContent({
     slug: "",
     description: "",
     category: "web" as ProjectCategory,
+    url_links: [] as ProjectLink[],
   });
   const [selectedTags, setSelectedTags] = useState<TagInfo[]>([]);
   const [formErrors, setFormErrors] = useState<{
@@ -96,6 +102,17 @@ export function ProjectContent({
     category?: string;
     slug?: string;
   }>({});
+
+  // Track original values for change detection
+  const [originalFormData, setOriginalFormData] = useState({
+    title: "",
+    slug: "",
+    description: "",
+    category: "web" as ProjectCategory,
+    url_links: [] as ProjectLink[],
+  });
+  const [originalTags, setOriginalTags] = useState<TagInfo[]>([]);
+  const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
 
   // Tag submissions for the project
   const {
@@ -131,9 +148,9 @@ export function ProjectContent({
     ) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
 
-      // Clear validation error when field changes
-      if (formErrors[field]) {
-        setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+      // Clear validation error when field changes (only for error fields)
+      if (field in formErrors) {
+        setFormErrors((prev) => ({ ...prev, [field as keyof typeof formErrors]: undefined }));
       }
     },
     [formErrors]
@@ -151,35 +168,40 @@ export function ProjectContent({
     setSelectedTags(tags);
   }, []);
 
+  // Handle url_links changes
+  const handleLinksChange = useCallback((links: ProjectLink[]) => {
+    setFormData((prev) => ({ ...prev, url_links: links }));
+  }, []);
+
   // Reset form state and initialize from project data when entering edit mode
   useEffect(() => {
     if (!project) return;
 
-    // Check if this is a new project load or edit mode changed
+    // Check if this is a new project load
     const isNewProject = project.id !== projectIdRef.current;
-    const shouldInitializeForm =
-      isEditMode && (isNewProject || !formInitializedRef.current);
-
-    if (shouldInitializeForm) {
-      // Set form data from project
-      setFormData({
+    
+    if (isEditMode) {
+      // ALWAYS reinitialize when entering edit mode to ensure fresh data
+      // This fixes the issue where links don't show up after being idle
+      const initialFormData = {
         title: project.title || "",
         slug: project.slug || "",
         description: project.description || "",
         category: (project.category as ProjectCategory) || "web",
-      });
+        url_links: (project.url_links as ProjectLink[]) || [],
+      };
+      setFormData(initialFormData);
+      setOriginalFormData(initialFormData);
 
       // Set tags
-      if (project.tags && project.tags.length > 0) {
-        setSelectedTags(
-          project.tags.map((name) => ({
+      const initialTags = project.tags && project.tags.length > 0
+        ? project.tags.map((name) => ({
             id: `tag-${name}`, // Add unique ID to prevent React key warnings
             name,
           }))
-        );
-      } else {
-        setSelectedTags([]);
-      }
+        : [];
+      setSelectedTags(initialTags);
+      setOriginalTags(initialTags);
 
       // Reset form errors
       setFormErrors({});
@@ -187,7 +209,7 @@ export function ProjectContent({
       // Mark as initialized and store project ID
       formInitializedRef.current = true;
       projectIdRef.current = project.id;
-    } else if (!isEditMode) {
+    } else {
       // Reset initialization flag when exiting edit mode
       formInitializedRef.current = false;
     }
@@ -228,6 +250,73 @@ export function ProjectContent({
     }
   }, [formData.title, handleFieldChange]);
 
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = useCallback(() => {
+    // Check if any form fields changed
+    const formChanged = 
+      formData.title !== originalFormData.title ||
+      formData.slug !== originalFormData.slug ||
+      formData.description !== originalFormData.description ||
+      formData.category !== originalFormData.category;
+
+    // Check if tags changed
+    const tagsChanged = 
+      selectedTags.length !== originalTags.length ||
+      selectedTags.some((tag, index) => tag.name !== originalTags[index]?.name);
+
+    // Check if url_links changed
+    const linksChanged = 
+      formData.url_links.length !== originalFormData.url_links.length ||
+      formData.url_links.some((link, index) => {
+        const originalLink = originalFormData.url_links[index];
+        return !originalLink || 
+               link.url !== originalLink.url || 
+               link.type !== originalLink.type ||
+               link.label !== originalLink.label;
+      });
+
+    return formChanged || tagsChanged || linksChanged;
+  }, [formData, originalFormData, selectedTags, originalTags]);
+
+  // Handler for confirming discard of unsaved changes
+  const handleConfirmDiscardChanges = useCallback(() => {
+    setShowUnsavedChangesModal(false);
+    
+    // Reset form data to original project values
+    if (project) {
+      setFormData({
+        title: project.title || "",
+        slug: project.slug || "",
+        description: project.description || "",
+        category: (project.category as ProjectCategory) || "web",
+        url_links: (project.url_links as ProjectLink[]) || [],
+      });
+
+      // Reset tags
+      if (project.tags && project.tags.length > 0) {
+        setSelectedTags(
+          project.tags.map((name) => ({
+            id: `tag-${name}`,
+            name,
+          }))
+        );
+      } else {
+        setSelectedTags([]);
+      }
+
+      // Reset form errors
+      setFormErrors({});
+    }
+
+    // Exit edit mode
+    const url = new URL(window.location.href);
+    url.searchParams.delete("edit");
+    url.searchParams.delete("tag");
+    router.replace(url.pathname + url.search, {
+      scroll: false,
+    });
+  }, [project, router]);
+
   const handleEditModeToggle = useCallback(() => {
     // Don't allow toggling out of edit mode in create mode
     if (create) return;
@@ -238,6 +327,38 @@ export function ProjectContent({
     if (!currentEditMode) {
       url.searchParams.set("edit", "true");
     } else {
+      // Check for unsaved changes before canceling
+      if (hasUnsavedChanges()) {
+        setShowUnsavedChangesModal(true);
+        return; // Show modal, don't proceed yet
+      }
+
+      // When exiting edit mode (Cancel), reset form data to original project values
+      if (project) {
+        setFormData({
+          title: project.title || "",
+          slug: project.slug || "",
+          description: project.description || "",
+          category: (project.category as ProjectCategory) || "web",
+          url_links: (project.url_links as ProjectLink[]) || [],
+        });
+
+        // Reset tags
+        if (project.tags && project.tags.length > 0) {
+          setSelectedTags(
+            project.tags.map((name) => ({
+              id: `tag-${name}`,
+              name,
+            }))
+          );
+        } else {
+          setSelectedTags([]);
+        }
+
+        // Reset form errors
+        setFormErrors({});
+      }
+
       url.searchParams.delete("edit");
       // Remove tag parameter when exiting edit mode
       url.searchParams.delete("tag");
@@ -246,7 +367,7 @@ export function ProjectContent({
     router.replace(url.pathname + url.search, {
       scroll: false,
     });
-  }, [searchParams, router, create]);
+  }, [searchParams, router, create, project, hasUnsavedChanges]);
 
   const handleNavigateUser = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -288,6 +409,40 @@ export function ProjectContent({
         "Slug must contain only lowercase letters, numbers, and hyphens";
     }
 
+    // Validate url_links - check for empty URLs and invalid formats
+    const hasEmptyLinks = formData.url_links.some(link => !link.url || link.url.trim() === '');
+    if (hasEmptyLinks) {
+      toast.error("Please fill in all link URLs or remove empty links before saving");
+      // Trigger highlighting of empty URL fields
+      window.dispatchEvent(new Event('highlight-empty-links'));
+      setIsUpdating(false);
+      return false;
+    }
+
+    // Check for invalid URL formats
+    const invalidLinks = formData.url_links.filter(link => {
+      const formatResult = validateUrlFormat(link.url);
+      return !formatResult.valid;
+    });
+    
+    if (invalidLinks.length > 0) {
+      toast.error("Some links have invalid URL format", {
+        description: "Please fix the URL format or use the 'Fix URL' button before saving",
+        duration: 5000,
+      });
+      setIsUpdating(false);
+      return false;
+    }
+
+    // Warn about unreachable links but don't block saving
+    const unreachableLinks = formData.url_links.filter(link => link.reachable === false);
+    if (unreachableLinks.length > 0) {
+      toast.warning(`${unreachableLinks.length} unreachable link(s) will not be displayed on your project`, {
+        description: "Fix and re-verify them or they won't appear to visitors",
+        duration: 5000,
+      });
+    }
+
     // Update errors state
     setFormErrors(errors);
 
@@ -300,11 +455,37 @@ export function ProjectContent({
     try {
       if (!userId) throw new Error("You must be logged in to update a project");
 
+      // Re-validate all URLs before saving (in case state changed)
+      const hasInvalidUrls = formData.url_links.some(link => {
+        if (!link.url || link.url.trim() === '') return true;
+        const formatResult = validateUrlFormat(link.url);
+        return !formatResult.valid;
+      });
+
+      if (hasInvalidUrls) {
+        toast.error("Cannot save: Some links have invalid URL format", {
+          description: "Please fix all URL formats or remove invalid links before saving",
+          duration: 5000,
+        });
+        setIsUpdating(false);
+        return;
+      }
+
       // Validate the form
       if (!validateForm()) {
         setIsUpdating(false);
         return;
       }
+
+      // Filter out unreachable links and invalid formats - only save verified reachable links with valid formats
+      const validLinks = formData.url_links.filter(link => {
+        // Must be reachable (not explicitly marked as unreachable)
+        if (link.reachable === false) return false;
+        
+        // Must have valid URL format
+        const formatResult = validateUrlFormat(link.url);
+        return formatResult.valid;
+      });
 
       const projectData = {
         title: formData.title,
@@ -312,7 +493,10 @@ export function ProjectContent({
         description: formData.description,
         category: formData.category,
         tags: selectedTags.map((tag) => tag.name),
+        url_links: validLinks,
       };
+
+      console.log('ProjectContent sending data:', JSON.stringify(projectData, null, 2));
 
       let result;
 
@@ -645,6 +829,12 @@ export function ProjectContent({
                   />
                 </div>
 
+                {/* Project Links Manager */}
+                <ProjectLinksManager
+                  initialLinks={formData.url_links}
+                  onChange={handleLinksChange}
+                />
+
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
@@ -671,6 +861,11 @@ export function ProjectContent({
             </Card>
           ) : (
             <>
+              {/* Project Links Display - show if links exist */}
+              {project.url_links && (project.url_links as ProjectLink[]).length > 0 && (
+                <ProjectLinksDisplay links={project.url_links as ProjectLink[]} />
+              )}
+
               <Card>
                 <CardHeader>
                   <CardTitle>About This Project</CardTitle>
@@ -821,6 +1016,13 @@ export function ProjectContent({
           </div>
         )}
       </div>
+
+      {/* Unsaved Changes Confirmation Modal */}
+      <UnsavedChangesConfirmationModal
+        isOpen={showUnsavedChangesModal}
+        onClose={() => setShowUnsavedChangesModal(false)}
+        onConfirm={handleConfirmDiscardChanges}
+      />
     </div>
   );
 

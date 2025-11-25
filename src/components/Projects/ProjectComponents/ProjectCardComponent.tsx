@@ -14,6 +14,9 @@ import {
   Undo2,
   Share2,
   ImageIcon,
+  Github,
+  FileText,
+  Video,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -35,6 +38,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ProjectLink } from "@/types/project-links";
 
 interface ProjectCardProps {
   project: Project;
@@ -467,8 +471,8 @@ export const ProjectCard = React.memo(
             </div>
           )}
           <div className="flex justify-between items-start px-4 -mt-1 absolute w-full z-[5]">
-            {/* Category Badge */}
-            <div className={` category-${project.category} border-0`}>
+            {/* Category Badge and Link Badges */}
+            <div className={`flex items-center gap-2 category-${project.category} border-0`}>
               <Badge
                 variant={project.deleted_at ? "outline" : "secondary"}
                 className={`category-${
@@ -489,6 +493,60 @@ export const ProjectCard = React.memo(
                   project.category
                 )}
               </Badge>
+              
+              {/* Link badges - show small icons for available links */}
+              {project.url_links && (project.url_links as ProjectLink[]).length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'repository' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          <Github className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Repository available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'demo' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-blue-600 dark:text-blue-400">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Live demo available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'documentation' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-green-600 dark:text-green-400">
+                          <FileText className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Documentation available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'video' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-red-600 dark:text-red-400">
+                          <Video className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Video demo available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}

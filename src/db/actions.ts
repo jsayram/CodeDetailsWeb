@@ -100,6 +100,7 @@ export async function getProjectBySlugServer(
           category: projects.category,
           user_id: projects.user_id,
           total_favorites: projects.total_favorites,
+          url_links: projects.url_links,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
           deleted_at: projects.deleted_at,
@@ -228,6 +229,8 @@ export async function updateProjectServer(
   project: Partial<InsertProject>
 ): Promise<SelectProject> {
   return await executeQuery(async (db) => {
+    console.log('updateProjectServer received project:', JSON.stringify(project, null, 2));
+    
     // Update the project
     const [updatedProject] = await db
       .update(projects)
@@ -299,6 +302,7 @@ export async function getAccessibleProjectsServer(
           category: projects.category,
           user_id: projects.user_id,
           total_favorites: projects.total_favorites,
+          url_links: projects.url_links,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
           deleted_at: projects.deleted_at,

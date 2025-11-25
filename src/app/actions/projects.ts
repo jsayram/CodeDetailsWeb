@@ -92,7 +92,10 @@ export async function createProject(project: InsertProject, userId: string) {
       title: project.title.trim(),
       slug: project.slug.trim(),
       user_id: userId, // Always assign the user ID to the project
+      url_links: project.url_links || [], // Ensure url_links is included
     };
+
+    console.log('Creating project with data:', JSON.stringify(trimmedProject, null, 2));
 
     // Basic validation
     if (!trimmedProject.title || !trimmedProject.slug) {
@@ -228,6 +231,11 @@ export async function updateProject(
       trimmedProject.slug = trimmedProject.slug.trim();
     }
 
+    // Ensure url_links is included if provided
+    if (project.url_links !== undefined) {
+      trimmedProject.url_links = project.url_links;
+    }
+
     // Basic validation - if slug or title is provided, ensure they're not empty
     if (trimmedProject.title !== undefined && !trimmedProject.title) {
       return {
@@ -243,6 +251,7 @@ export async function updateProject(
       };
     }
 
+    console.log('Updating project with data:', JSON.stringify(trimmedProject, null, 2));
     const updatedProject = await updateProjectServer(id, trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);

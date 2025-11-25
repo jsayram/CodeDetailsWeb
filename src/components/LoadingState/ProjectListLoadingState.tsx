@@ -13,27 +13,27 @@ export function ProjectListLoadingState({
   showTierInfo = true,
 }: LoadingStateProps) {
   return (
-    <div className="space-y-4 animate-in fade-in-50">
-      {/* Tier info skeleton */}
-      {showTierInfo && (
-        <Alert className="mb-6 h-[60px] skeleton-fade alert-container">
-          <AlertDescription className="text-sm flex items-center justify-between alert-content">
-            <div className="h-4 bg-muted rounded w-[180px] animate-pulse"></div>
-            <div className="flex gap-1 tier-badges">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="h-5 bg-muted rounded-full w-16 animate-pulse"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                ></div>
-              ))}
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+    <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">
+      <div className="space-y-4 mb-6 animate-in fade-in-50">
+        {/* Tier info skeleton */}
+        {showTierInfo && (
+          <Alert className="mb-6 h-[60px] skeleton-fade alert-container">
+            <AlertDescription className="text-sm flex items-center justify-between alert-content">
+              <div className="h-4 bg-muted rounded w-[180px] animate-pulse"></div>
+              <div className="flex gap-1 tier-badges">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div
+                    key={i}
+                    className="h-5 bg-muted rounded-full w-16 animate-pulse"
+                    style={{ animationDelay: `${i * 100}ms` }}
+                  ></div>
+                ))}
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Projects grid skeleton */}
-      <div className="space-y-3">
+        {/* Projects grid skeleton */}
         <div className="project-grid">
           {Array.from({ length: itemsCount }).map((_, i) => (
             <Card
@@ -73,10 +73,12 @@ export function ProjectListLoadingState({
             </Card>
           ))}
         </div>
+      </div>
 
-        {/* Pagination skeleton */}
+      {/* Pagination skeleton */}
+      <div className="flex justify-center items-center mt-4">
         <div
-          className="pagination-container flex justify-center mt-4 skeleton-fade"
+          className="pagination-container flex skeleton-fade"
           style={{ animationDelay: "300ms" }}
         >
           <div className="flex space-x-2">

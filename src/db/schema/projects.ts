@@ -1,5 +1,6 @@
-import { pgTable, text, varchar, timestamp, uuid, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uuid, numeric, jsonb } from "drizzle-orm/pg-core";
 import { ProjectCategory } from "@/constants/project-categories";
+import { ProjectLink } from "@/types/project-links";
 
 // Define the projects table schema
 export const projects = pgTable("projects", {
@@ -12,6 +13,7 @@ export const projects = pgTable("projects", {
     .notNull()
     .default("web"),
   total_favorites: numeric("total_favorites").notNull().default("0"), // Track total favorites for popularity sorting
+  url_links: jsonb("url_links").$type<ProjectLink[]>(), // Flexible array of project links
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"), // For soft delete functionality

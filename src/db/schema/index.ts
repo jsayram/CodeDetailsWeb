@@ -8,6 +8,7 @@ export * from "./favorites";
 export * from "./tags";
 export * from "./project_tags";
 export * from "./tag_submissions";
+export * from "./project_images";
 
 // ❌ Future Features - Schemas moved to src/db/schemas-future/
 // These are NOT included in the current migration.
