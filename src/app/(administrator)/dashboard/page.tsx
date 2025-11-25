@@ -1249,7 +1249,7 @@ function DashboardMain({
           </Accordion>
 
           {stats.myTagSubmissions.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               {/* Pending Submissions Column */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
