@@ -98,10 +98,10 @@ export default function SupportPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="relative mb-6">
-                <HelpCircle className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <HelpCircle className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
                 <Input
                   placeholder="Search for help topics..."
-                  className="pl-10"
+                  className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />

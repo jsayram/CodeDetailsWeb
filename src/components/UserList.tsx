@@ -8,8 +8,9 @@ import { useRouter } from "next/navigation";
 import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
 import { fetchTopContributorsPublic } from "@/app/actions/advanced-analytics";
 import type { TopContributor } from "@/app/actions/advanced-analytics";
-import { Trophy, Star, FileCode, Tag, Heart } from "lucide-react";
+import { Trophy, Star, FileCode, Tag, Heart, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { HighlightText } from "@/components/HighlightText";
 
 type UserWithProjectCount = SelectProfile & {
   project_count: number;
@@ -187,13 +188,14 @@ export function UserList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-4 items-center">
+      <div className="relative max-w-2xl">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
         <Input
           type="search"
           placeholder="Search by username, email, or tier (free/pro/diamond)..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md"
+          className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
         />
       </div>
 
@@ -246,17 +248,31 @@ export function UserList() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-lg truncate">
-                          {contributor.full_name || contributor.username}
+                          <HighlightText text={contributor.full_name || contributor.username} highlight={searchQuery} />
                         </h3>
-                        {contributor.tier && contributor.tier !== 'free' && (
+                        {/* Only show tier when searching and it's Pro/Diamond and matches */}
+                        {searchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(searchQuery.toLowerCase()) && (
                           <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
-                            {contributor.tier}
+                            <HighlightText text={contributor.tier} highlight={searchQuery} />
                           </Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
-                        @{contributor.username}
+                        @<HighlightText text={contributor.username} highlight={searchQuery} />
                       </p>
+                      {/* Show email if searching and it matches */}
+                      {searchQuery && (() => {
+                        const userProfile = users.find(u => u.user_id === contributor.user_id);
+                        const email = userProfile?.email_address || "";
+                        if (email && email.toLowerCase().includes(searchQuery.toLowerCase())) {
+                          return (
+                            <p className="text-xs text-muted-foreground truncate mt-1">
+                              <HighlightText text={email} highlight={searchQuery} />
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
 
@@ -341,17 +357,31 @@ export function UserList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium truncate">
-                        {contributor.full_name || contributor.username}
+                        <HighlightText text={contributor.full_name || contributor.username} highlight={searchQuery} />
                       </h3>
-                      {contributor.tier && contributor.tier !== 'free' && (
+                      {/* Only show tier when searching and it's Pro/Diamond and matches */}
+                      {searchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(searchQuery.toLowerCase()) && (
                         <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
-                          {contributor.tier}
+                          <HighlightText text={contributor.tier} highlight={searchQuery} />
                         </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      @{contributor.username}
+                      @<HighlightText text={contributor.username} highlight={searchQuery} />
                     </p>
+                    {/* Show email if searching and it matches */}
+                    {searchQuery && (() => {
+                      const userProfile = users.find(u => u.user_id === contributor.user_id);
+                      const email = userProfile?.email_address || "";
+                      if (email && email.toLowerCase().includes(searchQuery.toLowerCase())) {
+                        return (
+                          <p className="text-xs text-muted-foreground truncate mt-1">
+                            <HighlightText text={email} highlight={searchQuery} />
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-md">
                         <FileCode className="h-3 w-3 text-primary" />
@@ -420,17 +450,31 @@ export function UserList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium truncate">
-                        {contributor.full_name || contributor.username}
+                        <HighlightText text={contributor.full_name || contributor.username} highlight={searchQuery} />
                       </h3>
-                      {contributor.tier && contributor.tier !== 'free' && (
+                      {/* Only show tier when searching and it's Pro/Diamond and matches */}
+                      {searchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(searchQuery.toLowerCase()) && (
                         <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
-                          {contributor.tier}
+                          <HighlightText text={contributor.tier} highlight={searchQuery} />
                         </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      @{contributor.username}
+                      @<HighlightText text={contributor.username} highlight={searchQuery} />
                     </p>
+                    {/* Show email if searching and it matches */}
+                    {searchQuery && (() => {
+                      const userProfile = users.find(u => u.user_id === contributor.user_id);
+                      const email = userProfile?.email_address || "";
+                      if (email && email.toLowerCase().includes(searchQuery.toLowerCase())) {
+                        return (
+                          <p className="text-xs text-muted-foreground truncate mt-1">
+                            <HighlightText text={email} highlight={searchQuery} />
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
                     <div className="flex items-center gap-2 mt-2 text-xs flex-wrap">
                       <span className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 rounded-md">
                         <FileCode className="h-3 w-3 text-primary" />

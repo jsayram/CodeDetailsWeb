@@ -6,6 +6,8 @@ import { getTags } from "@/app/actions/tags";
 import type { TagInfo } from "@/db/operations/tag-operations";
 import { GenericLoadingState } from "@/components/LoadingState/GenericLoadingState";
 import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { HighlightText } from "@/components/HighlightText";
 
 export function TagList() {
   const [tags, setTags] = useState<TagInfo[]>([]);
@@ -75,13 +77,14 @@ export function TagList() {
   return (
     <div className="space-y-8">
       {/* Search Input */}
-      <div className="flex gap-4 items-center">
+      <div className="relative max-w-2xl">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
         <Input
           type="search"
           placeholder="Search tags..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm"
+          className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
         />
       </div>
 
@@ -108,10 +111,10 @@ export function TagList() {
                   {clickedTag === tag.name ? (
                     <span className="flex items-center gap-2">
                       <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-                      <span className="truncate">#{tag.name}</span>
+                      <span className="truncate">#<HighlightText text={tag.name} highlight={searchQuery} /></span>
                     </span>
                   ) : (
-                    <span className="truncate">#{tag.name}</span>
+                    <span className="truncate">#<HighlightText text={tag.name} highlight={searchQuery} /></span>
                   )}
                 </h3>
                 <p className="text-xs text-muted-foreground flex items-center gap-1.5 flex-shrink-0 ml-2">
@@ -148,7 +151,7 @@ export function TagList() {
                   role="listitem"
                   aria-disabled="true"
                 >
-                  <h3 className="text-sm font-medium truncate">#{tag.name}</h3>
+                  <h3 className="text-sm font-medium truncate">#<HighlightText text={tag.name} highlight={searchQuery} /></h3>
                 </div>
               ))}
             </div>

@@ -22,37 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { SearchContentSkeleton } from "./loading";
-
-// Highlight component to highlight matched text
-function HighlightText({ text, highlight }: { text: string; highlight: string }) {
-  if (!highlight.trim()) {
-    return <>{text}</>;
-  }
-  
-  const searchLower = highlight.toLowerCase();
-  const textLower = text.toLowerCase();
-  
-  // Find substring match anywhere in the text
-  const matchIndex = textLower.indexOf(searchLower);
-  
-  if (matchIndex === -1) {
-    return <>{text}</>;
-  }
-  
-  const beforeMatch = text.substring(0, matchIndex);
-  const match = text.substring(matchIndex, matchIndex + searchLower.length);
-  const afterMatch = text.substring(matchIndex + searchLower.length);
-  
-  return (
-    <>
-      {beforeMatch}
-      <span className="bg-primary/20 text-primary font-semibold">
-        {match}
-      </span>
-      {afterMatch}
-    </>
-  );
-}
+import { HighlightText } from "@/components/HighlightText";
 
 function SearchContent() {
   const router = useRouter();
@@ -614,16 +584,7 @@ function SearchContent() {
                             }`}
                             onClick={() => isActive && handleTagClick(tag.name)}
                           >
-                            <Hash className="inline-block h-4 w-4 mr-1" />
-                            {isLoading ? (
-                              <span className="flex items-center gap-2">
-                                <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
-                              </span>
-                            ) : (
-                              <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
-                            )}
-                            {isActive && (
+                            <Hash className="inline-block h-4 w-4 mr-1"/>{isLoading ? (<span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div><HighlightText text={tag.name} highlight={debouncedSearchQuery}/></span>) : (<HighlightText text={tag.name} highlight={debouncedSearchQuery}/>)}{isActive && (
                               <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
                                 {tag.count}
                               </span>
@@ -660,7 +621,7 @@ function SearchContent() {
                             onClick={() => handleCategoryClick(key, count)}
                           >
                             <div className="flex items-start justify-between mb-2">
-                              <h3 className="font-semibold"><HighlightText text={category.label} highlight={debouncedSearchQuery} /></h3>
+                              <h3 className="font-semibold"><HighlightText text={category.label} highlight={debouncedSearchQuery}/></h3>
                               <Badge variant={count > 0 ? "secondary" : "outline"}>
                                 {count}
                               </Badge>
@@ -697,7 +658,16 @@ function SearchContent() {
             {/* Categories Only Tab */}
             <TabsContent value="categories" className="mt-6">
               {filteredCategories.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Folder className="h-5 w-5" />
+                      Categories
+                      <Badge variant="secondary">{filteredCategories.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredCategories.map(([key, category]) => {
                     const count = categoryCounts[key] || 0;
                     const isLoading = loadingItem === `category-${key}`;
@@ -711,7 +681,7 @@ function SearchContent() {
                       >
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
-                            <HighlightText text={category.label} highlight={debouncedSearchQuery} />
+                            <span><HighlightText text={category.label} highlight={debouncedSearchQuery}/></span>
                             <Badge variant={count > 0 ? "secondary" : "outline"}>
                               {count}
                             </Badge>
@@ -731,7 +701,9 @@ function SearchContent() {
                       </Card>
                     );
                   })}
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   No categories found
@@ -742,7 +714,16 @@ function SearchContent() {
             {/* Tags Only Tab */}
             <TabsContent value="tags" className="mt-6">
               {filteredTags.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Hash className="h-5 w-5" />
+                      Tags
+                      <Badge variant="secondary">{filteredTags.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
                   {filteredTags.map((tag) => {
                     const isActive = (tag.count ?? 0) > 0;
                     const isLoading = loadingItem === `tag-${tag.name}`;
@@ -757,16 +738,7 @@ function SearchContent() {
                         }`}
                         onClick={() => isActive && handleTagClick(tag.name)}
                       >
-                        <Hash className="inline-block h-4 w-4 mr-1" />
-                        {isLoading ? (
-                          <span className="flex items-center gap-2">
-                            <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                            <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
-                          </span>
-                        ) : (
-                          <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
-                        )}
-                        {isActive && (
+                        <Hash className="inline-block h-4 w-4 mr-1"/>{isLoading ? (<span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div><HighlightText text={tag.name} highlight={debouncedSearchQuery}/></span>) : (<HighlightText text={tag.name} highlight={debouncedSearchQuery}/>)}{isActive && (
                           <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
                             {tag.count}
                           </span>
@@ -774,7 +746,9 @@ function SearchContent() {
                       </Badge>
                     );
                   })}
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   No tags found
@@ -783,9 +757,17 @@ function SearchContent() {
             </TabsContent>
 
             {/* Users Only Tab */}
-            <TabsContent value="users" className="mt-6 space-y-6">
+            <TabsContent value="users" className="mt-6">
               {activeUsers.length > 0 || inactiveUsers.length > 0 ? (
-                <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Users
+                      <Badge variant="secondary">{activeUsers.length + inactiveUsers.length}</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
                   {/* Top 3 Contributors */}
                   {activeUsers.length > 0 && (
                     <div>
@@ -1005,7 +987,8 @@ function SearchContent() {
                       </div>
                     </>
                   )}
-                </>
+                  </CardContent>
+                </Card>
               ) : (
                 <div className="text-center py-12 text-muted-foreground">
                   No users found

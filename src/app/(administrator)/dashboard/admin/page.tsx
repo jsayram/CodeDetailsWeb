@@ -1012,12 +1012,12 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           </div>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
               <Input
                 placeholder="Search by username, email, tier, or ID..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
+                className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
               />
             </div>
             <Select value={tierFilter} onValueChange={(value: any) => setTierFilter(value)}>

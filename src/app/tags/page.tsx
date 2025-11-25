@@ -8,13 +8,14 @@ import { ProjectsProvider } from "@/providers/projects-provider";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { PageBanner } from "@/components/ui/page-banner";
-import { Tag, Hash } from "lucide-react";
+import { Tag, Hash, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { HighlightText } from "@/components/HighlightText";
 
 export default function TagsIndexPage() {
   const { user, isLoaded: userLoaded } = useUser();
@@ -162,14 +163,14 @@ export default function TagsIndexPage() {
 
                 <div className="space-y-6">
                   {/* Search Input */}
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <div className="relative max-w-2xl">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200" />
                     <Input
                       type="search"
                       placeholder="Search tags..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 max-w-md"
+                      className="pl-12 h-12 text-base rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
                     />
                   </div>
 
@@ -205,16 +206,7 @@ export default function TagsIndexPage() {
                                   transform hover:scale-105"
                                 onClick={() => handleTagClick(tag.name)}
                               >
-                                <Hash className="inline-block h-4 w-4 mr-1 text-primary/60 group-hover:text-primary-foreground transition-colors" />
-                                {clickedTag === tag.name ? (
-                                  <span className="flex items-center gap-2">
-                                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                    {tag.name}
-                                  </span>
-                                ) : (
-                                  <>{tag.name}</>
-                                )}
-                                <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
+                                <Hash className="inline-block h-4 w-4 mr-1 text-primary/60 group-hover:text-primary-foreground transition-colors"/>{clickedTag === tag.name ? (<span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div><HighlightText text={tag.name} highlight={searchQuery}/></span>) : (<HighlightText text={tag.name} highlight={searchQuery}/>)}<span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
                                   {tag.count}
                                 </span>
                               </Badge>
@@ -262,8 +254,7 @@ export default function TagsIndexPage() {
                                   className="group relative text-base py-2 pl-2.5 pr-3 
                                     opacity-60 cursor-not-allowed select-none"
                                 >
-                                  <Hash className="inline-block h-4 w-4 mr-1 text-muted-foreground" />
-                                  {tag.name}
+                                  <Hash className="inline-block h-4 w-4 mr-1 text-muted-foreground"/><HighlightText text={tag.name} highlight={searchQuery}/>
                                 </Badge>
                               ))}
                             </div>
