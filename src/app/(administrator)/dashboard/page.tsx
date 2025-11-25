@@ -1142,73 +1142,79 @@ function DashboardMain({
       )}
 
       {/* My Tag Submissions */}
-      {stats.myTagSubmissions.length > 0 && (
-        <Card id="tag-submissions" className="flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
-            <div className="flex-1">
-            <CardTitle className="text-lg">My Tag Submissions</CardTitle>
-            <CardDescription className="text-sm">
-              {stats.myTagSubmissions.length} tag
-              {stats.myTagSubmissions.length > 1 ? "s" : ""} submitted
-            </CardDescription>
-            </div>
-            <TagIcon className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            {/* Tag Contribution Info Accordion */}
-            <Accordion type="single" collapsible className="mb-6">
-              <AccordionItem
-                value="about-submissions"
-                className="border border-primary/20 rounded-lg bg-gradient-to-r from-primary/5 via-purple/5 to-primary/5"
-              >
-                <AccordionTrigger className="px-4 hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">
-                      About Tag Submissions
+      <Card id="tag-submissions" className="flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
+          <div className="flex-1">
+          <CardTitle className="text-lg">My Tag Submissions</CardTitle>
+          <CardDescription className="text-sm">
+            {stats.myTagSubmissions.length > 0 ? (
+              <>
+                {stats.myTagSubmissions.length} tag
+                {stats.myTagSubmissions.length > 1 ? "s" : ""} submitted
+              </>
+            ) : (
+              "No tag submissions yet"
+            )}
+          </CardDescription>
+          </div>
+          <TagIcon className="h-4 w-4 text-primary" />
+        </CardHeader>
+        <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+          {/* Tag Contribution Info Accordion */}
+          <Accordion type="single" collapsible className="mb-6">
+            <AccordionItem
+              value="about-submissions"
+              className="border border-primary/20 rounded-lg bg-gradient-to-r from-primary/5 via-purple/5 to-primary/5"
+            >
+              <AccordionTrigger className="px-4 hover:no-underline">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">
+                    About Tag Submissions
+                  </span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-4 pb-4">
+                <div className="space-y-3 pt-2">
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-semibold text-purple-600 dark:text-purple-400">
+                      ✨ Share Your Tags
+                    </span>{" "}
+                    <span className="text-foreground">
+                      When editing your project, submit tags you think should be in the system if not already there for you. Once{" "}
+                      <span className="text-green-600 dark:text-green-400 font-medium">
+                        approved
+                      </span>
+                      , you can use them in your projects and others can add them to theirs too!
                     </span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-3 pt-2">
-                    <p className="text-sm leading-relaxed">
-                      <span className="font-semibold text-purple-600 dark:text-purple-400">
-                        ✨ Share Your Tags
+                  </p>
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      🎯 Why Tags Matter
+                    </span>{" "}
+                    <span className="text-foreground">
+                      Tags add specific tech details beyond categorieslike frameworks, languages, or concepts helping developers find exactly what they need and your projects more efficiently and deliberately.
+                    </span>
+                  </p>
+                  <p className="text-sm leading-relaxed">
+                    <span className="font-semibold text-orange-600 dark:text-orange-400">
+                      💡 Review Process
+                    </span>{" "}
+                    <span className="text-foreground">
+                      Tags get reviewed for quality as they are available for everyone in the community.{" "}
+                      <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+                        Rejections?
                       </span>{" "}
-                      <span className="text-foreground">
-                        When editing your project, submit tags you think should be in the system if not already there for you. Once{" "}
-                        <span className="text-green-600 dark:text-green-400 font-medium">
-                          approved
-                        </span>
-                        , you can use them in your projects and others can add them to theirs too!
-                      </span>
-                    </p>
-                    <p className="text-sm leading-relaxed">
-                      <span className="font-semibold text-blue-600 dark:text-blue-400">
-                        🎯 Why Tags Matter
-                      </span>{" "}
-                      <span className="text-foreground">
-                        Tags add specific tech details beyond categorieslike frameworks, languages, or concepts helping developers find exactly what they need and your projects more efficiently and deliberately.
-                      </span>
-                    </p>
-                    <p className="text-sm leading-relaxed">
-                      <span className="font-semibold text-orange-600 dark:text-orange-400">
-                        💡 Review Process
-                      </span>{" "}
-                      <span className="text-foreground">
-                        Tags get reviewed for quality as they are available for everyone in the community.{" "}
-                        <span className="text-yellow-600 dark:text-yellow-400 font-medium">
-                          Rejections?
-                        </span>{" "}
-                        Don't sweat it! They're not about you, we are just keeping tags clean, consistent, and useful for everyone.
-                      </span>
-                    </p>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                      Don't sweat it! They're not about you, we are just keeping tags clean, consistent, and useful for everyone.
+                    </span>
+                  </p>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {stats.myTagSubmissions.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Pending Submissions Column */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
@@ -1319,9 +1325,18 @@ function DashboardMain({
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <TagIcon className="h-16 w-16 text-muted-foreground/40 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Tag Submissions Yet</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                When you edit a project, you can submit new tags that aren't in the system yet. 
+                Once approved, they'll be available for everyone to use!
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </main>
   );
 }
