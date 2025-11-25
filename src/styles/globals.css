@@ -8,8 +8,8 @@
 @import "./category-styles.css";
 @import "./table.css";
 
-/* Increase base font size for 4K screens */
-@media (min-width: 1920px) {
+/* Increase base font size for XL screens and above */
+@media (min-width: 1280px) {
   html {
     font-size: 18px;
   }
