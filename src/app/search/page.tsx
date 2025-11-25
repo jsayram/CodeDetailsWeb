@@ -23,6 +23,37 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { SearchContentSkeleton } from "./loading";
 
+// Highlight component to highlight matched text
+function HighlightText({ text, highlight }: { text: string; highlight: string }) {
+  if (!highlight.trim()) {
+    return <>{text}</>;
+  }
+  
+  const searchLower = highlight.toLowerCase();
+  const textLower = text.toLowerCase();
+  
+  // Find substring match anywhere in the text
+  const matchIndex = textLower.indexOf(searchLower);
+  
+  if (matchIndex === -1) {
+    return <>{text}</>;
+  }
+  
+  const beforeMatch = text.substring(0, matchIndex);
+  const match = text.substring(matchIndex, matchIndex + searchLower.length);
+  const afterMatch = text.substring(matchIndex + searchLower.length);
+  
+  return (
+    <>
+      {beforeMatch}
+      <span className="bg-primary/20 text-primary font-semibold">
+        {match}
+      </span>
+      {afterMatch}
+    </>
+  );
+}
+
 function SearchContent() {
   const router = useRouter();
   const { projects, loading } = useProjects();
@@ -127,12 +158,12 @@ function SearchContent() {
     // When searching, filter and then apply same logic
     const filteredActive = sortedActiveTags.filter((tag) => {
       const tagLower = tag.name.toLowerCase();
-      // Only match on tag name
+      // Match anywhere in tag name
       return tagLower.includes(searchLower);
     });
     const filteredInactive = sortedInactiveTags.filter((tag) => {
       const tagLower = tag.name.toLowerCase();
-      // Only match on tag name
+      // Match anywhere in tag name
       return tagLower.includes(searchLower);
     });
     
@@ -243,7 +274,7 @@ function SearchContent() {
     const matchesSearch = (user: typeof allUsers[0]) => {
       if (!searchLower) return true;
       
-      // Check username, fullName, email only
+      // Check username, fullName, email
       return (
         user.username.toLowerCase().includes(searchLower) ||
         (user.fullName?.toLowerCase().includes(searchLower)) ||
@@ -421,66 +452,7 @@ function SearchContent() {
               </div>
             </div>
           ) : isLoadingData ? (
-            <div className="space-y-6">
-              {/* Searching skeleton - simpler, focused on results only */}
-              <div className="flex items-center gap-2 text-sm">
-                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-muted-foreground">Searching...</span>
-              </div>
-              
-              {/* Results skeletons */}
-              <div className="space-y-6">
-                {/* Users skeleton */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-muted-foreground" />
-                    <div className="h-5 w-20 bg-muted animate-pulse rounded"></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="p-4 rounded-lg border bg-card">
-                        <div className="flex items-start gap-4">
-                          <div className="w-12 h-12 rounded-full bg-muted animate-pulse"></div>
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 bg-muted animate-pulse rounded w-3/4"></div>
-                            <div className="h-3 bg-muted animate-pulse rounded w-1/2"></div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tags skeleton */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Hash className="h-5 w-5 text-muted-foreground" />
-                    <div className="h-5 w-16 bg-muted animate-pulse rounded"></div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {[...Array(8)].map((_, i) => (
-                      <div key={i} className="h-8 w-20 bg-muted animate-pulse rounded-full"></div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Categories skeleton */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Folder className="h-5 w-5 text-muted-foreground" />
-                    <div className="h-5 w-24 bg-muted animate-pulse rounded"></div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[...Array(2)].map((_, i) => (
-                      <div key={i} className="p-4 rounded-lg border bg-card space-y-2">
-                        <div className="h-5 bg-muted animate-pulse rounded w-2/3"></div>
-                        <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <SearchContentSkeleton />
           ) : (
             <>
           {/* Results Summary */}
@@ -553,7 +525,7 @@ function SearchContent() {
                               )}
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <h3 className="font-medium truncate">{user.username}</h3>
+                                  <h3 className="font-medium truncate"><HighlightText text={user.username} highlight={debouncedSearchQuery} /></h3>
                                 </div>
                                 {user.fullName && (
                                   <p className="text-sm text-muted-foreground truncate">
@@ -598,7 +570,7 @@ function SearchContent() {
                               </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{user.username}</h3>
+                              <h3 className="font-medium truncate"><HighlightText text={user.username} highlight={debouncedSearchQuery} /></h3>
                               {user.fullName && (
                                 <p className="text-sm text-muted-foreground truncate">
                                   {user.fullName}
@@ -646,10 +618,10 @@ function SearchContent() {
                             {isLoading ? (
                               <span className="flex items-center gap-2">
                                 <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                                {tag.name}
+                                <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
                               </span>
                             ) : (
-                              <>{tag.name}</>
+                              <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
                             )}
                             {isActive && (
                               <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
@@ -688,7 +660,7 @@ function SearchContent() {
                             onClick={() => handleCategoryClick(key, count)}
                           >
                             <div className="flex items-start justify-between mb-2">
-                              <h3 className="font-semibold">{category.label}</h3>
+                              <h3 className="font-semibold"><HighlightText text={category.label} highlight={debouncedSearchQuery} /></h3>
                               <Badge variant={count > 0 ? "secondary" : "outline"}>
                                 {count}
                               </Badge>
@@ -739,7 +711,7 @@ function SearchContent() {
                       >
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
-                            {category.label}
+                            <HighlightText text={category.label} highlight={debouncedSearchQuery} />
                             <Badge variant={count > 0 ? "secondary" : "outline"}>
                               {count}
                             </Badge>
@@ -789,10 +761,10 @@ function SearchContent() {
                         {isLoading ? (
                           <span className="flex items-center gap-2">
                             <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                            {tag.name}
+                            <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
                           </span>
                         ) : (
-                          <>{tag.name}</>
+                          <HighlightText text={tag.name} highlight={debouncedSearchQuery} />
                         )}
                         {isActive && (
                           <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
@@ -881,7 +853,7 @@ function SearchContent() {
                                   )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-medium truncate">{user.username}</h3>
+                                  <h3 className="font-medium truncate"><HighlightText text={user.username} highlight={debouncedSearchQuery} /></h3>
                                   {user.fullName && (
                                     <p className="text-sm text-muted-foreground truncate">
                                       {user.fullName}
@@ -954,7 +926,7 @@ function SearchContent() {
                                   </div>
                                 )}
                                 <div className="flex-1 min-w-0">
-                                  <h3 className="font-medium truncate">{user.username}</h3>
+                                  <h3 className="font-medium truncate"><HighlightText text={user.username} highlight={debouncedSearchQuery} /></h3>
                                   {user.fullName && (
                                     <p className="text-sm text-muted-foreground truncate">
                                       {user.fullName}
@@ -1017,7 +989,7 @@ function SearchContent() {
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                <h3 className="font-medium truncate">{user.username}</h3>
+                                <h3 className="font-medium truncate"><HighlightText text={user.username} highlight={debouncedSearchQuery} /></h3>
                                 {user.fullName && (
                                   <p className="text-sm text-muted-foreground truncate">
                                     {user.fullName}
