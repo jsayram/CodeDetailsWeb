@@ -1084,7 +1084,7 @@ function DashboardMain({
       </div>
 
       {/* My Projects Section */}
-      <Card id="my-projects" className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
+      <Card id="my-projects" className="mb-6 flex flex-col h-[620px] 3xl:h-[1200px] scroll-mt-20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
           <div className="flex-1">
             <CardTitle>My Recent Projects ({Math.min(stats.myProjects.length, 8)})</CardTitle>
@@ -1120,7 +1120,7 @@ function DashboardMain({
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
-        <Card id="favorites-given" className="mb-6 flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
+        <Card id="favorites-given" className="mb-6 flex flex-col h-[620px] 3xl:h-[1200px] scroll-mt-20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <div className="flex-1">
               <CardTitle>Projects I've Favorited ❤️ ({Math.min(stats.myFavorites.length, 8)})</CardTitle>
