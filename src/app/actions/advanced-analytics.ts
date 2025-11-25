@@ -9,7 +9,7 @@ import { tag_submissions } from "@/db/schema/tag_submissions";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/admin-utils";
 import { redirect } from "next/navigation";
-import { unstable_cache } from 'next/cache';
+import { unstable_cache, revalidateTag } from 'next/cache';
 
 export interface TopContributor {
   user_id: string;
@@ -269,6 +269,31 @@ export const getCachedTagPipelineAnalytics = unstable_cache(
     tags: ['admin-dashboard', 'tag-submissions']
   }
 );
+
+// Wrapper functions that support force refresh
+export async function getTopContributors(limit: number, forceRefresh = false) {
+  if (forceRefresh) {
+    console.log('[getTopContributors] 🔄 Force refresh - revalidating contributors cache');
+    revalidateTag('contributors');
+  } else {
+    console.log('[getTopContributors] 📦 Using server cache for contributors (if available)');
+  }
+  const result = await getCachedTopContributors(limit);
+  console.log('[getTopContributors] ✅ Contributors data returned');
+  return result;
+}
+
+export async function getTagPipelineAnalytics(forceRefresh = false) {
+  if (forceRefresh) {
+    console.log('[getTagPipelineAnalytics] 🔄 Force refresh - revalidating tag pipeline cache');
+    revalidateTag('tag-submissions');
+  } else {
+    console.log('[getTagPipelineAnalytics] 📦 Using server cache for tag pipeline (if available)');
+  }
+  const result = await getCachedTagPipelineAnalytics();
+  console.log('[getTagPipelineAnalytics] ✅ Tag pipeline data returned');
+  return result;
+}
 
 export async function fetchTopContributors(limit: number = 20): Promise<TopContributor[]> {
   await checkAdminAccess();

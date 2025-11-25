@@ -32,6 +32,7 @@ import {
   PieChart,
   Sparkles,
   Loader2,
+  RefreshCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormattedDate } from "@/lib/FormattedDate";
@@ -46,6 +47,7 @@ import { PageBanner } from "@/components/ui/page-banner";
 import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
+import { toast } from "sonner";
 
 // Type definitions
 interface StatsCardProps {
@@ -873,12 +875,33 @@ function DashboardMain({
   refresh: () => void;
 }) {
   const { user } = useUser();
+  const [refreshingTagSubmissions, setRefreshingTagSubmissions] = React.useState(false);
+
+  const refreshTagSubmissions = React.useCallback(async () => {
+    setRefreshingTagSubmissions(true);
+    try {
+      await refresh();
+      toast.success('Tag submissions refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh tag submissions');
+      console.error('Error refreshing tag submissions:', error);
+    } finally {
+      setRefreshingTagSubmissions(false);
+    }
+  }, [refresh]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await refresh();
-    setIsRefreshing(false);
+    try {
+      await refresh();
+      toast.success('Dashboard refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh dashboard');
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -1192,7 +1215,18 @@ function DashboardMain({
             )}
           </CardDescription>
           </div>
-          <TagIcon className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+              onClick={refreshTagSubmissions}
+              disabled={refreshingTagSubmissions}
+            >
+              <RefreshCcw className={`h-3.5 w-3.5 ${refreshingTagSubmissions ? 'animate-spin' : ''}`} />
+            </Button>
+            <TagIcon className="h-4 w-4 text-primary" />
+          </div>
         </CardHeader>
         <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
           {/* Tag Contribution Info Accordion */}

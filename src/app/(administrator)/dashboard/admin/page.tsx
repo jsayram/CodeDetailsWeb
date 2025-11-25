@@ -51,7 +51,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ClientOnly } from "@/components/ClientOnly";
 import { fetchAdminDashboardData } from "@/app/actions/admin-dashboard";
 import { fetchAllUsersAction, updateUserAction, checkIsSuperAdmin } from "@/app/actions/user-management";
-import { getCachedTopContributors, getCachedTagPipelineAnalytics } from "@/app/actions/advanced-analytics";
+import { getCachedTopContributors, getCachedTagPipelineAnalytics, getTopContributors, getTagPipelineAnalytics } from "@/app/actions/advanced-analytics";
 import type { TopContributor, TagPipelineMetrics } from "@/app/actions/advanced-analytics";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -1143,10 +1143,10 @@ function DashboardContent() {
   const [refreshingTags, setRefreshingTags] = React.useState(false);
   const [refreshingAnalytics, setRefreshingAnalytics] = React.useState(false);
 
-  const loadData = React.useCallback(async () => {
+  const loadData = React.useCallback(async (forceRefresh = false) => {
     try {
       const [data, superAdminStatus] = await Promise.all([
-        fetchAdminDashboardData(),
+        fetchAdminDashboardData(forceRefresh),
         checkIsSuperAdmin(),
       ]);
       setStats(data);
@@ -1158,11 +1158,11 @@ function DashboardContent() {
     }
   }, []);
 
-  const loadAnalytics = React.useCallback(async () => {
+  const loadAnalytics = React.useCallback(async (forceRefresh = false) => {
     try {
       const [contributors, pipelineMetrics] = await Promise.all([
-        getCachedTopContributors(20),
-        getCachedTagPipelineAnalytics(),
+        forceRefresh ? getTopContributors(20, true) : getCachedTopContributors(20),
+        forceRefresh ? getTagPipelineAnalytics(true) : getCachedTagPipelineAnalytics(),
       ]);
       setTopContributors(contributors);
       setTagPipelineMetrics(pipelineMetrics);
@@ -1204,78 +1204,145 @@ function DashboardContent() {
 
   const handleRefresh = React.useCallback(async () => {
     setIsRefreshing(true);
-    await Promise.all([loadData(), loadAnalytics()]);
-    setIsRefreshing(false);
+    try {
+      await Promise.all([loadData(true), loadAnalytics(true)]);
+      toast.success('Dashboard refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh dashboard');
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   }, [loadData, loadAnalytics]);
 
   const refreshStatsCards = React.useCallback(async () => {
     setRefreshingStats(true);
-    await loadData();
-    setRefreshingStats(false);
-    toast.success('Stats refreshed');
+    try {
+      await loadData(true);
+      toast.success('Stats refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh stats');
+      console.error('Error refreshing stats:', error);
+    } finally {
+      setRefreshingStats(false);
+    }
   }, [loadData]);
 
   const refreshActivity = React.useCallback(async () => {
     setRefreshingActivity(true);
-    await loadData();
-    setRefreshingActivity(false);
-    toast.success('Activity refreshed');
+    try {
+      await loadData(true);
+      toast.success('Activity refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh activity');
+      console.error('Error refreshing activity:', error);
+    } finally {
+      setRefreshingActivity(false);
+    }
   }, [loadData]);
 
   const refreshAttention = React.useCallback(async () => {
     setRefreshingAttention(true);
-    await loadData();
-    setRefreshingAttention(false);
-    toast.success('Projects needing attention refreshed');
+    try {
+      await loadData(true);
+      toast.success('Projects needing attention refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh projects needing attention');
+      console.error('Error refreshing attention:', error);
+    } finally {
+      setRefreshingAttention(false);
+    }
   }, [loadData]);
 
   const refreshPopular = React.useCallback(async () => {
     setRefreshingPopular(true);
-    await loadData();
-    setRefreshingPopular(false);
-    toast.success('Popular projects refreshed');
+    try {
+      await loadData(true);
+      toast.success('Popular projects refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh popular projects');
+      console.error('Error refreshing popular:', error);
+    } finally {
+      setRefreshingPopular(false);
+    }
   }, [loadData]);
 
   const refreshNoFavorites = React.useCallback(async () => {
     setRefreshingNoFavorites(true);
-    await loadData();
-    setRefreshingNoFavorites(false);
-    toast.success('Projects without favorites refreshed');
+    try {
+      await loadData(true);
+      toast.success('Projects without favorites refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh projects without favorites');
+      console.error('Error refreshing no favorites:', error);
+    } finally {
+      setRefreshingNoFavorites(false);
+    }
   }, [loadData]);
 
   const refreshUsers = React.useCallback(async () => {
     setRefreshingUsers(true);
-    await loadData();
-    setRefreshingUsers(false);
-    toast.success('User management refreshed');
+    try {
+      await loadData(true);
+      toast.success('User management refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh user management');
+      console.error('Error refreshing users:', error);
+    } finally {
+      setRefreshingUsers(false);
+    }
   }, [loadData]);
 
   const refreshNewUsers = React.useCallback(async () => {
     setRefreshingNewUsers(true);
-    await loadData();
-    setRefreshingNewUsers(false);
-    toast.success('New users refreshed');
+    try {
+      await loadData(true);
+      toast.success('New users refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh new users');
+      console.error('Error refreshing new users:', error);
+    } finally {
+      setRefreshingNewUsers(false);
+    }
   }, [loadData]);
 
   const refreshTagSubmissions = React.useCallback(async () => {
     setRefreshingTagSubmissions(true);
-    await loadData();
-    setRefreshingTagSubmissions(false);
-    toast.success('Tag submissions refreshed');
+    try {
+      await loadData(true);
+      toast.success('Tag submissions refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh tag submissions');
+      console.error('Error refreshing tag submissions:', error);
+    } finally {
+      setRefreshingTagSubmissions(false);
+    }
   }, [loadData]);
 
   const refreshTags = React.useCallback(async () => {
     setRefreshingTags(true);
-    await loadData();
-    setRefreshingTags(false);
-    toast.success('Tags refreshed');
+    try {
+      await loadData(true);
+      toast.success('Tags refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh tags');
+      console.error('Error refreshing tags:', error);
+    } finally {
+      setRefreshingTags(false);
+    }
   }, [loadData]);
 
   const refreshAnalyticsSection = React.useCallback(async () => {
     setRefreshingAnalytics(true);
-    await loadAnalytics();
-    setRefreshingAnalytics(false);
-    toast.success('Analytics refreshed');
+    try {
+      await loadAnalytics(true);
+      toast.success('Analytics refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh analytics');
+      console.error('Error refreshing analytics:', error);
+    } finally {
+      setRefreshingAnalytics(false);
+    }
   }, [loadAnalytics]);
 
   React.useEffect(() => {

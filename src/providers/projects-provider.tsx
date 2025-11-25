@@ -125,7 +125,10 @@ export function ProjectsProvider({
 
   const fetchProjects = useCallback(async () => {
     const now = Date.now();
+    
+    // Prevent duplicate fetches
     if (lastFetchRef.current.inProgress) {
+      console.log("⏭️ Skipping duplicate project fetch - already in progress");
       return;
     }
 
@@ -257,12 +260,18 @@ export function ProjectsProvider({
   }, [pagination.totalPages]);
 
   useEffect(() => {
+    let mounted = true;
+    
     if (!authReady || isLoading) return;
     
     // Allow fetching if authenticated or if there's a username filter
-    if (isAuthenticated || filters.username) {
+    if (mounted && (isAuthenticated || filters.username)) {
       fetchProjects();
     }
+    
+    return () => {
+      mounted = false;
+    };
   }, [isAuthenticated, authReady, isLoading, fetchProjects, filters]);
 
   const handleProjectAdded = async (newProject: Project) => {
