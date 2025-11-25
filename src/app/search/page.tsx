@@ -317,9 +317,18 @@ function SearchContent() {
                   I can help you find what you're looking for! Try searching for:
                   <br />
                   <span className="inline-flex items-center gap-1 mt-2">
-                    <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-md text-xs font-medium">Categories</span>
-                    <span className="px-2 py-0.5 bg-accent/10 text-accent-foreground rounded-md text-xs font-medium">Tags</span>
-                    <span className="px-2 py-0.5 bg-secondary/30 text-secondary-foreground rounded-md text-xs font-medium">Users</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 border border-primary/30 text-primary rounded-md text-xs font-medium">
+                      <Folder className="h-3 w-3" />
+                      Categories
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent-foreground rounded-md text-xs font-medium">
+                      <Hash className="h-3 w-3" />
+                      Tags
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary/30 text-secondary-foreground rounded-md text-xs font-medium">
+                      <Users className="h-3 w-3" />
+                      Users
+                    </span>
                   </span>
                   <br />
                   <span className="text-muted-foreground text-xs mt-1 block">
@@ -412,7 +421,66 @@ function SearchContent() {
               </div>
             </div>
           ) : isLoadingData ? (
-            <SearchContentSkeleton />
+            <div className="space-y-6">
+              {/* Searching skeleton - simpler, focused on results only */}
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-muted-foreground">Searching...</span>
+              </div>
+              
+              {/* Results skeletons */}
+              <div className="space-y-6">
+                {/* Users skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <div className="h-5 w-20 bg-muted animate-pulse rounded"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="p-4 rounded-lg border bg-card">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-full bg-muted animate-pulse"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-muted animate-pulse rounded w-3/4"></div>
+                            <div className="h-3 bg-muted animate-pulse rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tags skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Hash className="h-5 w-5 text-muted-foreground" />
+                    <div className="h-5 w-16 bg-muted animate-pulse rounded"></div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[...Array(8)].map((_, i) => (
+                      <div key={i} className="h-8 w-20 bg-muted animate-pulse rounded-full"></div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categories skeleton */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Folder className="h-5 w-5 text-muted-foreground" />
+                    <div className="h-5 w-24 bg-muted animate-pulse rounded"></div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[...Array(2)].map((_, i) => (
+                      <div key={i} className="p-4 rounded-lg border bg-card space-y-2">
+                        <div className="h-5 bg-muted animate-pulse rounded w-2/3"></div>
+                        <div className="h-4 bg-muted animate-pulse rounded w-full"></div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
           {/* Results Summary */}
