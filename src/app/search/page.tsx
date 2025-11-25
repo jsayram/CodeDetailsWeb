@@ -20,7 +20,7 @@ import { useTagCache } from "@/hooks/use-tag-cache";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { SearchContentSkeleton } from "./loading";
 import { HighlightText } from "@/components/HighlightText";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
@@ -357,13 +357,22 @@ function SearchContent() {
             <div className="relative w-full max-w-2xl z-10">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200 peer-hover:text-primary peer-focus:text-primary" />
               <Input
-                type="search"
+                type="text"
                 placeholder="Search categories, tags, or users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="peer pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
                 autoFocus
               />
+              {searchQuery && !isSearching && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 hover:scale-110 transition-transform cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <span className="text-2xl text-primary"><X/></span>
+                </button>
+              )}
               {isSearching && (
                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                   <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
