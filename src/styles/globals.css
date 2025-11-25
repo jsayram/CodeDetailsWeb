@@ -11,13 +11,13 @@
 /* Increase base font size for XL screens and above */
 @media (min-width: 1920px) {
   html {
-    font-size: 18px;
+    font-size: 17px;
   }
 }
 
 @media (min-width: 2560px) {
   html {
-    font-size: 20px;
+    font-size: 18px;
   }
 }
 

@@ -28,16 +28,6 @@ interface SortConfig {
   direction: "asc" | "desc";
 }
 
-const DEFAULT_COLUMN_WIDTHS = {
-  title: 250,
-  description: 300,
-  category: 150,
-  tags: 200,
-  creator: 180,
-  created_at: 150,
-  actions: 180,
-};
-
 const COLUMNS = [
   { key: "title", label: "Title", required: true },
   { key: "description", label: "Description", required: false },
@@ -66,13 +56,6 @@ export function ProjectTableView({
       return saved ? JSON.parse(saved) : [];
     }
     return [];
-  });
-  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("projectTableColumnWidths");
-      return saved ? JSON.parse(saved) : DEFAULT_COLUMN_WIDTHS;
-    }
-    return DEFAULT_COLUMN_WIDTHS;
   });
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [navigatingProjectId, setNavigatingProjectId] = useState<string | null>(null);
@@ -195,56 +178,7 @@ export function ProjectTableView({
     });
   };
 
-  const startColumnResize = (e: React.PointerEvent<HTMLDivElement>, columnKey: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const target = e.currentTarget;
-    const startX = e.clientX;
-    const startWidth = columnWidths[columnKey] ?? 150;
-    let currentWidth = startWidth;
-
-    target.setPointerCapture(e.pointerId);
-
-    const onMove = (ev: PointerEvent) => {
-      ev.preventDefault();
-      currentWidth = Math.min(Math.max(startWidth + ev.clientX - startX, 80), 800);
-      setColumnWidths((prev) => ({ ...prev, [columnKey]: currentWidth }));
-    };
-
-    const onUp = (ev: PointerEvent) => {
-      target.releasePointerCapture(ev.pointerId);
-      setColumnWidths((prev) => {
-        const final = { ...prev, [columnKey]: currentWidth };
-        if (typeof window !== "undefined") {
-          localStorage.setItem("projectTableColumnWidths", JSON.stringify(final));
-        }
-        return final;
-      });
-      target.removeEventListener("pointermove", onMove);
-      target.removeEventListener("pointerup", onUp);
-      target.removeEventListener("pointercancel", onUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-
-    target.addEventListener("pointermove", onMove);
-    target.addEventListener("pointerup", onUp);
-    target.addEventListener("pointercancel", onUp);
-    document.body.style.cursor = "col-resize";
-    document.body.style.userSelect = "none";
-  };
-
   const isColumnVisible = (key: string) => !hiddenColumns.includes(key);
-
-  const ResizeHandle = ({ columnKey }: { columnKey: string }) => (
-    <div
-      className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize bg-transparent hover:bg-primary/50 transition-colors"
-      style={{ transform: "translateX(50%)", touchAction: "none" }}
-      onPointerDown={(e) => startColumnResize(e, columnKey)}
-      onClick={(e) => e.stopPropagation()}
-    />
-  );
 
   return (
     <div className="hidden md:block w-full">
@@ -275,11 +209,7 @@ export function ProjectTableView({
         </div>
 
         <div className="overflow-y-auto overflow-x-hidden w-full">
-          <table className="responsive-table border-separate border-spacing-y-2 w-full" style={{ tableLayout: "fixed" }}>
-            <colgroup>
-              {COLUMNS.map((col) => isColumnVisible(col.key) && <col key={col.key} style={{ width: columnWidths[col.key] }} />)}
-              <col style={{ width: columnWidths.actions }} />
-            </colgroup>
+          <table className="responsive-table border-separate border-spacing-y-2 w-full">
             <thead className="sticky top-0 bg-background z-20">
               <tr>
                 {COLUMNS.map(
@@ -288,7 +218,7 @@ export function ProjectTableView({
                       <th
                         key={column.key}
                         onClick={() => handleSort(column.key === "creator" ? "profile" : (column.key as keyof Project))}
-                        className="cursor-pointer hover:bg-muted/50 transition-colors relative"
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
                       >
                         <div className="flex items-center space-x-1">
                           <span className="truncate">{column.label}</span>
@@ -296,13 +226,11 @@ export function ProjectTableView({
                             <ChevronUp className={`h-4 w-4 transition-transform flex-shrink-0 ${sortConfig.direction === "desc" ? "rotate-180" : ""}`} />
                           )}
                         </div>
-                        <ResizeHandle columnKey={column.key} />
                       </th>
                     )
                 )}
-                <th className="relative">
+                <th>
                   <span>Actions</span>
-                  <ResizeHandle columnKey="actions" />
                 </th>
               </tr>
             </thead>

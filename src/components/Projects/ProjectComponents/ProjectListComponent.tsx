@@ -586,7 +586,6 @@ export const ProjectList = React.memo(function ProjectList({
             <div className="hidden md:block">
               <ProjectTableView
                 projects={projects}
-                onViewDetails={handleViewDetails}
                 onToggleFavorite={handleToggleFavorite}
                 onUpdateProject={handleUpdateProject}
                 onDeleteProject={handleProjectDeletion}
