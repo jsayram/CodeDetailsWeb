@@ -292,10 +292,10 @@ function SearchContent() {
           {/* Centered Hero Section with Mascot */}
           <div className="flex flex-col items-center justify-center gap-6 py-8">
             <div className="text-center">
-              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 text-transparent bg-clip-text mb-4">
+              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 text-transparent bg-clip-text mb-4">
                 Search Code Details
               </h1>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
                 Discover projects, explore categories, find tags, and connect with developers
               </p>
             </div>
@@ -309,30 +309,30 @@ function SearchContent() {
                   className="w-40 h-40 object-contain animate-bounce-slow"
                 />
               </div>
-              <div className="relative max-w-md bg-card border-2 border-primary/30 rounded-2xl p-4 shadow-lg">
+              <div className="relative max-w-md bg-card border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
                 <div className="absolute -left-3 top-6 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-card border-b-8 border-b-transparent"></div>
                 <div className="absolute -left-4 top-6 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-primary/30 border-b-8 border-b-transparent"></div>
-                <p className="text-sm leading-relaxed">
-                  <span className="font-semibold text-primary">Hey there! 👋</span> 
+                <p className="text-base leading-relaxed">
+                  <span className="font-semibold text-primary text-lg">Hey there! 👋</span> 
                   <br />
                   I can help you find what you're looking for! Try searching for:
                   <br />
                   <span className="inline-flex items-center gap-1 mt-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 border border-primary/30 text-primary rounded-md text-xs font-medium">
-                      <Folder className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-1 px-2 py-1 border border-primary/30 text-primary rounded-md text-sm font-medium">
+                      <Folder className="h-3.5 w-3.5" />
                       Categories
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent-foreground rounded-md text-xs font-medium">
-                      <Hash className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent-foreground rounded-md text-sm font-medium">
+                      <Hash className="h-3.5 w-3.5" />
                       Tags
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary/30 text-secondary-foreground rounded-md text-xs font-medium">
-                      <Users className="h-3 w-3" />
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary/30 text-secondary-foreground rounded-md text-sm font-medium">
+                      <Users className="h-3.5 w-3.5" />
                       Users
                     </span>
                   </span>
                   <br />
-                  <span className="text-muted-foreground text-xs mt-1 block">
+                  <span className="text-muted-foreground text-sm mt-1 block">
                     Just type a keyword and I'll show you all related content!
                   </span>
                 </p>
@@ -362,7 +362,7 @@ function SearchContent() {
           {showEmptyState ? (
             <div className="text-center py-12">
               <div className="max-w-2xl mx-auto space-y-4">
-                <h3 className="text-2xl font-semibold">Ready to explore?</h3>
+                <h3 className="text-3xl font-semibold">Ready to explore?</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
                   <div 
                     className={`p-6 border-2 border-primary/20 rounded-xl hover:border-primary/40 transition-all hover:shadow-lg cursor-pointer relative ${
@@ -378,9 +378,9 @@ function SearchContent() {
                         <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       </div>
                     )}
-                    <Folder className="h-8 w-8 text-primary mx-auto mb-3" />
-                    <h4 className="font-semibold mb-2">Categories</h4>
-                    <p className="text-sm text-muted-foreground">Browse projects by category like Web Development, AI/ML, and more</p>
+                    <Folder className="h-10 w-10 text-primary mx-auto mb-3" />
+                    <h4 className="font-semibold mb-2 text-lg">Categories</h4>
+                    <p className="text-base text-muted-foreground">Browse projects by category like Web Development, AI/ML, and more</p>
                   </div>
                   <div 
                     className={`p-6 border-2 border-accent/20 rounded-xl hover:border-accent/40 transition-all hover:shadow-lg cursor-pointer relative ${
@@ -396,9 +396,9 @@ function SearchContent() {
                         <div className="w-6 h-6 border-2 border-accent-foreground border-t-transparent rounded-full animate-spin"></div>
                       </div>
                     )}
-                    <Hash className="h-8 w-8 text-accent-foreground mx-auto mb-3" />
-                    <h4 className="font-semibold mb-2">Tags</h4>
-                    <p className="text-sm text-muted-foreground">Find projects tagged with technologies like React, Python, Docker</p>
+                    <Hash className="h-10 w-10 text-accent-foreground mx-auto mb-3" />
+                    <h4 className="font-semibold mb-2 text-lg">Tags</h4>
+                    <p className="text-base text-muted-foreground">Find projects tagged with technologies like React, Python, Docker</p>
                   </div>
                   <div 
                     className={`p-6 border-2 border-secondary/30 rounded-xl hover:border-secondary/50 transition-all hover:shadow-lg cursor-pointer relative ${
@@ -414,9 +414,9 @@ function SearchContent() {
                         <div className="w-6 h-6 border-2 border-secondary-foreground border-t-transparent rounded-full animate-spin"></div>
                       </div>
                     )}
-                    <Users className="h-8 w-8 text-secondary-foreground mx-auto mb-3" />
-                    <h4 className="font-semibold mb-2">Users</h4>
-                    <p className="text-sm text-muted-foreground">Discover talented developers and explore their projects</p>
+                    <Users className="h-10 w-10 text-secondary-foreground mx-auto mb-3" />
+                    <h4 className="font-semibold mb-2 text-lg">Users</h4>
+                    <p className="text-base text-muted-foreground">Discover talented developers and explore their projects</p>
                   </div>
                 </div>
               </div>
