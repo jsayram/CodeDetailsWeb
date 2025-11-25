@@ -330,7 +330,7 @@
   display: grid;
   width: 100%;
   gap: 1rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
   justify-items: stretch;
   align-items: stretch;
   justify-content: center;
@@ -437,12 +437,28 @@
   .project-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
+  .project-card {
+    min-height: 620px;
+    max-height: 620px;
+    height: 620px;
+    width: 100%;
+    min-width: 450px;
+    max-width: 100%;
+  }
 }
 
 /* 4K/Ultrawide Screens */
 @media (min-width: 3440px) {
   .project-grid {
     grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .project-card {
+    min-height: 620px;
+    max-height: 620px;
+    height: 620px;
+    width: 100%;
+    min-width: 450px;
+    max-width: 100%;
   }
 }
 

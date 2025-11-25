@@ -54,6 +54,7 @@ export default function MyProjectsShowcase() {
                             }
                             userName={user?.fullName || "User"}
                             bannerTitle="Projects Portfolio"
+                            description="Showcase of your projects by sharing them individually or your entire portfolio to anyone."
                             userTier={userTier}
                             isUserBanner={true}
                             gradientFrom="indigo-900"
