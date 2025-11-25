@@ -728,8 +728,8 @@ function SearchContent() {
             <TabsContent value="tags" className="mt-6">
               {/* Banner Section */}
               <PageBanner
-                icon={<Hash className="h-8 w-8 text-primary" />}
-                bannerTitle="All Tags"
+                icon={<Hash className="h-8 w-8 text-primary"/>}
+                bannerTitle="Browse All Tags"
                 description="Discover projects by technology stack and features"
                 isUserBanner={false}
                 gradientFrom="purple-900"

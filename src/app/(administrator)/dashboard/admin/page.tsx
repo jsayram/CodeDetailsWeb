@@ -59,6 +59,7 @@ import type { UserProfile } from "@/db/operations/userManagementOperations";
 import { toast } from "sonner";
 import { TopContributorsCard } from "@/components/administrator/TopContributorsCard";
 import { TagPipelineCard, TopSubmittersCard, RecentSubmissionsCard } from "@/components/administrator/TagPipelineCard";
+import { HighlightText } from "@/components/HighlightText";
 
 // Type definitions
 interface StatsCardProps {
@@ -819,10 +820,12 @@ function EditableUserItem({
   user,
   isSuperAdmin,
   onEdit,
+  searchQuery = "",
 }: {
   user: UserProfile;
   isSuperAdmin: boolean;
   onEdit: (user: UserProfile) => void;
+  searchQuery?: string;
 }) {
   const [isNavigating, setIsNavigating] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
@@ -841,19 +844,19 @@ function EditableUserItem({
                 {isNavigating && <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />}
                 <Users className="h-3 w-3 text-amber-500 flex-shrink-0" />
                 <p className="text-sm font-medium truncate hover:text-primary transition-colors">
-                  {user.username}
+                  <HighlightText text={user.username} highlight={searchQuery} />
                   {user.full_name && (
-                    <span className="text-xs text-muted-foreground ml-2 truncate">({user.full_name})</span>
+                    <span className="text-xs text-muted-foreground ml-2 truncate">(<HighlightText text={user.full_name} highlight={searchQuery} />)</span>
                   )}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap min-w-0">
                 {user.email_address && (
-                  <p className="text-xs text-muted-foreground truncate min-w-0 max-w-full">{user.email_address}</p>
+                  <p className="text-xs text-muted-foreground truncate min-w-0 max-w-full"><HighlightText text={user.email_address} highlight={searchQuery} /></p>
                 )}
                 {user.tier && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary flex-shrink-0">
-                    {user.tier}
+                    <HighlightText text={user.tier} highlight={searchQuery} />
                   </span>
                 )}
               </div>
@@ -1059,6 +1062,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                   user={user}
                   isSuperAdmin={isSuperAdmin}
                   onEdit={handleEdit}
+                  searchQuery={debouncedSearch}
                 />
               ))}
             </div>
@@ -1118,6 +1122,7 @@ function DashboardContent() {
   const [tagPipelineMetrics, setTagPipelineMetrics] = React.useState<TagPipelineMetrics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [isClearingCache, setIsClearingCache] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     try {
@@ -1148,6 +1153,35 @@ function DashboardContent() {
       setAnalyticsLoading(false);
     }
   }, []);
+
+  const handleClearCache = React.useCallback(async () => {
+    if (!confirm('Are you sure you want to clear all cache? This will revalidate all cached data across the platform.')) {
+      return;
+    }
+
+    setIsClearingCache(true);
+    try {
+      const cacheTags = ['projects', 'user-profile', 'tier', 'analytics', 'tags', 'categories'];
+      const response = await fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: cacheTags }),
+      });
+
+      if (response.ok) {
+        toast.success('Cache cleared successfully! Data will be refreshed.');
+        // Reload data after cache clear
+        await Promise.all([loadData(), loadAnalytics()]);
+      } else {
+        toast.error('Failed to clear cache. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      toast.error('An error occurred while clearing cache.');
+    } finally {
+      setIsClearingCache(false);
+    }
+  }, [loadData, loadAnalytics]);
 
   const handleRefresh = React.useCallback(async () => {
     setIsRefreshing(true);
@@ -1193,18 +1227,32 @@ function DashboardContent() {
               Platform-wide analytics and administration
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="cursor-pointer"
-          >
-            <RefreshCcw
-              className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-            {isRefreshing ? "Refreshing..." : "Refresh"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearCache}
+              disabled={isClearingCache}
+              className="cursor-pointer"
+            >
+              <X
+                className={`h-4 w-4 mr-2 ${isClearingCache ? "animate-spin" : ""}`}
+              />
+              {isClearingCache ? "Clearing..." : "Clear Cache"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="cursor-pointer"
+            >
+              <RefreshCcw
+                className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
         </div>
       </div>
 

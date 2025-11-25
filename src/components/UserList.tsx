@@ -22,11 +22,21 @@ export function UserList() {
   const [users, setUsers] = useState<UserWithProjectCount[]>([]);
   const [topContributors, setTopContributors] = useState<TopContributor[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [contributorsLoading, setContributorsLoading] = useState(true);
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -69,7 +79,7 @@ export function UserList() {
 
   // Filter top contributors based on search (username, email, tier)
   const filteredTopContributors = topContributors.filter((contributor) => {
-    const searchLower = searchQuery.toLowerCase().trim();
+    const searchLower = debouncedSearchQuery.toLowerCase().trim();
     if (!searchLower) return true;
 
     // Get the user's email from the users array if available
@@ -79,8 +89,8 @@ export function UserList() {
     return (
       (contributor.username || "").toLowerCase().includes(searchLower) ||
       (contributor.full_name || "").toLowerCase().includes(searchLower) ||
-      (contributor.tier || "").toLowerCase().includes(searchLower) ||
-      email.toLowerCase().includes(searchLower)
+      email.toLowerCase().includes(searchLower) ||
+      (contributor.tier || "").toLowerCase().includes(searchLower)
     );
   });
 
@@ -248,26 +258,26 @@ export function UserList() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-lg truncate">
-                          <HighlightText text={contributor.full_name || contributor.username} highlight={searchQuery} />
+                          <HighlightText text={contributor.full_name || contributor.username} highlight={debouncedSearchQuery} />
                         </h3>
                         {/* Only show tier when searching and it's Pro/Diamond and matches */}
-                        {searchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(searchQuery.toLowerCase()) && (
+                        {debouncedSearchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) && (
                           <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
-                            <HighlightText text={contributor.tier} highlight={searchQuery} />
+                            <HighlightText text={contributor.tier} highlight={debouncedSearchQuery} />
                           </Badge>
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground truncate">
-                        @<HighlightText text={contributor.username} highlight={searchQuery} />
+                        @<HighlightText text={contributor.username} highlight={debouncedSearchQuery} />
                       </p>
                       {/* Show email if searching and it matches */}
-                      {searchQuery && (() => {
+                      {debouncedSearchQuery && (() => {
                         const userProfile = users.find(u => u.user_id === contributor.user_id);
                         const email = userProfile?.email_address || "";
-                        if (email && email.toLowerCase().includes(searchQuery.toLowerCase())) {
+                        if (email && email.toLowerCase().includes(debouncedSearchQuery.toLowerCase())) {
                           return (
                             <p className="text-xs text-muted-foreground truncate mt-1">
-                              <HighlightText text={email} highlight={searchQuery} />
+                              <HighlightText text={email} highlight={debouncedSearchQuery} />
                             </p>
                           );
                         }
@@ -357,17 +367,17 @@ export function UserList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium truncate">
-                        <HighlightText text={contributor.full_name || contributor.username} highlight={searchQuery} />
+                        <HighlightText text={contributor.full_name || contributor.username} highlight={debouncedSearchQuery} />
                       </h3>
                       {/* Only show tier when searching and it's Pro/Diamond and matches */}
                       {searchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(searchQuery.toLowerCase()) && (
                         <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
-                          <HighlightText text={contributor.tier} highlight={searchQuery} />
+                          <HighlightText text={contributor.tier} highlight={debouncedSearchQuery} />
                         </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      @<HighlightText text={contributor.username} highlight={searchQuery} />
+                      @<HighlightText text={contributor.username} highlight={debouncedSearchQuery} />
                     </p>
                     {/* Show email if searching and it matches */}
                     {searchQuery && (() => {
@@ -376,7 +386,7 @@ export function UserList() {
                       if (email && email.toLowerCase().includes(searchQuery.toLowerCase())) {
                         return (
                           <p className="text-xs text-muted-foreground truncate mt-1">
-                            <HighlightText text={email} highlight={searchQuery} />
+                            <HighlightText text={email} highlight={debouncedSearchQuery} />
                           </p>
                         );
                       }
@@ -450,17 +460,17 @@ export function UserList() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="font-medium truncate">
-                        <HighlightText text={contributor.full_name || contributor.username} highlight={searchQuery} />
+                        <HighlightText text={contributor.full_name || contributor.username} highlight={debouncedSearchQuery} />
                       </h3>
                       {/* Only show tier when searching and it's Pro/Diamond and matches */}
                       {searchQuery && contributor.tier && contributor.tier !== 'free' && contributor.tier.toLowerCase().includes(searchQuery.toLowerCase()) && (
                         <Badge variant={getTierBadgeVariant(contributor.tier)} className="text-xs">
-                          <HighlightText text={contributor.tier} highlight={searchQuery} />
+                          <HighlightText text={contributor.tier} highlight={debouncedSearchQuery} />
                         </Badge>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      @<HighlightText text={contributor.username} highlight={searchQuery} />
+                      @<HighlightText text={contributor.username} highlight={debouncedSearchQuery} />
                     </p>
                     {/* Show email if searching and it matches */}
                     {searchQuery && (() => {
@@ -469,7 +479,7 @@ export function UserList() {
                       if (email && email.toLowerCase().includes(searchQuery.toLowerCase())) {
                         return (
                           <p className="text-xs text-muted-foreground truncate mt-1">
-                            <HighlightText text={email} highlight={searchQuery} />
+                            <HighlightText text={email} highlight={debouncedSearchQuery} />
                           </p>
                         );
                       }

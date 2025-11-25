@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTagCache } from "@/hooks/use-tag-cache";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HighlightText } from "@/components/HighlightText";
 
 export default function TagsIndexPage() {
@@ -23,12 +23,22 @@ export default function TagsIndexPage() {
   const router = useRouter();
   const { tags: allTags, isLoading: tagsLoading } = useTagCache();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [clickedTag, setClickedTag] = useState<string | null>(null);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Filter and sort tags
   const filteredTags = (allTags || [])
     .filter((tag) => {
-      const searchLower = searchQuery.toLowerCase().trim();
+      const searchLower = debouncedSearchQuery.toLowerCase().trim();
       if (!searchLower) return true;
       return tag.name.toLowerCase().includes(searchLower);
     })
@@ -48,109 +58,6 @@ export default function TagsIndexPage() {
     router.push(`/tags/${encodeURIComponent(tagName)}`);
   };
 
-  // Define fixed widths for skeletons to prevent hydration mismatches
-  const activeTagWidths = [120, 108, 106, 123, 92, 119, 119, 138];
-  const inactiveTagWidths = [78, 72, 80, 80, 87, 88];
-
-  // Show loading state while tags are loading
-  if (tagsLoading) {
-    return (
-      <ProjectsProvider token={token} userId={user?.id ?? null}>
-        <SidebarProvider>
-          <AppSidebar />
-          <SidebarInset>
-            <HeaderSection />
-            <div className="flex justify-center w-full mb-20">
-              <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
-                <div className="flex flex-col gap-6 mb-6 py-3">
-                  <PageBanner
-                    icon={<Hash className="h-8 w-8 text-primary" />}
-                    bannerTitle="All Tags"
-                    description="Discover projects by technology stack and features"
-                    isUserBanner={false}
-                    gradientFrom="purple-900"
-                    gradientVia="indigo-800"
-                    gradientTo="blue-800"
-                    borderColor="border-purple-700/40"
-                    textGradient="from-fuchsia-400 via-purple-400 to-indigo-400"
-                  />
-
-                  {/* Main Card with Title and Search */}
-                  <Card>
-                    <CardHeader className="text-center space-y-4 pb-4">
-                      <CardTitle className="text-3xl font-bold">
-                        All Project Tags
-                      </CardTitle>
-                      <p className="text-muted-foreground text-base">
-                        Browse and search through all available tags
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Search Input Skeleton */}
-                      <div className="relative w-full max-w-2xl mx-auto">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                      <div className="h-10 bg-muted rounded-md w-64 animate-pulse"></div>
-                    </div>
-
-                    {/* Active Tags Section Skeleton */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center justify-between">
-                          <span>Active Tags</span>
-                          <div className="h-6 w-8 bg-muted rounded-full animate-pulse"></div>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                          {activeTagWidths.map((width, i) => (
-                            <div
-                              key={i}
-                              className="h-8 bg-muted rounded-full animate-pulse"
-                              style={{
-                                width: `${width}px`,
-                                animationDelay: `${(i + 1) * 100}ms`
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Inactive Tags Section Skeleton */}
-                    <Card>
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Available Tags</span>
-                          <div className="h-6 w-8 bg-muted rounded-full animate-pulse"></div>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                          {inactiveTagWidths.map((width, i) => (
-                            <div
-                              key={i}
-                              className="h-8 bg-muted/50 rounded-full animate-pulse"
-                              style={{
-                                width: `${width}px`,
-                                animationDelay: `${(i + 1) * 100}ms`
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
-            <FooterSection />
-          </SidebarInset>
-        </SidebarProvider>
-      </ProjectsProvider>
-    );
-  }
-
   return (
     <ProjectsProvider token={token} userId={user?.id ?? null}>
       <SidebarProvider>
@@ -162,7 +69,7 @@ export default function TagsIndexPage() {
               <div className="flex flex-col gap-6 mb-6 py-3">
                 <PageBanner
                   icon={<Hash className="h-8 w-8 text-primary" />}
-                  bannerTitle="All Tags"
+                  bannerTitle="Browse All Tags"
                   description="Discover projects by technology stack and features"
                   isUserBanner={false}
                   gradientFrom="purple-900"
@@ -229,7 +136,7 @@ export default function TagsIndexPage() {
                                   transform hover:scale-105"
                                 onClick={() => handleTagClick(tag.name)}
                               >
-                                <Hash className="inline-block h-4 w-4 mr-1 text-primary/60 group-hover:text-primary-foreground transition-colors"/>{clickedTag === tag.name ? (<span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div><HighlightText text={tag.name} highlight={searchQuery}/></span>) : (<HighlightText text={tag.name} highlight={searchQuery}/>)}<span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
+                                <Hash className="inline-block h-4 w-4 mr-1 text-primary/60 group-hover:text-primary-foreground transition-colors"/>{clickedTag === tag.name ? (<span className="flex items-center gap-2"><div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div><HighlightText text={tag.name} highlight={debouncedSearchQuery}/></span>) : (<HighlightText text={tag.name} highlight={debouncedSearchQuery}/>)}<span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-primary/10 text-primary group-hover:bg-primary-foreground/20 group-hover:text-primary-foreground">
                                   {tag.count}
                                 </span>
                               </Badge>
@@ -277,7 +184,7 @@ export default function TagsIndexPage() {
                                   className="group relative text-base py-2 pl-2.5 pr-3 
                                     opacity-60 cursor-not-allowed select-none"
                                 >
-                                  <Hash className="inline-block h-4 w-4 mr-1 text-muted-foreground"/><HighlightText text={tag.name} highlight={searchQuery}/>
+                                  <Hash className="inline-block h-4 w-4 mr-1 text-muted-foreground"/><HighlightText text={tag.name} highlight={debouncedSearchQuery}/>
                                 </Badge>
                               ))}
                             </div>

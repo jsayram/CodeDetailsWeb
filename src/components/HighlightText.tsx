@@ -18,5 +18,5 @@ export function HighlightText({ text, highlight }: { text: string; highlight: st
   const match = text.substring(matchIndex, matchIndex + searchLower.length);
   const afterMatch = text.substring(matchIndex + searchLower.length);
   
-  return <span>{beforeMatch}<span className="bg-primary/20 text-primary font-semibold">{match}</span>{afterMatch}</span>;
+  return <span>{beforeMatch}<span className="bg-primary/10 text-orange-500 font-semibold">{match}</span>{afterMatch}</span>;
 }
