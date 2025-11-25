@@ -206,12 +206,12 @@
 }
 
 .pagination-item-text[data-active="true"] {
-  @apply bg-accent text-accent-foreground font-medium;
+  @apply bg-primary text-primary-foreground font-medium;
   transform: scale(1.05);
 }
 
 .pagination-item-text:not([data-active="true"]):hover {
-  @apply bg-accent/80 text-accent-foreground;
+  @apply bg-primary/80 text-primary-foreground;
   transform: scale(1.02);
 }
 
