@@ -485,7 +485,7 @@ function SearchContent() {
             <>
           {/* Results Summary */}
           {debouncedSearchQuery && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="flex justify-center items-center gap-2 text-sm text-muted-foreground mb-4">
               <span>Found {totalResults} results</span>
               <Badge variant="secondary" className="font-mono">
                 {filteredCategories.length} categories
