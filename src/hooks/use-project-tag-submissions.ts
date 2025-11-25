@@ -61,11 +61,11 @@ export function useProjectTagSubmissions(projectId: string) {
 
   useEffect(() => {
     fetchPendingTags();
-
-    // Set up polling for updates every minute TODO: Replace with WebSocket or SSE for real-time updates , see if theres a better way to do this without querying the API every minute
-    const interval = setInterval(fetchPendingTags, 60000);
-
-    return () => clearInterval(interval);
+    // Removed automatic polling - use refreshPendingTags() to manually update
+    // Polling was creating unnecessary API calls. Updates occur when:
+    // 1. Component mounts/user navigates to project
+    // 2. User manually submits a new tag (via refreshPendingTags callback)
+    // 3. Admin approves/rejects tags (user can refresh page to see updates)
   }, [fetchPendingTags]);
 
   return {
