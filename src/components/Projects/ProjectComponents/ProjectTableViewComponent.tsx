@@ -45,7 +45,36 @@ export function ProjectTableView({
     key: "created_at",
     direction: "desc",
   });
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+  const [hiddenColumns, setHiddenColumns] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('projectTableHiddenColumns');
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('projectTableColumnWidths');
+      return saved ? JSON.parse(saved) : {
+        title: 250,
+        description: 300,
+        category: 150,
+        tags: 200,
+        creator: 180,
+        created_at: 150,
+        actions: 180,
+      };
+    }
+    return {
+      title: 250,
+      description: 300,
+      category: 150,
+      tags: 200,
+      creator: 180,
+      created_at: 150,
+      actions: 180,
+    };
+  });
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [navigatingProjectId, setNavigatingProjectId] = useState<string | null>(
     null
@@ -306,11 +335,49 @@ export function ProjectTableView({
   }, [projects, sortConfig]);
 
   const toggleColumnVisibility = (columnName: string) => {
-    setHiddenColumns((current) =>
-      current.includes(columnName)
+    setHiddenColumns((current) => {
+      const newHiddenColumns = current.includes(columnName)
         ? current.filter((col) => col !== columnName)
-        : [...current, columnName]
-    );
+        : [...current, columnName];
+      
+      // Persist to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('projectTableHiddenColumns', JSON.stringify(newHiddenColumns));
+      }
+      
+      return newHiddenColumns;
+    });
+  };
+
+  const handleColumnResize = (columnKey: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.pageX;
+    const startWidth = columnWidths[columnKey] || 150;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const diff = moveEvent.pageX - startX;
+      const newWidth = Math.max(100, startWidth + diff);
+      
+      setColumnWidths(prev => {
+        const updated = { ...prev, [columnKey]: newWidth };
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('projectTableColumnWidths', JSON.stringify(updated));
+        }
+        return updated;
+      });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   };
 
   const columns = [
@@ -325,15 +392,16 @@ export function ProjectTableView({
   const dimOpacityValue = 0.2;
 
   return (
-    <div className="w-full overflow-auto">
-      <div className="mb-4 flex justify-end">
-        <div className="relative">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowColumnSettings((s) => !s)}
-            className="cursor-pointer"
-          >
+    <div className="w-full overflow-auto flex justify-center">
+      <div className="w-full max-w-[95%] mb-8">
+        <div className="mb-4 flex justify-end">
+          <div className="relative">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowColumnSettings((s) => !s)}
+              className="cursor-pointer"
+            >
             <Settings2 className="h-4 w-4 mr-2" />
             Columns
           </Button>
@@ -361,7 +429,7 @@ export function ProjectTableView({
         </div>
       </div>
 
-      <table className="responsive-table w-full border-separate border-spacing-y-2">
+      <table className="responsive-table w-full border-separate border-spacing-y-2" style={{ tableLayout: 'fixed' }}>
         <thead>
           <tr>
             {columns.map(
@@ -376,23 +444,36 @@ export function ProjectTableView({
                           : (column.key as keyof Project)
                       )
                     }
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="cursor-pointer hover:bg-muted/50 transition-colors relative"
+                    style={{ width: `${columnWidths[column.key]}px`, minWidth: '100px' }}
                   >
-                    <div className="flex items-center space-x-1">
-                      <span>{column.label}</span>
+                    <div className="flex items-center space-x-1 overflow-hidden">
+                      <span className="truncate">{column.label}</span>
                       {sortConfig.key ===
                         (column.key === "creator" ? "profile" : column.key) && (
                         <ChevronUp
-                          className={`h-4 w-4 transition-transform ${
+                          className={`h-4 w-4 transition-transform flex-shrink-0 ${
                             sortConfig.direction === "desc" ? "rotate-180" : ""
                           }`}
                         />
                       )}
                     </div>
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize bg-primary/50 hover:bg-primary transition-colors"
+                      onMouseDown={(e) => handleColumnResize(column.key, e)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
                   </th>
                 )
             )}
-            <th>Actions</th>
+            <th className="relative" style={{ width: `${columnWidths.actions}px`, minWidth: '100px' }}>
+              <span>Actions</span>
+              <div
+                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize bg-primary/50 hover:bg-primary transition-colors"
+                onMouseDown={(e) => handleColumnResize('actions', e)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -414,7 +495,7 @@ export function ProjectTableView({
                 {!hiddenColumns.includes("title") && (
                   <td
                     className="transition-opacity duration-200 relative"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.title}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                   >
                     {isNavigating && (
                       <span
@@ -439,7 +520,7 @@ export function ProjectTableView({
                 {!hiddenColumns.includes("description") && (
                   <td
                     className="table-description-cell transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.description}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                   >
                     <div className="table-description-content relative">
                       {project.description || "No description provided"}
@@ -454,7 +535,7 @@ export function ProjectTableView({
                 {!hiddenColumns.includes("category") && (
                   <td
                     className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.category}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                   >
                     <Badge
                       variant={
@@ -482,7 +563,7 @@ export function ProjectTableView({
                 {!hiddenColumns.includes("tags") && (
                   <td
                     className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.tags}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                   >
                     <div className="flex flex-wrap gap-1">
                       {project.tags && project.tags.length > 0 ? (
@@ -519,7 +600,7 @@ export function ProjectTableView({
                 {!hiddenColumns.includes("creator") && (
                   <td
                     className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.creator}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                   >
                     <div className="flex items-center gap-2">
                       <Avatar className="h-6 w-6">
@@ -541,7 +622,7 @@ export function ProjectTableView({
                 {!hiddenColumns.includes("created_at") && (
                   <td
                     className="transition-opacity duration-200"
-                    style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                    style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.created_at}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                   >
                     {project.created_at ? (
                       <FormattedDate date={project.created_at} />
@@ -552,7 +633,7 @@ export function ProjectTableView({
                 )}
                 <td
                   className="transition-opacity duration-200"
-                  style={{ opacity: isNavigating ? dimOpacityValue : 1 }}
+                  style={{ opacity: isNavigating ? dimOpacityValue : 1, width: `${columnWidths.actions}px`, wordWrap: 'break-word', whiteSpace: 'normal' }}
                 >
                   <div className="flex items-center gap-2">
                     <FavoriteButton
@@ -601,6 +682,7 @@ export function ProjectTableView({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

@@ -1,13 +1,13 @@
 /* Table & Mobile View Base Styles */
 .responsive-table {
   display: block;
-  width: 100%;
+  width: calc(100% - 2rem);
+  margin: 0 auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  @apply w-full border-collapse bg-transparent;
+  @apply border-collapse bg-transparent;
   border-collapse: separate;
   border-spacing: 0;
-  width: 100%;
 }
 
 /* Table row and loading state styles */
