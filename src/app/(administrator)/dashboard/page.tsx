@@ -544,11 +544,11 @@ function TagSubmissionCard({
             {status === "approved" && (
               is_on_original_project ? (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800 text-xs">
-                  ✅ In Project
+                  ✅ Tag in one project
                 </Badge>
               ) : (
                 <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 text-xs">
-                  ⚠️ System Only
+                  ⚠️ Not in projects, but approved
                 </Badge>
               )
             )}
@@ -581,7 +581,7 @@ function TagSubmissionCard({
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-auto p-1 text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+                    className="h-auto p-1 text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1 cursor-pointer"
                   >
                     <span className="font-medium">Also used in:</span>
                     <span className="text-primary">{other_projects_using_tag.length} project{other_projects_using_tag.length > 1 ? 's' : ''}</span>
@@ -593,10 +593,10 @@ function TagSubmissionCard({
                     Also used in these projects:
                   </DropdownMenuLabel>
                   {other_projects_using_tag.map((proj) => (
-                    <DropdownMenuItem key={proj.slug} asChild className="cursor-pointer p-0 hover:bg-transparent">
+                    <DropdownMenuItem key={proj.slug} asChild className="cursor-pointer p-0">
                       <Link 
                         href={`/projects/${proj.slug}`}
-                        className="flex items-center gap-2 px-2 py-2 text-sm w-full"
+                        className="flex items-center gap-2 px-2 py-2 text-sm w-full hover:bg-muted/30 rounded-sm"
                       >
                         <div className="flex-1 min-w-0 overflow-x-auto 
                         [&::-webkit-scrollbar]:h-[2px] 
