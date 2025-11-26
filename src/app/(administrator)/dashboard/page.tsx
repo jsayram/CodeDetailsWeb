@@ -48,6 +48,7 @@ import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
 import { toast } from "sonner";
+import UserDashboardLoading from "./loading";
 
 // Type definitions
 interface StatsCardProps {
@@ -105,21 +106,7 @@ interface RecentAppreciationItemProps {
   favorited_at: Date | null;
 }
 
-// Loading skeleton for stats card
-function StatsCardSkeleton() {
-  return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <Skeleton className="h-4 w-[100px]" />
-        <Skeleton className="h-4 w-4" />
-      </CardHeader>
-      <CardContent>
-        <Skeleton className="h-7 w-[60px] mb-1" />
-        <Skeleton className="h-4 w-[120px]" />
-      </CardContent>
-    </Card>
-  );
-}
+
 
 // Simple stats card component
 function StatsCard({ title, value, description, icon }: StatsCardProps) {
@@ -850,7 +837,7 @@ function DashboardContent() {
   } = useDashboardCache("user-dashboard", fetchUserDashboardData, []);
 
   if (loading) {
-    return <DashboardLoading />;
+    return <UserDashboardLoading />;
   }
 
   if (error) {
@@ -858,7 +845,7 @@ function DashboardContent() {
   }
 
   if (!dashboardData) {
-    return <DashboardLoading />;
+    return <UserDashboardLoading />;
   }
 
   const { stats } = dashboardData;
@@ -1410,31 +1397,7 @@ function DashboardMain({
   );
 }
 
-// Loading state for the dashboard
-function DashboardLoading() {
-  return (
-    <main className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
-      <div className="mb-8">
-        <Skeleton className="h-8 w-[200px] mb-2" />
-        <Skeleton className="h-4 w-[300px]" />
-      </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatsCardSkeleton />
-        <StatsCardSkeleton />
-        <StatsCardSkeleton />
-        <StatsCardSkeleton />
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6">
-        <Skeleton className="h-[300px]" />
-        <Skeleton className="h-[300px]" />
-      </div>
-
-      <Skeleton className="h-[400px]" />
-    </main>
-  );
-}
 
 export default function DashboardPage() {
   return (

@@ -143,14 +143,14 @@ export default function UserDashboardLoading() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SidebarProvider>
         <SignedIn>
-          <AppSidebar />
+          {/* <AppSidebar /> */}
         </SignedIn>
         <SidebarInset>
-          <HeaderSection
+          {/* <HeaderSection
             showLogo={false}
             showDarkModeButton={true}
             showMobileMenu={false}
-          />
+          /> */}
 
           <main className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
             {/* Dashboard Banner Loading */}
@@ -317,7 +317,7 @@ export default function UserDashboardLoading() {
                   <Skeleton className="h-4 w-4" />
                 </div>
               </CardHeader>
-              <CardContent className="flex-1">
+              <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
                 {/* About Tag Submissions accordion skeleton */}
                 <div className="border border-muted rounded-lg p-4 mb-6">
                   <div className="flex items-center gap-2">
@@ -334,7 +334,7 @@ export default function UserDashboardLoading() {
                         <div className="h-1 w-1 rounded-full bg-muted-foreground/40" />
                         <Skeleton className="h-3 w-[80px]" />
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
                         {Array.from({ length: 3 }).map((_, j) => (
                           <div
                             key={j}
