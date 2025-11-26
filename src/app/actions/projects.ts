@@ -12,6 +12,7 @@ import {
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
 import { projects } from "@/db/schema/projects";
+import { project_tags } from "@/db/schema/project_tags";
 import { revalidatePath, unstable_cache, revalidateTag } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
@@ -620,8 +621,6 @@ export async function removeProjectFavorite(
 export async function getProjectTagCounts(projectIds: string[]) {
   return executeQuery(async (db) => {
     if (projectIds.length === 0) return {};
-
-    const { project_tags } = await import("@/db/schema/project_tags");
     
     const tagCounts = await db
       .select({

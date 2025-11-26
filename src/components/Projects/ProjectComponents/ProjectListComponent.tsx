@@ -103,7 +103,21 @@ export const ProjectList = React.memo(function ProjectList({
     title: string;
   } | null>(null);
   const [isUnfavoriting, setIsUnfavoriting] = useState(false);
+  const [layoutReady, setLayoutReady] = useState(false);
   const user = useSession();
+
+  // Wait for layout to be ready before showing skeleton
+  useEffect(() => {
+    setLayoutReady(true);
+  }, []);
+
+  console.log("🔍🔍🔍 PROJECT LIST COMPONENT RENDER 🔍🔍🔍", { 
+    loading, 
+    projectsCount: projects.length,
+    filtersPage: filters.page,
+    externalPage,
+    isAuthenticated 
+  });
 
   // Check for mobile screen size
   useEffect(() => {
@@ -426,8 +440,15 @@ export const ProjectList = React.memo(function ProjectList({
 
   // Loading state
   if (loading) {
+    console.log("🚨🚨🚨 PROJECT LIST SHOWING SKELETON 🚨🚨🚨", { loading, layoutReady });
+    // Don't show skeleton until layout is ready to avoid width calculation issues
+    if (!layoutReady) {
+      return null;
+    }
     return <ProjectListLoadingState />;
   }
+
+  console.log("✅✅✅ PROJECT LIST SHOWING CONTENT ✅✅✅", { projectsCount: projects.length });
 
   return (
     <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">
@@ -463,6 +484,7 @@ export const ProjectList = React.memo(function ProjectList({
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="recently-edited">Recently Edited</SelectItem>
                   <SelectItem value="newest">Newest First</SelectItem>
                   <SelectItem value="oldest">Oldest First</SelectItem>
                   <SelectItem value="popular">Most Popular</SelectItem>

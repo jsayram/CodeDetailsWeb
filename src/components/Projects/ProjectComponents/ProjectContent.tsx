@@ -190,6 +190,7 @@ export function ProjectContent({
         category: (project.category as ProjectCategory) || "web",
         url_links: (project.url_links as ProjectLink[]) || [],
       };
+      
       setFormData(initialFormData);
       setOriginalFormData(initialFormData);
 
@@ -831,6 +832,7 @@ export function ProjectContent({
 
                 {/* Project Links Manager */}
                 <ProjectLinksManager
+                  key={`links-${isEditMode}-${project.id}`}
                   initialLinks={formData.url_links}
                   onChange={handleLinksChange}
                 />

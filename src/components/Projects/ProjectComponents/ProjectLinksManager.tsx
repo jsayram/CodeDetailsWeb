@@ -69,6 +69,11 @@ export function ProjectLinksManager({
   const [emptyUrlIndices, setEmptyUrlIndices] = useState<Set<number>>(new Set());
   const [urlSuggestions, setUrlSuggestions] = useState<Map<number, string>>(new Map());
 
+  // Sync internal state with initialLinks prop changes
+  React.useEffect(() => {
+    setLinks(initialLinks);
+  }, [initialLinks]);
+
   // Expose method to highlight empty URLs (called from parent)
   React.useEffect(() => {
     const checkEmptyUrls = () => {

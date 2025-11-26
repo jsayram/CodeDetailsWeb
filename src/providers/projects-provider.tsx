@@ -98,7 +98,7 @@ export function ProjectsProvider({
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ProjectFilters>({
     showAll: true, // Set showAll to true by default
-    sortBy: "newest",
+    sortBy: "recently-edited",
     category: "all",
     showMyProjects: false,
     showFavorites: false,
@@ -347,6 +347,12 @@ export function ProjectsProvider({
     let result = [...projects];
 
     switch (filters.sortBy) {
+      case "recently-edited":
+        return result.sort((a, b) => {
+          const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+          const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+          return dateB - dateA;
+        });
       case "newest":
         return result.sort((a, b) => {
           const dateA = new Date(a.created_at || 0).getTime();

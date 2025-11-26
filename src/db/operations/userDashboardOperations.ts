@@ -141,7 +141,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         )
       )
       .groupBy(projects.id, projects.slug, projects.title, projects.description, projects.total_favorites, projects.category, projects.created_at)
-      .orderBy(desc(projects.created_at))
+      .orderBy(desc(projects.updated_at))
       .limit(10);
 
     // Get most popular project

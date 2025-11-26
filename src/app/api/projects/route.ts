@@ -39,6 +39,8 @@ const applySorting = (query: any, sortBy: string) => {
   switch (sortBy) {
     case "oldest":
       return query.orderBy(sql`${projects.created_at} asc`);
+    case "recently-edited":
+      return query.orderBy(sql`${projects.updated_at} desc`);
     case "popular":
       return query.orderBy(sql`${projects.total_favorites} desc`);
     case "newest":

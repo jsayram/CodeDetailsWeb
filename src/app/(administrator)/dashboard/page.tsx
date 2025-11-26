@@ -1147,7 +1147,7 @@ function DashboardMain({
           <div className="flex-1">
             <CardTitle>My Recent Projects ({Math.min(stats.myProjects.length, 8)})</CardTitle>
             <CardDescription className="text-xs mt-1">
-              Your most recently created or updated projects
+              Your most recently updated projects
             </CardDescription>
           </div>
           <Code className="h-4 w-4 text-primary" />
