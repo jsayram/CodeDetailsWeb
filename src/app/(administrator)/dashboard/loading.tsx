@@ -143,15 +143,8 @@ export default function UserDashboardLoading() {
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       <SidebarProvider>
         <SignedIn>
-          {/* <AppSidebar /> */}
         </SignedIn>
         <SidebarInset>
-          {/* <HeaderSection
-            showLogo={false}
-            showDarkModeButton={true}
-            showMobileMenu={false}
-          /> */}
-
           <main className="w-full px-4 2xl:px-8 3xl:px-12 py-8">
             {/* Dashboard Banner Loading */}
             <div className="mb-4 flex items-center justify-between gap-4">
