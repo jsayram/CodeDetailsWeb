@@ -6,114 +6,12 @@ import { PROJECTS_PER_PAGE } from "../navigation/Pagination/paginationConstants"
 interface LoadingStateProps {
   itemsCount?: number;
   showTierInfo?: boolean;
-  variant?: "list" | "detail"; // Add variant prop to handle different layouts
 }
 
 export function ProjectListLoadingState({
   itemsCount = PROJECTS_PER_PAGE,
   showTierInfo = true,
-  variant = "list", // Default to list view (project grids)
 }: LoadingStateProps) {
-  // Render detail page skeleton (individual project page with sidebar)
-  if (variant === "detail") {
-    return (
-      <div className="w-full min-w-2 max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
-        {/* Header skeleton */}
-        <div className="flex items-row justify-between mb-4 animate-pulse">
-          <div className="h-10 bg-muted rounded w-32"></div>
-          <div className="flex gap-5">
-            <div className="h-6 bg-muted rounded-full w-24"></div>
-            <div className="h-6 bg-muted rounded w-16"></div>
-          </div>
-        </div>
-
-        {/* Profile Header Section skeleton */}
-        <div className="mb-6 bg-card rounded-lg p-6 shadow-lg animate-pulse">
-          <div className="flex items-col gap-6">
-            <div className="h-24 w-24 bg-muted rounded-full"></div>
-            <div className="flex-1 space-y-3">
-              <div className="h-8 bg-muted rounded w-3/4"></div>
-              <div className="h-4 bg-muted rounded w-1/4"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Project Details Grid - matches ProjectContent layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Main Content - 2 columns */}
-          <div className="md:col-span-2 space-y-6">
-            <Card className="overflow-hidden skeleton-fade">
-              <div className="p-6 space-y-4">
-                <div className="h-6 bg-muted rounded w-1/3 animate-pulse"></div>
-                <div className="space-y-2">
-                  {[1, 2, 3, 4].map((line) => (
-                    <div
-                      key={line}
-                      className="h-4 bg-muted rounded animate-pulse"
-                      style={{
-                        width: line === 4 ? "60%" : "100%",
-                        animationDelay: `${line * 100}ms`,
-                      }}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-
-            <Card className="overflow-hidden skeleton-fade" style={{ animationDelay: "100ms" }}>
-              <div className="p-6 space-y-4">
-                <div className="h-6 bg-muted rounded w-1/4 animate-pulse"></div>
-                <div className="space-y-3">
-                  {[1, 2].map((item) => (
-                    <div key={item} className="flex items-center gap-3">
-                      <div className="h-5 w-5 bg-muted rounded animate-pulse"></div>
-                      <div className="space-y-1 flex-1">
-                        <div className="h-4 bg-muted rounded w-20 animate-pulse"></div>
-                        <div className="h-3 bg-muted rounded w-32 animate-pulse"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Sidebar - 1 column */}
-          <div className="space-y-6">
-            <Card className="overflow-hidden skeleton-fade" style={{ animationDelay: "200ms" }}>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="h-6 bg-muted rounded w-1/3 animate-pulse"></div>
-                  <div className="h-8 w-8 bg-muted rounded animate-pulse"></div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className="h-6 bg-muted rounded-full w-16 animate-pulse"
-                      style={{ animationDelay: `${i * 100}ms` }}
-                    ></div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-
-            <Card className="overflow-hidden skeleton-fade" style={{ animationDelay: "300ms" }}>
-              <div className="p-6 space-y-4">
-                <div className="h-6 bg-muted rounded w-1/2 animate-pulse"></div>
-                <div className="space-y-3">
-                  <div className="h-4 bg-muted rounded w-full animate-pulse"></div>
-                  <div className="h-px bg-muted"></div>
-                  <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Render list view skeleton (project grid lists)
   return (
     <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">
