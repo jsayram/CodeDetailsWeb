@@ -63,7 +63,7 @@ export default function NotFound() {
           Page Not Found
         </h2>
         <p className="text-muted-foreground mb-8 max-w-lg mx-auto text-2xl 3xl:text-3xl 4xl:text-4xl">
-        You&apos;ve reached a non-existent page.<br/> While the URL failed you, your life choices simply... led you here.<br/>Coincidence? Perhaps...<br/> Irony? Definitely!<br/> <span className="text-6xl">🤭</span>
+        You&apos;ve reached a non-existent page.<br/> It's okay, you'll find your way<br/> <span className="text-6xl">🤭</span>
         </p>
 
         {/* Home button */}
