@@ -411,7 +411,7 @@ function ProjectCard({
       className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/50 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
+      <Card className="hover:bg-accent/40 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -481,7 +481,7 @@ function FavoriteCard({
       className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/50 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
+      <Card className="hover:bg-accent/40 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -588,18 +588,23 @@ function TagSubmissionCard({
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-80 border">
+                <DropdownMenuContent align="start" className="w-80 border max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/4">
                   <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                     Also used in these projects:
                   </DropdownMenuLabel>
                   {other_projects_using_tag.map((proj) => (
-                    <DropdownMenuItem key={proj.slug} asChild className="cursor-pointer">
+                    <DropdownMenuItem key={proj.slug} asChild className="cursor-pointer p-0 hover:bg-transparent">
                       <Link 
                         href={`/projects/${proj.slug}`}
-                        className="flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent w-full"
+                        className="flex items-center gap-2 px-2 py-2 text-sm w-full"
                       >
-                        <div className="flex-1 min-w-0">
-                          <span className="block truncate font-medium text-primary hover:underline">
+                        <div className="flex-1 min-w-0 overflow-x-auto 
+                        [&::-webkit-scrollbar]:h-[2px] 
+                        [&::-webkit-scrollbar-track]:bg-transparent 
+                        [&::-webkit-scrollbar-thumb]:bg-primary/20 
+                        hover:[&::-webkit-scrollbar-thumb]:bg-primary/40 
+                        [&::-webkit-scrollbar-thumb]:rounded-full">
+                          <span className="block whitespace-nowrap font-medium text-primary hover:underline pb-1">
                             {proj.title}
                           </span>
                         </div>
@@ -1215,7 +1220,7 @@ function DashboardMain({
       )}
 
       {/* My Tag Submissions */}
-      <Card id="tag-submissions" className="flex flex-col h-[600px] 3xl:h-[1200px] scroll-mt-20">
+      <Card id="tag-submissions" className="flex flex-col scroll-mt-20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 flex-shrink-0">
           <div className="flex-1">
           <CardTitle className="text-lg">My Tag Submissions</CardTitle>
@@ -1243,7 +1248,7 @@ function DashboardMain({
             <TagIcon className="h-4 w-4 text-primary" />
           </div>
         </CardHeader>
-        <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+        <CardContent className="pt-0">
           {/* Tag Contribution Info Accordion */}
           <Accordion type="single" collapsible className="mb-6">
             <AccordionItem
