@@ -21,6 +21,13 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowRight,
   Code,
   Heart,
@@ -33,6 +40,7 @@ import {
   Sparkles,
   Loader2,
   RefreshCcw,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormattedDate } from "@/lib/FormattedDate";
@@ -568,18 +576,38 @@ function TagSubmissionCard({
           </Link>
           {status === "approved" && other_projects_using_tag && other_projects_using_tag.length > 0 && (
             <div className="text-xs text-muted-foreground pt-1">
-              <span className="font-medium">Also used in:</span>{" "}
-              {other_projects_using_tag.map((proj, idx) => (
-                <span key={proj.slug}>
-                  <Link 
-                    href={`/projects/${proj.slug}`}
-                    className="text-primary hover:underline"
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-auto p-1 text-xs text-muted-foreground hover:text-primary inline-flex items-center gap-1"
                   >
-                    {proj.title}
-                  </Link>
-                  {idx < other_projects_using_tag.length - 1 && ", "}
-                </span>
-              ))}
+                    <span className="font-medium">Also used in:</span>
+                    <span className="text-primary">{other_projects_using_tag.length} project{other_projects_using_tag.length > 1 ? 's' : ''}</span>
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-80 border">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                    Also used in these projects:
+                  </DropdownMenuLabel>
+                  {other_projects_using_tag.map((proj) => (
+                    <DropdownMenuItem key={proj.slug} asChild className="cursor-pointer">
+                      <Link 
+                        href={`/projects/${proj.slug}`}
+                        className="flex items-center gap-2 px-2 py-2 text-sm hover:bg-accent w-full"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <span className="block truncate font-medium text-primary hover:underline">
+                            {proj.title}
+                          </span>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
