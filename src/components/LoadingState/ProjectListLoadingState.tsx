@@ -14,17 +14,8 @@ export function ProjectListLoadingState({
   showTierInfo = true,
   variant = "list", // Default to list view (project grids)
 }: LoadingStateProps) {
-  const renderLocation = new Error().stack?.split('\n')[2]?.trim() || 'unknown';
-  console.log("🔥🔥🔥 SKELETON LOADING 🔥🔥🔥", { 
-    variant, 
-    itemsCount, 
-    showTierInfo,
-    calledFrom: renderLocation 
-  });
-  
   // Render detail page skeleton (individual project page with sidebar)
   if (variant === "detail") {
-    console.log("💀💀💀 DETAIL SKELETON RENDERED 💀💀💀");
     return (
       <div className="w-full min-w-2 max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
         {/* Header skeleton */}
@@ -124,8 +115,6 @@ export function ProjectListLoadingState({
   }
 
   // Render list view skeleton (project grid lists)
-  console.log("⚡⚡⚡ LIST SKELETON RENDERED ⚡⚡⚡");
-  
   return (
     <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">
       {/* Controls Section Skeleton */}

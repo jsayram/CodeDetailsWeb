@@ -111,14 +111,6 @@ export const ProjectList = React.memo(function ProjectList({
     setLayoutReady(true);
   }, []);
 
-  console.log("🔍🔍🔍 PROJECT LIST COMPONENT RENDER 🔍🔍🔍", { 
-    loading, 
-    projectsCount: projects.length,
-    filtersPage: filters.page,
-    externalPage,
-    isAuthenticated 
-  });
-
   // Check for mobile screen size
   useEffect(() => {
     const checkScreenSize = () => {
@@ -440,15 +432,12 @@ export const ProjectList = React.memo(function ProjectList({
 
   // Loading state
   if (loading) {
-    console.log("🚨🚨🚨 PROJECT LIST SHOWING SKELETON 🚨🚨🚨", { loading, layoutReady });
     // Don't show skeleton until layout is ready to avoid width calculation issues
     if (!layoutReady) {
       return null;
     }
     return <ProjectListLoadingState />;
   }
-
-  console.log("✅✅✅ PROJECT LIST SHOWING CONTENT ✅✅✅", { projectsCount: projects.length });
 
   return (
     <div className="flex flex-col py-6 sm:py-10 sm:-mt-10">

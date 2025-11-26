@@ -56,13 +56,6 @@ export default function DashBoard() {
 
   // Determine overall loading state
   const isLoading = !userLoaded || tokenLoading;
-  
-  console.log("🎯🎯🎯 PROJECTS PAGE RENDER 🎯🎯🎯", { 
-    isLoading, 
-    userLoaded, 
-    tokenLoading,
-    renderingSkeleton: isLoading 
-  });
 
   // Handlers for pagination
   const handleAllProjectsPageChange = (page: number) => {
