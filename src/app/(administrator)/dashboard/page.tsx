@@ -935,7 +935,8 @@ function DashboardMain({
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="cursor-pointer self-start"
+              className="cursor-pointer self-start bg-primary"
+              aria-label="Refresh dashboard data"
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
@@ -1237,13 +1238,15 @@ function DashboardMain({
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+              variant="outline"
+              size="sm"
+              className="h-7 hover:bg-primary/10 hover:text-primary cursor-pointer"
               onClick={refreshTagSubmissions}
               disabled={refreshingTagSubmissions}
+              aria-label="Refresh tag submissions"
             >
-              <RefreshCcw className={`h-3.5 w-3.5 ${refreshingTagSubmissions ? 'animate-spin' : ''}`} />
+              <RefreshCcw className={`h-3.5 w-3.5 mr-1.5 ${refreshingTagSubmissions ? 'animate-spin' : ''}`} />
+              <span className="text-xs">{refreshingTagSubmissions ? 'Refreshing...' : 'Refresh'}</span>
             </Button>
             <TagIcon className="h-4 w-4 text-primary" />
           </div>
