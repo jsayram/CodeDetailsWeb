@@ -208,7 +208,7 @@ function FavoritesReceivedCard({
         {/* Right side - Scrollable project list */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {projectsWithFavorites.length > 0 ? (
-            <div className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <div className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
               <div className="space-y-1">
                 {projectsWithFavorites.map((project) => (
                   <FavoriteProjectItem key={project.id} project={project} />
@@ -283,7 +283,7 @@ function TagsCard({ title, value, icon, tags }: TagsCardProps) {
         {/* Right side - Scrollable tags */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {tags && tags.length > 0 ? (
-            <div className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
+            <div className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
               <div className="flex flex-wrap gap-1.5 content-start">
                 {tags.map((tag, index) => (
                   <Badge
@@ -588,7 +588,7 @@ function TagSubmissionCard({
                     <ChevronDown className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-80 border max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/4">
+                <DropdownMenuContent align="start" className="w-80 border max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
                   <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
                     Also used in these projects:
                   </DropdownMenuLabel>
@@ -867,6 +867,7 @@ function DashboardContent() {
     loading,
     error,
     refresh,
+    clearCache,
   } = useDashboardCache("user-dashboard", fetchUserDashboardData, []);
 
   if (loading) {
@@ -883,23 +884,33 @@ function DashboardContent() {
 
   const { stats } = dashboardData;
 
-  return <DashboardMain stats={stats} refresh={refresh} />;
+  return <DashboardMain stats={stats} refresh={refresh} clearCache={clearCache} />;
 }
 
 // Dashboard main content with stats
 function DashboardMain({
   stats,
   refresh,
+  clearCache,
 }: {
   stats: UserDashboardStats;
-  refresh: () => void;
+  refresh: () => Promise<void>;
+  clearCache: () => void;
 }) {
   const { user } = useUser();
   const [refreshingTagSubmissions, setRefreshingTagSubmissions] = React.useState(false);
+  const [refreshingMyProjects, setRefreshingMyProjects] = React.useState(false);
+  const [refreshingFavorites, setRefreshingFavorites] = React.useState(false);
+  const [refreshingAppreciation, setRefreshingAppreciation] = React.useState(false);
+  const [refreshingActivity, setRefreshingActivity] = React.useState(false);
+  const [refreshingPopularTags, setRefreshingPopularTags] = React.useState(false);
+  const [refreshingStats, setRefreshingStats] = React.useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const refreshTagSubmissions = React.useCallback(async () => {
     setRefreshingTagSubmissions(true);
     try {
+      clearCache();
       await refresh();
       toast.success('Tag submissions refreshed');
     } catch (error) {
@@ -908,12 +919,89 @@ function DashboardMain({
     } finally {
       setRefreshingTagSubmissions(false);
     }
-  }, [refresh]);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  }, [refresh, clearCache]);
+
+  const refreshMyProjects = React.useCallback(async () => {
+    setRefreshingMyProjects(true);
+    try {
+      clearCache();
+      await refresh();
+      toast.success('My projects refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh projects');
+      console.error('Error refreshing projects:', error);
+    } finally {
+      setRefreshingMyProjects(false);
+    }
+  }, [refresh, clearCache]);
+
+  const refreshFavorites = React.useCallback(async () => {
+    setRefreshingFavorites(true);
+    try {
+      clearCache();
+      await refresh();
+      toast.success('Favorites refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh favorites');
+      console.error('Error refreshing favorites:', error);
+    } finally {
+      setRefreshingFavorites(false);
+    }
+  }, [refresh, clearCache]);
+
+  const refreshAppreciation = React.useCallback(async () => {
+    setRefreshingAppreciation(true);
+    try {
+      clearCache();
+      await refresh();
+      toast.success('Recent appreciation refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh appreciation');
+      console.error('Error refreshing appreciation:', error);
+    } finally {
+      setRefreshingAppreciation(false);
+    }
+  }, [refresh, clearCache]);
+
+  const refreshActivity = React.useCallback(async () => {
+    setRefreshingActivity(true);
+    try {
+      clearCache();
+      await refresh();
+      toast.success('Recent activity refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh activity');
+      console.error('Error refreshing activity:', error);
+    } finally {
+      setRefreshingActivity(false);
+    }
+  }, [refresh, clearCache]);
+
+  const refreshPopularTags = React.useCallback(async () => {
+    setRefreshingPopularTags(true);
+    try {
+      clearCache();
+      await refresh();
+      toast.success('Popular tags refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh popular tags');
+      console.error('Error refreshing popular tags:', error);
+    } finally {
+      setRefreshingPopularTags(false);
+    }
+  }, [refresh, clearCache]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    setRefreshingStats(true);
+    setRefreshingMyProjects(true);
+    setRefreshingFavorites(true);
+    setRefreshingAppreciation(true);
+    setRefreshingActivity(true);
+    setRefreshingPopularTags(true);
+    setRefreshingTagSubmissions(true);
     try {
+      clearCache();
       await refresh();
       toast.success('Dashboard refreshed');
     } catch (error) {
@@ -921,6 +1009,13 @@ function DashboardMain({
       console.error('Error refreshing dashboard:', error);
     } finally {
       setIsRefreshing(false);
+      setRefreshingStats(false);
+      setRefreshingMyProjects(false);
+      setRefreshingFavorites(false);
+      setRefreshingAppreciation(false);
+      setRefreshingActivity(false);
+      setRefreshingPopularTags(false);
+      setRefreshingTagSubmissions(false);
     }
   };
 
@@ -970,27 +1065,99 @@ function DashboardMain({
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
         <div id="my-projects-card" className="scroll-mt-20">
-          <MyProjectsCard 
-            totalProjects={stats.totalProjects} 
-            activeThisWeek={stats.projectStats.activeThisWeek}
-          />
+          {refreshingStats ? (
+            <Card className="h-[250px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center flex-1">
+                <Skeleton className="h-12 w-16 mb-2" />
+                <Skeleton className="h-3 w-32 mb-3" />
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+            </Card>
+          ) : (
+            <MyProjectsCard 
+              totalProjects={stats.totalProjects} 
+              activeThisWeek={stats.projectStats.activeThisWeek}
+            />
+          )}
         </div>
         <div id="favorites-received-card" className="scroll-mt-20">
-          <FavoritesReceivedCard
-            totalFavorites={stats.totalFavorites}
-            projectsWithFavorites={stats.projectsWithFavorites}
-          />
+          {refreshingStats ? (
+            <Card className="h-[250px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent className="flex flex-row gap-3 flex-1">
+                <div className="flex flex-col items-center justify-center w-1/3">
+                  <Skeleton className="h-10 w-12 mb-1" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <div className="flex-1">
+                  <div className="space-y-1">
+                    {[...Array(4)].map((_, i) => (
+                      <Skeleton key={i} className="h-5 w-full" />
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <FavoritesReceivedCard
+              totalFavorites={stats.totalFavorites}
+              projectsWithFavorites={stats.projectsWithFavorites}
+            />
+          )}
         </div>
         <div id="favorites-given-card" className="scroll-mt-20">
-          <FavoritesGivenCard totalFavoritesGiven={stats.totalFavoritesGiven} />
+          {refreshingStats ? (
+            <Card className="h-[250px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center flex-1">
+                <Skeleton className="h-12 w-16 mb-2" />
+                <Skeleton className="h-3 w-40 mb-3" />
+                <Skeleton className="h-8 w-full" />
+              </CardContent>
+            </Card>
+          ) : (
+            <FavoritesGivenCard totalFavoritesGiven={stats.totalFavoritesGiven} />
+          )}
         </div>
         <div id="my-tags-card" className="scroll-mt-20">
-          <TagsCard
-          title="My Tags"
-          value={(stats.allTags?.length || 0).toString()}
-          icon={<TagIcon className="h-4 w-4 text-primary" />}
-            tags={stats.allTags || []}
-          />
+          {refreshingStats ? (
+            <Card className="h-[250px]">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-4" />
+              </CardHeader>
+              <CardContent className="flex flex-row gap-4 flex-1">
+                <div className="flex flex-col items-center justify-center w-1/2">
+                  <Skeleton className="h-12 w-12 mb-2" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex flex-wrap gap-1.5">
+                    {[...Array(8)].map((_, i) => (
+                      <Skeleton key={i} className="h-5 w-16" />
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <TagsCard
+              title="My Tags"
+              value={(stats.allTags?.length || 0).toString()}
+              icon={<TagIcon className="h-4 w-4 text-primary" />}
+              tags={stats.allTags || []}
+            />
+          )}
         </div>
       </div>      {/* Main Content - Three Columns */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 mb-6">
@@ -1000,15 +1167,41 @@ function DashboardMain({
             <CardTitle className="text-sm font-medium">
               Recent Appreciation
             </CardTitle>
-            <Heart className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshAppreciation}
+                disabled={refreshingAppreciation}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingAppreciation ? 'animate-spin' : ''}`} />
+              </Button>
+              <Heart className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardHeader className="flex-shrink-0 pt-0">
             <CardDescription className="text-xs">
               Favorites received in the last 90 days
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            {stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
+            {refreshingAppreciation ? (
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-start gap-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-8 w-full" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : stats.recentAppreciation && stats.recentAppreciation.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentAppreciation
                   .slice(0, 8)
@@ -1034,15 +1227,38 @@ function DashboardMain({
             <CardTitle className="text-sm font-medium">
               Recent Activity
             </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshActivity}
+                disabled={refreshingActivity}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingActivity ? 'animate-spin' : ''}`} />
+              </Button>
+              <Activity className="h-4 w-4 text-muted-foreground" />
+            </div>
           </CardHeader>
           <CardHeader className="flex-shrink-0 pt-0">
             <CardDescription className="text-xs">
               Projects created or updated in the last 60 days
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            {stats.recentActivity.length > 0 ? (
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
+            {refreshingActivity ? (
+              <div className="space-y-2">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="p-2 rounded-lg">
+                    <div className="flex items-center justify-between mb-1">
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                ))}
+              </div>
+            ) : stats.recentActivity.length > 0 ? (
               <div className="space-y-2">
                 {stats.recentActivity.map((activity) => (
                   <ActivityItem
@@ -1068,15 +1284,37 @@ function DashboardMain({
             <CardTitle className="text-sm font-medium">
               My Popular Tags
             </CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshPopularTags}
+                disabled={refreshingPopularTags}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingPopularTags ? 'animate-spin' : ''}`} />
+              </Button>
+              <TrendingUp className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardHeader className="flex-shrink-0 pt-0">
             <CardDescription className="text-xs">
               Most frequently used tags (number shows project count)
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            {stats.topTags.length > 0 ? (
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
+            {refreshingPopularTags ? (
+              <div className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : stats.topTags.length > 0 ? (
               <>
                 <div className="space-y-2">
                   {/* Show tags with 2+ projects (up to 8 total) */}
@@ -1171,10 +1409,35 @@ function DashboardMain({
               Your most recently updated projects
             </CardDescription>
           </div>
-          <Code className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+              onClick={refreshMyProjects}
+              disabled={refreshingMyProjects}
+            >
+              <RefreshCcw className={`h-3.5 w-3.5 ${refreshingMyProjects ? 'animate-spin' : ''}`} />
+            </Button>
+            <Code className="h-4 w-4 text-primary" />
+          </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-          {stats.myProjects.length > 0 ? (
+        <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
+          {refreshingMyProjects ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="h-[200px] 3xl:h-[440px]">
+                  <CardHeader className="pb-3 pt-12">
+                    <Skeleton className="h-5 w-3/4 mb-3" />
+                    <div className="flex gap-1.5">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-16" />
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : stats.myProjects.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {stats.myProjects.slice(0, 8).map((project) => (
                 <ProjectCard key={project.id} {...project} />
@@ -1207,14 +1470,38 @@ function DashboardMain({
                 Projects you most recently favorited from the community
               </CardDescription>
             </div>
-            <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary cursor-pointer"
+                onClick={refreshFavorites}
+                disabled={refreshingFavorites}
+              >
+                <RefreshCcw className={`h-3.5 w-3.5 ${refreshingFavorites ? 'animate-spin' : ''}`} />
+              </Button>
+              <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+            </div>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {stats.myFavorites.slice(0, 8).map((favorite) => (
+          <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
+            {refreshingFavorites ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {[...Array(8)].map((_, i) => (
+                  <Card key={i} className="h-[200px] 3xl:h-[440px]">
+                    <CardHeader className="pb-3 pt-12">
+                      <Skeleton className="h-5 w-3/4 mb-3" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {stats.myFavorites.slice(0, 8).map((favorite) => (
                 <FavoriteCard key={favorite.id} {...favorite} />
               ))}
-            </div>
+              </div>
+            )}
           </CardContent>
           {stats.myFavorites.length > 8 && <ViewAllFavoritesButton />}
         </Card>
@@ -1305,7 +1592,29 @@ function DashboardMain({
             </AccordionItem>
           </Accordion>
 
-          {stats.myTagSubmissions.length > 0 ? (
+          {refreshingTagSubmissions ? (
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, colIdx) => (
+                <div key={colIdx}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Skeleton className="h-1 w-1 rounded-full" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="p-3 rounded-lg bg-muted/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Skeleton className="h-5 w-20" />
+                          <Skeleton className="h-5 w-24" />
+                        </div>
+                        <Skeleton className="h-8 w-full" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : stats.myTagSubmissions.length > 0 ? (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
               {/* Pending Submissions Column */}
               <div>
@@ -1321,7 +1630,7 @@ function DashboardMain({
                     )
                   </h3>
                 </div>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "pending")
                     .length > 0 ? (
                     stats.myTagSubmissions
@@ -1351,7 +1660,7 @@ function DashboardMain({
                     )
                   </h3>
                 </div>
-                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "approved")
                     .length > 0 ? (
                     stats.myTagSubmissions
@@ -1401,7 +1710,7 @@ function DashboardMain({
                     </AccordionItem>
                   </Accordion>
                 )}
-                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pr-2">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
                   {stats.myTagSubmissions.filter((s) => s.status === "rejected")
                     .length > 0 ? (
                     stats.myTagSubmissions
