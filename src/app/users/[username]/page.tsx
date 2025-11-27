@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { use } from "react";
-import { User, Heart, Tag, FolderKanban } from "lucide-react";
+import { User, Heart, Tag, FolderKanban, Skull, Users, Activity, Calendar, Mail } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { isAdmin } from "@/lib/admin-utils";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { HeaderSection } from "@/components/layout/HeaderSection";
@@ -32,9 +33,13 @@ export default function UserProfilePage({ params }: PageProps) {
     totalLikes: 0,
     totalTags: 0,
     totalProjects: 0,
+    activeProjects: 0,
+    graveyardProjects: 0,
+    communityProjects: 0,
     projectsFavorited: 0,
     projectsReceivedFavorites: 0,
     mostLikedProject: { title: "", favorites: 0 },
+    joinedDate: null as Date | null,
   });
   const [isNavigating, setIsNavigating] = useState(false);
   const router = useRouter();
@@ -64,9 +69,11 @@ export default function UserProfilePage({ params }: PageProps) {
             `/api/profiles/by-id/${data.profile.user_id}?includeStats=true`
           );
         })
-        .then((res) => {
+        .then(async (res) => {
           if (!res.ok) {
-            throw new Error("Failed to fetch profile stats");
+            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+            console.error("API Error:", errorData);
+            throw new Error(errorData.error || "Failed to fetch profile stats");
           }
           return res.json();
         });
@@ -246,7 +253,7 @@ export default function UserProfilePage({ params }: PageProps) {
                           }
                         />
                         <div className="flex gap-2">
-                          <Button onClick={handleSaveProfile} className="cursor-pointer">Save</Button>
+                          <Button onClick={handleSaveProfile} className="cursor-pointer bg-primary hover:bg-primary/90">Save</Button>
                           <Button
                             variant="outline"
                             className="cursor-pointer"
@@ -266,8 +273,7 @@ export default function UserProfilePage({ params }: PageProps) {
                         </p>
                         {isOwnProfile && (
                           <Button
-                            variant="outline"
-                            className="mt-2 cursor-pointer"
+                            className="mt-2 cursor-pointer bg-primary hover:bg-primary/90"
                             onClick={() => setIsEditing(true)}
                           >
                             Edit Profile
@@ -282,89 +288,136 @@ export default function UserProfilePage({ params }: PageProps) {
 
             {/* Stats Grid */}
             <div className="md:col-span-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Public Stats - Visible to everyone */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Heart className="h-5 w-5" />
-                      Project Stats
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FolderKanban className="h-5 w-5 text-primary" />
+                      Active Projects
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <dl className="space-y-2">
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Total Projects
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.totalProjects}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Projects Favorited
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.projectsFavorited}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Received Favorites
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.projectsReceivedFavorites}
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Tag className="h-5 w-5" />
-                      Most Popular Project
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <dl className="space-y-2">
-                      <div>
-                        <dt className="text-sm text-muted-foreground">Title</dt>
-                        <dd className="text-xl font-semibold">
-                          {stats.mostLikedProject?.title || "No projects yet"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Favorites
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.mostLikedProject?.favorites || 0}
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-
-                              
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FolderKanban className="h-5 w-5" />
-                      Projects
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    <div className="text-3xl font-bold text-primary">{stats.activeProjects}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Public projects</p>
                     <Button
-                      variant="link"
-                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2 p-0 cursor-pointer"
+                      className="mt-3 w-full bg-primary hover:bg-primary/90 cursor-pointer"
                       onClick={handleProjectsClick}
                     >
-                      Check out their projects →
+                      View Projects →
                     </Button>
                   </CardContent>
                 </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Users className="h-5 w-5 text-primary" />
+                      Community Impact
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-primary">{stats.communityProjects}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Projects from others</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Heart className="h-5 w-5 text-primary" />
+                      Favorites Given
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-primary">{stats.projectsFavorited}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Projects favorited</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Heart className="h-5 w-5 text-red-500" />
+                      Favorites Received
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-red-500">{stats.projectsReceivedFavorites}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Total appreciation</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Tag className="h-5 w-5 text-primary" />
+                      Most Popular
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm font-semibold truncate" title={stats.mostLikedProject?.title || "No projects yet"}>
+                      {stats.mostLikedProject?.title || "No projects yet"}
+                    </div>
+                    <div className="flex items-center gap-1 mt-2">
+                      <Heart className="h-4 w-4 text-red-500 fill-red-500" />
+                      <span className="text-2xl font-bold">{stats.mostLikedProject?.favorites || 0}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {stats.joinedDate && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        Member Since
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm font-semibold">
+                        {new Date(stats.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {Math.floor((Date.now() - new Date(stats.joinedDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Skull className="h-5 w-5 text-muted-foreground" />
+                      Graveyard
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-muted-foreground">{stats.graveyardProjects}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Deleted projects</p>
+                  </CardContent>
+                </Card>
+
+                {/* Owner & Admin Only Section */}
+                {(isOwnProfile || isAdmin(user?.primaryEmailAddress?.emailAddress)) && (
+                  <>
+                    <Card className="border-2 border-primary/20 bg-primary/5">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-base">
+                          <Activity className="h-5 w-5 text-primary" />
+                          Total Projects
+                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
+                            {isOwnProfile ? 'Private' : 'Admin'}
+                          </span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-primary">{stats.totalProjects}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Active + Graveyard</p>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
               </div>
             </div>
           </div>

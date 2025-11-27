@@ -3,7 +3,8 @@ import { executeQuery } from "@/db/server";
 import { profiles } from "@/db/schema/profiles";
 import { projects } from "@/db/schema/projects";
 import { project_tags } from "@/db/schema/project_tags";
-import { eq, sql, desc, and } from "drizzle-orm";
+import { favorites } from "@/db/schema/favorites";
+import { eq, sql, desc, and, or, isNull, isNotNull } from "drizzle-orm";
 
 export async function GET(
   req: Request,
@@ -36,42 +37,107 @@ export async function GET(
         return { profile: profileData };
       }
 
-      // Get stats if requested
-      const [statsResult] = await db
-        .select({
-          totalProjects: sql<number>`count(distinct ${projects.id})`,
-          totalLikes: sql<number>`coalesce(sum(${projects.total_favorites}), 0)`,
-          totalTags: sql<number>`count(distinct ${project_tags.tag_id})`,
-        })
-        .from(projects)
-        .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
-        .where(eq(projects.user_id, userId));
+      try {
+        // Get stats if requested
+        const [statsResult] = await db
+          .select({
+            totalProjects: sql<number>`count(distinct ${projects.id})`,
+            activeProjects: sql<number>`count(distinct case when ${projects.deleted_at} is null then ${projects.id} end)`,
+            graveyardProjects: sql<number>`count(distinct case when ${projects.deleted_at} is not null then ${projects.id} end)`,
+            totalLikes: sql<number>`coalesce(sum(${projects.total_favorites}), 0)`,
+            totalTags: sql<number>`count(distinct ${project_tags.tag_id})`,
+          })
+          .from(projects)
+          .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
+          .where(eq(projects.user_id, userId));
 
-      // Get most liked project
-      const [mostLikedProject] = await db
-        .select({
-          title: projects.title,
-          favorites: projects.total_favorites,
-        })
-        .from(projects)
-        .where(eq(projects.user_id, userId))
-        .orderBy(desc(projects.total_favorites))
-        .limit(1);
+        // Get favorites given by this user
+        const [favoritesGiven] = await db
+          .select({
+            projectsFavorited: sql<number>`count(distinct ${favorites.project_id})`,
+          })
+          .from(favorites)
+          .where(eq(favorites.user_id, userId));
 
-      return {
-        profile: profileData,
-        stats: {
-          totalProjects: Number(statsResult?.totalProjects || 0),
-          totalLikes: Number(statsResult?.totalLikes || 0),
-          totalTags: Number(statsResult?.totalTags || 0),
-          mostLikedProject: mostLikedProject
-            ? {
-                title: mostLikedProject.title,
-                favorites: Number(mostLikedProject.favorites || 0),
-              }
-            : null,
-        },
-      };
+        // Get favorites received on user's projects
+        const [favoritesReceived] = await db
+          .select({
+            projectsReceivedFavorites: sql<number>`count(*)`,
+          })
+          .from(favorites)
+          .innerJoin(projects, eq(projects.id, favorites.project_id))
+          .where(eq(projects.user_id, userId));
+
+        // Get community projects count (favorited projects from other users)
+        const [communityStats] = await db
+          .select({
+            communityProjects: sql<number>`count(distinct ${projects.id})`,
+          })
+          .from(favorites)
+          .innerJoin(projects, eq(projects.id, favorites.project_id))
+          .where(
+            and(
+              eq(favorites.user_id, userId),
+              sql`${projects.user_id} != ${userId}`,
+              isNull(projects.deleted_at)
+            )
+          );
+
+        // Get most liked project
+        const [mostLikedProject] = await db
+          .select({
+            title: projects.title,
+            favorites: projects.total_favorites,
+          })
+          .from(projects)
+          .where(
+            and(
+              eq(projects.user_id, userId),
+              isNull(projects.deleted_at)
+            )
+          )
+          .orderBy(desc(projects.total_favorites))
+          .limit(1);
+
+        return {
+          profile: profileData,
+          stats: {
+            totalProjects: Number(statsResult?.totalProjects || 0),
+            activeProjects: Number(statsResult?.activeProjects || 0),
+            graveyardProjects: Number(statsResult?.graveyardProjects || 0),
+            communityProjects: Number(communityStats?.communityProjects || 0),
+            totalLikes: Number(statsResult?.totalLikes || 0),
+            totalTags: Number(statsResult?.totalTags || 0),
+            projectsFavorited: Number(favoritesGiven?.projectsFavorited || 0),
+            projectsReceivedFavorites: Number(favoritesReceived?.projectsReceivedFavorites || 0),
+            joinedDate: profileData.created_at,
+            mostLikedProject: mostLikedProject
+              ? {
+                  title: mostLikedProject.title,
+                  favorites: Number(mostLikedProject.favorites || 0),
+                }
+              : null,
+          },
+        };
+      } catch (statsError: any) {
+        console.error("Error fetching stats:", statsError);
+        // Return profile with empty stats if stats query fails
+        return {
+          profile: profileData,
+          stats: {
+            totalProjects: 0,
+            activeProjects: 0,
+            graveyardProjects: 0,
+            communityProjects: 0,
+            totalLikes: 0,
+            totalTags: 0,
+            projectsFavorited: 0,
+            projectsReceivedFavorites: 0,
+            joinedDate: profileData.created_at,
+            mostLikedProject: null,
+          },
+        };
+      }
     });
 
     if (!profile) {
