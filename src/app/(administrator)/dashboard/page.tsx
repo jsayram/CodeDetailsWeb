@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -42,10 +42,16 @@ import {
   Loader2,
   RefreshCcw,
   ChevronDown,
+  User,
+  Edit,
+  Save,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormattedDate } from "@/lib/FormattedDate";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { fetchUserDashboardData } from "@/app/actions/user-dashboard";
 import { useDashboardCache } from "@/hooks/use-dashboard-cache";
@@ -985,6 +991,198 @@ function DashboardError({
 }
 
 // Dashboard content component
+// Profile Editor Card Component
+function ProfileEditorCard() {
+  const { user } = useUser();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    profileImage: "",
+  });
+
+  // Load user data
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        username: user.username || user.fullName || "",
+        email: user.primaryEmailAddress?.emailAddress || "",
+        profileImage: user.imageUrl || "",
+      });
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/profiles/${user?.username}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) throw new Error("Failed to update profile");
+
+      toast.success("Profile updated successfully");
+      setIsEditing(false);
+    } catch (error) {
+      toast.error("Failed to update profile");
+      console.error("Error updating profile:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (user) {
+      setFormData({
+        username: user.username || user.fullName || "",
+        email: user.primaryEmailAddress?.emailAddress || "",
+        profileImage: user.imageUrl || "",
+      });
+    }
+    setIsEditing(false);
+  };
+
+  return (
+    <Card className="mb-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5 text-primary" />
+            My Profile
+          </CardTitle>
+          {!isEditing && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditing(true)}
+              className="cursor-pointer"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col md:flex-row gap-6">
+          {/* Avatar Section */}
+          <div className="flex flex-col items-center gap-3">
+            <Avatar className="h-24 w-24">
+              {formData.profileImage ? (
+                <AvatarImage src={formData.profileImage} alt={formData.username} />
+              ) : (
+                <AvatarFallback>
+                  <User className="h-12 w-12" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            {isEditing && (
+              <div className="w-full max-w-xs">
+                <Input
+                  placeholder="Profile Image URL"
+                  value={formData.profileImage}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      profileImage: e.target.value,
+                    }))
+                  }
+                  className="text-sm"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Profile Info Section */}
+          <div className="flex-1 space-y-4">
+            {isEditing ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Username</label>
+                  <Input
+                    placeholder="Username"
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        username: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
+                    disabled
+                    className="opacity-60 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Email is managed by your authentication provider
+                  </p>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="cursor-pointer"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="cursor-pointer"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Username
+                  </label>
+                  <p className="text-lg font-semibold">{formData.username}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Email
+                  </label>
+                  <p className="text-sm">{formData.email}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function DashboardContent() {
   const {
     data: dashboardData,
@@ -1185,6 +1383,9 @@ function DashboardMain({
           />
         </div>
       </div>
+
+      {/* Profile Editor Card */}
+      <ProfileEditorCard />
 
       {/* Create First Project Prompt - Only show when user has 0 projects */}
       {stats.totalProjects === 0 && (

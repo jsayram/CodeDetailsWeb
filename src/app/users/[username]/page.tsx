@@ -2,10 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { use } from "react";
-import { User, Heart, Tag, FolderKanban, Skull, Users, Activity, Calendar, Mail } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
-import { isAdmin } from "@/lib/admin-utils";
+import { User, Heart, FolderKanban, Calendar } from "lucide-react";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { HeaderSection } from "@/components/layout/HeaderSection";
@@ -13,7 +10,6 @@ import { FooterSection } from "@/components/layout/FooterSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SelectProfile } from "@/db/schema/profiles";
 import { useRouter } from "next/navigation";
@@ -25,10 +21,8 @@ interface PageProps {
 export default function UserProfilePage({ params }: PageProps) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const username = decodeURIComponent(resolvedParams.username);
-  const { user, isLoaded } = useUser();
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
   const [stats, setStats] = useState({
     totalLikes: 0,
     totalTags: 0,
@@ -94,29 +88,7 @@ export default function UserProfilePage({ params }: PageProps) {
     }
   }, [username]);
 
-  const handleSaveProfile = async () => {
-    if (!profileData) return;
-
-    try {
-      const response = await fetch(`/api/profiles/${username}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(profileData),
-      });
-
-      if (!response.ok) throw new Error("Failed to update profile");
-
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-    }
-  };
-
-  const isOwnProfile = user?.id === profileData?.user_id;
-
-  if (!isLoaded || isLoading || !profileData) {
+  if (isLoading || !profileData) {
     return (
       <SidebarProvider>
         <AppSidebar />
@@ -217,70 +189,14 @@ export default function UserProfilePage({ params }: PageProps) {
                         </AvatarFallback>
                       )}
                     </Avatar>
-                    {isEditing ? (
-                      <div className="space-y-2 mt-4 w-full">
-                        <Input
-                          placeholder="Username"
-                          value={profileData?.username || ""}
-                          onChange={(e) =>
-                            setProfileData((prev) =>
-                              prev
-                                ? { ...prev, username: e.target.value }
-                                : null
-                            )
-                          }
-                        />
-                        <Input
-                          placeholder="Email"
-                          value={profileData?.email_address || ""}
-                          onChange={(e) =>
-                            setProfileData((prev) =>
-                              prev
-                                ? { ...prev, email_address: e.target.value }
-                                : null
-                            )
-                          }
-                        />
-                        <Input
-                          placeholder="Profile Image URL"
-                          value={profileData?.profile_image_url || ""}
-                          onChange={(e) =>
-                            setProfileData((prev) =>
-                              prev
-                                ? { ...prev, profile_image_url: e.target.value }
-                                : null
-                            )
-                          }
-                        />
-                        <div className="flex gap-2">
-                          <Button onClick={handleSaveProfile} className="cursor-pointer bg-primary hover:bg-primary/90">Save</Button>
-                          <Button
-                            variant="outline"
-                            className="cursor-pointer"
-                            onClick={() => setIsEditing(false)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center mt-4">
-                        <h2 className="text-xl font-semibold">
-                          {profileData?.username || "Loading..."}
-                        </h2>
-                        <p className="text-muted-foreground">
-                          {profileData?.email_address}
-                        </p>
-                        {isOwnProfile && (
-                          <Button
-                            className="mt-2 cursor-pointer bg-primary hover:bg-primary/90"
-                            onClick={() => setIsEditing(true)}
-                          >
-                            Edit Profile
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    <div className="text-center mt-4">
+                      <h2 className="text-xl font-semibold">
+                        {profileData?.username || "Loading..."}
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        {profileData?.email_address}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
