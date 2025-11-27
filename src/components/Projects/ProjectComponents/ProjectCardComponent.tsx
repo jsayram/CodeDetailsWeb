@@ -75,6 +75,8 @@ export const ProjectCard = React.memo(
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
     const [isNavigatingUser, setIsNavigatingUser] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isNavigatingUserProjects, setIsNavigatingUserProjects] = useState(false);
+    
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
@@ -423,6 +425,34 @@ export const ProjectCard = React.memo(
       }
     };
 
+    const handleNavigatetoUsersProjects = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!user) {
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            <p>{`You have to sign in to view ${project.profile?.full_name}'s projects`}</p>
+          </div>
+        );
+        return;
+      }
+      const username = project.profile?.username;
+      if (isNavigatingUser || !username) return;
+      setIsNavigatingUserProjects(true);
+      try {
+        router.push(`/projects/users/${encodeURIComponent(username)}`);
+      } finally {
+        setIsNavigatingUserProjects(false);
+      }
+    };
+
     const handleShareClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       const shareUrl = `${window.location.origin}/projects/${encodeURIComponent(
@@ -762,14 +792,14 @@ export const ProjectCard = React.memo(
                         ? "text-red-400/50" 
                         : ""
                     }`}
-                    onClick={handleNavigateUser}
+                    onClick={project.deleted_at && !isOwner ? handleNavigatetoUsersProjects : handleNavigateUser}
                     title={displayUsername}
                   >
                     {displayUsername}
                   </Badge>
                   {project.deleted_at && !isOwner && (
                     <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
-                      Browse projects
+                      Browse user's projects
                     </span>
                   )}
                 </div>

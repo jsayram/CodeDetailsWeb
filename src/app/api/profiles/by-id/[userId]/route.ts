@@ -4,7 +4,7 @@ import { profiles } from "@/db/schema/profiles";
 import { projects } from "@/db/schema/projects";
 import { project_tags } from "@/db/schema/project_tags";
 import { favorites } from "@/db/schema/favorites";
-import { eq, sql, desc, and, or, isNull, isNotNull } from "drizzle-orm";
+import { eq, sql, desc, and, or, isNull, isNotNull, ne } from "drizzle-orm";
 
 export async function GET(
   req: Request,
@@ -51,13 +51,13 @@ export async function GET(
           .leftJoin(project_tags, eq(project_tags.project_id, projects.id))
           .where(eq(projects.user_id, userId));
 
-        // Get favorites given by this user
+        // Get favorites given by this user (using profile.id not user_id)
         const [favoritesGiven] = await db
           .select({
             projectsFavorited: sql<number>`count(distinct ${favorites.project_id})`,
           })
           .from(favorites)
-          .where(eq(favorites.user_id, userId));
+          .where(eq(favorites.profile_id, profileData.id));
 
         // Get favorites received on user's projects
         const [favoritesReceived] = await db
@@ -77,8 +77,8 @@ export async function GET(
           .innerJoin(projects, eq(projects.id, favorites.project_id))
           .where(
             and(
-              eq(favorites.user_id, userId),
-              sql`${projects.user_id} != ${userId}`,
+              eq(favorites.profile_id, profileData.id),
+              ne(projects.user_id, userId),
               isNull(projects.deleted_at)
             )
           );

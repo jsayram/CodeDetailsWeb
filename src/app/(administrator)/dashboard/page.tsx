@@ -438,17 +438,20 @@ function ProjectCard({
             </div>
           </div>
         )}
-        <CardHeader className="flex-1 min-h-0 pb-3 pt-12 px-4">
-          <div className="flex items-start justify-between h-full">
-            <div className="flex-1 min-h-0 flex flex-col justify-between">
-              <CardTitle className="text-base line-clamp-2 mb-3">{title}</CardTitle>
+        <CardHeader className="flex-1 min-h-0 pb-3 pt-12 px-4 overflow-hidden">
+          <div className="flex items-start justify-between h-full overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden w-full">
+              <div className="overflow-hidden w-full">
+                <CardTitle className="text-base line-clamp-2 mb-3 break-words" title={title}>{title}</CardTitle>
+              </div>
               {tags && tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 overflow-hidden">
                   {tags.slice(0, 3).map((tag, index) => (
                     <Badge 
                       key={index} 
                       variant="secondary" 
-                      className="text-[10px] px-2 py-0.5 h-5"
+                      className="text-[10px] px-2 py-0.5 h-5 truncate max-w-[100px]"
+                      title={tag}
                     >
                       #{tag}
                     </Badge>
@@ -517,7 +520,7 @@ function FavoriteCard({
   // For deleted projects, show limited interaction card
   if (isDeleted) {
     return (
-      <div className="relative h-[220px] 3xl:h-[460px] cursor-not-allowed">
+      <div className="relative h-[250px] 3xl:h-[490px] cursor-not-allowed">
         <Card className="relative h-full flex flex-col opacity-70 bg-muted/30 border-dashed border-red-300 dark:border-red-800 pointer-events-none">
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
             <Badge variant="outline" className="h-6 px-3 py-1 bg-muted/50 text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
@@ -532,13 +535,13 @@ function FavoriteCard({
               <span>Unfavorite</span>
             </Badge>
           </div>
-          <CardHeader className="flex-1 min-h-0 pb-2 pt-12 px-6">
+          <CardHeader className="flex-1 min-h-0 pb-2 pt-12 px-6 overflow-hidden">
             {owner_user_id && owner_username && (
               <div className="flex justify-center mb-2">
                 <Button
                   variant="default"
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer transition-all hover:shadow-md pointer-events-auto h-8 px-3 py-1 max-w-full text-sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer transition-all hover:shadow-md pointer-events-auto h-8 px-3 py-1 max-w-full text-sm truncate"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsNavigating(true);
@@ -546,24 +549,24 @@ function FavoriteCard({
                   }}
                   title={`View ${owner_username}'s profile`}
                 >
-                  {isNavigating && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  {isNavigating && <Loader2 className="h-3 w-3 animate-spin mr-1.5 flex-shrink-0" />}
                   <span className="truncate">
                     {owner_username.length > 20 ? 'User Projects' : owner_username}
                   </span>
                 </Button>
               </div>
             )}
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pointer-events-auto mb-2">
-              <CardTitle className="text-base text-muted-foreground whitespace-nowrap text-center">
+            <div className="mb-2 overflow-hidden">
+              <CardTitle className="text-base text-muted-foreground text-center truncate px-2" title={title}>
                 {title}
               </CardTitle>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 overflow-hidden">
               <div className="flex items-center justify-center gap-1.5 min-w-0 overflow-hidden flex-wrap">
                 <Badge variant="outline" className="h-6 px-3 py-1 bg-muted/50 text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
                   🪦 In Graveyard
                 </Badge>
-                <span className="text-xs text-muted-foreground italic text-center">
+                <span className="text-xs text-muted-foreground italic text-center truncate max-w-full">
                   Project sent to owner's graveyard
                 </span>
               </div>
@@ -581,7 +584,7 @@ function FavoriteCard({
       className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/40 transition-colors relative h-[220px] 3xl:h-[460px] flex flex-col">
+      <Card className="hover:bg-accent/40 transition-colors relative h-[250px] 3xl:h-[490px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -590,46 +593,18 @@ function FavoriteCard({
         <Badge variant="outline" className={`absolute top-3 left-3 px-3 py-1 category-badge category-${category?.toLowerCase().replace(/[\s&/]+/g, '-')}`}>
           {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
         </Badge>
-        <CardHeader className="flex-1 min-h-0 pb-3 pt-12 px-4">
-          <div className="flex items-start justify-between h-full">
-            <div className="flex-1 min-h-0 flex flex-col justify-between">
-              <CardTitle className="text-base mb-3 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pb-1">{title}</CardTitle>
-              <p className="text-xs text-muted-foreground line-clamp-2">
+        <CardHeader className="flex-1 min-h-0 pb-4 pt-12 px-4 overflow-hidden">
+          <div className="flex items-start justify-between h-full overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col justify-between overflow-hidden w-full">
+              <div className="overflow-hidden w-full">
+                <CardTitle className="text-base mb-3 truncate w-full" title={title}>{title}</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 overflow-hidden">
                 by {owner_username}
               </p>
             </div>
           </div>
         </CardHeader>
-        <CardFooter className="flex justify-end flex-shrink-0 pt-3 pb-3">
-          {tags && tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 w-full">
-              {tags.slice(0, 3).map((tag) => (
-                <Link
-                  key={tag}
-                  href={`/tags/${encodeURIComponent(tag)}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.location.href = `/tags/${encodeURIComponent(tag)}`;
-                  }}
-                  className="inline-block"
-                >
-                  <Badge
-                    variant="outline"
-                    className="text-xs px-2 py-0.5 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
-                  >
-                    #{tag}
-                  </Badge>
-                </Link>
-              ))}
-              {tags.length > 3 && (
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted">
-                  +{tags.length - 3}
-                </Badge>
-              )}
-            </div>
-          )}
-        </CardFooter>
       </Card>
     </Link>
   );
@@ -1618,7 +1593,7 @@ function DashboardMain({
 
       {/* Projects I've Favorited */}
       {stats.myFavorites.length > 0 && (
-        <Card id="favorites-given" className="mb-6 flex flex-col h-[620px] 3xl:h-[1200px] scroll-mt-20">
+        <Card id="favorites-given" className="mb-6 flex flex-col h-[700px] 3xl:h-[1200px] scroll-mt-20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 flex-shrink-0">
             <div className="flex-1">
               <CardTitle>Projects I've Favorited ❤️ ({Math.min(stats.myFavorites.length, 8)})</CardTitle>

@@ -5,7 +5,7 @@
   "scripts": {
     "validate-env": "node -r ts-node/register ./scripts/validateEnv.ts",
     "set-env": "node -r ts-node/register ./scripts/setEnv.ts",
-    "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev",
+    "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev --turbopack",
     "test": "cross-env NODE_ENV=test npm run set-env && npm run validate-env && jest && playwright test",
     "build": "cross-env NODE_ENV=production npm run set-env && npm run validate-env && next build",
     "start": "cross-env NODE_ENV=production npm run set-env && npm run validate-env && next start",

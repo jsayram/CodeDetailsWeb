@@ -335,37 +335,6 @@ export default function UserProfilePage({ params }: PageProps) {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Heart className="h-5 w-5 text-red-500" />
-                      Favorites Received
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-red-500">{stats.projectsReceivedFavorites}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Total appreciation</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Tag className="h-5 w-5 text-primary" />
-                      Most Popular
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm font-semibold truncate" title={stats.mostLikedProject?.title || "No projects yet"}>
-                      {stats.mostLikedProject?.title || "No projects yet"}
-                    </div>
-                    <div className="flex items-center gap-1 mt-2">
-                      <Heart className="h-4 w-4 text-red-500 fill-red-500" />
-                      <span className="text-2xl font-bold">{stats.mostLikedProject?.favorites || 0}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {stats.joinedDate && (
                   <Card>
                     <CardHeader>
@@ -383,40 +352,6 @@ export default function UserProfilePage({ params }: PageProps) {
                       </p>
                     </CardContent>
                   </Card>
-                )}
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Skull className="h-5 w-5 text-muted-foreground" />
-                      Graveyard
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-muted-foreground">{stats.graveyardProjects}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Deleted projects</p>
-                  </CardContent>
-                </Card>
-
-                {/* Owner & Admin Only Section */}
-                {(isOwnProfile || isAdmin(user?.primaryEmailAddress?.emailAddress)) && (
-                  <>
-                    <Card className="border-2 border-primary/20 bg-primary/5">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-base">
-                          <Activity className="h-5 w-5 text-primary" />
-                          Total Projects
-                          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                            {isOwnProfile ? 'Private' : 'Admin'}
-                          </span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-3xl font-bold text-primary">{stats.totalProjects}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Active + Graveyard</p>
-                      </CardContent>
-                    </Card>
-                  </>
                 )}
               </div>
             </div>
