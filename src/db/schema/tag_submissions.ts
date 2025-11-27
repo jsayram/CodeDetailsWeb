@@ -5,8 +5,7 @@ import { tags } from "./tags";
 export const tag_submissions = pgTable("tag_submissions", {
   id: uuid("id").primaryKey().defaultRandom(),
   project_id: uuid("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
+    .references(() => projects.id, { onDelete: "set null" }),
   tag_name: text("tag_name").notNull(),
   submitter_email: text("submitter_email").notNull(),
   description: text("description"),

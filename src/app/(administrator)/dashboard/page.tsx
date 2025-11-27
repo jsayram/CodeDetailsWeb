@@ -31,6 +31,7 @@ import {
   ArrowRight,
   Code,
   Heart,
+  HeartCrack,
   Star,
   Tag as TagIcon,
   TrendingUp,
@@ -58,6 +59,7 @@ import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
 import { toast } from "sonner";
 import UserDashboardLoading from "./loading";
 import { CreateFirstProjectPrompt } from "@/components/dashboard/CreateFirstProjectPrompt";
+import { removeProjectFavorite } from "@/app/actions/projects";
 
 // Type definitions
 interface StatsCardProps {
@@ -90,14 +92,18 @@ interface FavoriteCardProps {
   slug: string;
   title: string;
   owner_username: string | null;
+  owner_user_id: string | null;
   category: string;
+  deleted_at: Date | null;
+  tags: string[];
 }
 
 interface TagSubmissionCardProps {
   tag_name: string;
-  project_id: string;
+  project_id: string | null;
   project_slug: string;
   project_title: string;
+  project_deleted_at: Date | null;
   status: string;
   admin_notes: string | null;
   created_at: Date | null;
@@ -469,20 +475,113 @@ function ProjectCard({
 
 // Favorite card component
 function FavoriteCard({
+  id,
   slug,
   title,
   owner_username,
+  owner_user_id,
   category,
+  deleted_at,
+  tags,
 }: FavoriteCardProps) {
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isUnfavoriting, setIsUnfavoriting] = useState(false);
+  const { user } = useUser();
+  const isDeleted = deleted_at !== null;
 
+  const handleUnfavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user?.id || !id) return;
+    
+    setIsUnfavoriting(true);
+    try {
+      const result = await removeProjectFavorite(id, user.id);
+      
+      if (result.success) {
+        toast.success("Removed from favorites");
+        // Refresh the dashboard
+        window.location.reload();
+      } else {
+        toast.error(result.error || "Failed to remove favorite");
+      }
+    } catch (error) {
+      console.error("Error unfavoriting:", error);
+      toast.error("Failed to remove favorite");
+    } finally {
+      setIsUnfavoriting(false);
+    }
+  };
+
+  // For deleted projects, show limited interaction card
+  if (isDeleted) {
+    return (
+      <div className="relative h-[220px] 3xl:h-[460px] cursor-not-allowed">
+        <Card className="relative h-full flex flex-col opacity-70 bg-muted/30 border-dashed border-red-300 dark:border-red-800 pointer-events-none">
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2 z-10">
+            <Badge variant="outline" className="h-6 px-3 py-1 bg-muted/50 text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
+              {PROJECT_CATEGORIES[category as ProjectCategory]?.label || category}
+            </Badge>
+            <Badge
+              variant="outline"
+              className="h-6 px-3 py-1 bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-xs cursor-pointer hover:bg-red-100 dark:hover:bg-red-900 transition-colors pointer-events-auto flex items-center gap-1 flex-shrink-0"
+              onClick={handleUnfavorite}
+            >
+              {isUnfavoriting ? <Loader2 className="h-3 w-3 animate-spin" /> : <HeartCrack className="h-3 w-3" />}
+              <span>Unfavorite</span>
+            </Badge>
+          </div>
+          <CardHeader className="flex-1 min-h-0 pb-2 pt-12 px-6">
+            {owner_user_id && owner_username && (
+              <div className="flex justify-center mb-2">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold cursor-pointer transition-all hover:shadow-md pointer-events-auto h-8 px-3 py-1 max-w-full text-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsNavigating(true);
+                    window.location.href = `/users/${owner_username}`;
+                  }}
+                  title={`View ${owner_username}'s profile`}
+                >
+                  {isNavigating && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  <span className="truncate">
+                    {owner_username.length > 20 ? 'User Projects' : owner_username}
+                  </span>
+                </Button>
+              </div>
+            )}
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pointer-events-auto mb-2">
+              <CardTitle className="text-base text-muted-foreground whitespace-nowrap text-center">
+                {title}
+              </CardTitle>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-center gap-1.5 min-w-0 overflow-hidden flex-wrap">
+                <Badge variant="outline" className="h-6 px-3 py-1 bg-muted/50 text-muted-foreground border-muted-foreground/20 text-xs flex-shrink-0">
+                  🪦 In Graveyard
+                </Badge>
+                <span className="text-xs text-muted-foreground italic text-center">
+                  Project sent to owner's graveyard
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Normal active project card
   return (
     <Link
       href={`/projects/${slug}`}
       className="cursor-pointer h-full"
       onClick={() => setIsNavigating(true)}
     >
-      <Card className="hover:bg-accent/40 transition-colors relative h-[200px] 3xl:h-[440px] flex flex-col">
+      <Card className="hover:bg-accent/40 transition-colors relative h-[220px] 3xl:h-[460px] flex flex-col">
         {isNavigating && (
           <div className="absolute inset-0 bg-background/50 flex items-center justify-center rounded-lg z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -494,7 +593,7 @@ function FavoriteCard({
         <CardHeader className="flex-1 min-h-0 pb-3 pt-12 px-4">
           <div className="flex items-start justify-between h-full">
             <div className="flex-1 min-h-0 flex flex-col justify-between">
-              <CardTitle className="text-base line-clamp-2 mb-3">{title}</CardTitle>
+              <CardTitle className="text-base mb-3 overflow-x-auto whitespace-nowrap scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 pb-1">{title}</CardTitle>
               <p className="text-xs text-muted-foreground line-clamp-2">
                 by {owner_username}
               </p>
@@ -502,6 +601,34 @@ function FavoriteCard({
           </div>
         </CardHeader>
         <CardFooter className="flex justify-end flex-shrink-0 pt-3 pb-3">
+          {tags && tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 w-full">
+              {tags.slice(0, 3).map((tag) => (
+                <Link
+                  key={tag}
+                  href={`/tags/${encodeURIComponent(tag)}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.location.href = `/tags/${encodeURIComponent(tag)}`;
+                  }}
+                  className="inline-block"
+                >
+                  <Badge
+                    variant="outline"
+                    className="text-xs px-2 py-0.5 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
+                  >
+                    #{tag}
+                  </Badge>
+                </Link>
+              ))}
+              {tags.length > 3 && (
+                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-muted">
+                  +{tags.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
         </CardFooter>
       </Card>
     </Link>
@@ -514,6 +641,7 @@ function TagSubmissionCard({
   project_id,
   project_slug,
   project_title,
+  project_deleted_at,
   status,
   admin_notes,
   created_at,
@@ -523,6 +651,10 @@ function TagSubmissionCard({
   other_projects_using_tag,
 }: TagSubmissionCardProps) {
   const [isNavigating, setIsNavigating] = useState(false);
+  
+  // Check if project is permanently deleted (no project_id) or soft-deleted
+  const isPermanentlyDeleted = !project_id;
+  const isInGraveyard = project_deleted_at !== null && !isPermanentlyDeleted;
   
   // Unified badge styling with status-based text colors
   const badgeClassName =
@@ -542,7 +674,7 @@ function TagSubmissionCard({
             <Badge variant="outline" className={badgeClassName}>
               <span className="opacity-70">#</span>{tag_name}
             </Badge>
-            {status === "approved" && (
+            {status === "approved" && !isPermanentlyDeleted && (
               is_on_original_project ? (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-400 dark:border-green-800 text-xs">
                   ✅ Tag in one project
@@ -553,28 +685,44 @@ function TagSubmissionCard({
                 </Badge>
               )
             )}
+            {isInGraveyard && (
+              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-xs">
+                🪦 In Graveyard
+              </Badge>
+            )}
+            {isPermanentlyDeleted && (
+              <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950 dark:text-gray-400 dark:border-gray-800 text-xs">
+                ⚰️ Project Deleted
+              </Badge>
+            )}
           </div>
-          <Link
-            href={`/projects/${project_slug}`}
-            className="cursor-pointer block"
-            onClick={() => setIsNavigating(true)}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-auto w-full px-2 py-1 hover:cursor-pointer hover:text-primary transition-colors text-left justify-start overflow-hidden"
-              disabled={isNavigating}
+          {!isPermanentlyDeleted ? (
+            <Link
+              href={`/projects/${project_slug}`}
+              className="cursor-pointer block"
+              onClick={() => setIsNavigating(true)}
             >
-              <div className="flex items-start gap-1 min-w-0 w-full overflow-hidden">
-                {isNavigating && (
-                  <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mt-0.5" />
-                )}
-                <span className="truncate text-xs">
-                  Originally submitted for: {project_title}
-                </span>
-              </div>
-            </Button>
-          </Link>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-auto w-full px-2 py-1 hover:cursor-pointer hover:text-primary transition-colors text-left justify-start overflow-hidden"
+                disabled={isNavigating}
+              >
+                <div className="flex items-start gap-1 min-w-0 w-full overflow-hidden">
+                  {isNavigating && (
+                    <Loader2 className="h-3 w-3 animate-spin flex-shrink-0 mt-0.5" />
+                  )}
+                  <span className="truncate text-xs">
+                    Originally submitted for: {project_title}
+                  </span>
+                </div>
+              </Button>
+            </Link>
+          ) : (
+            <div className="px-2 py-1 text-xs text-muted-foreground italic">
+              Originally submitted for: {project_title}
+            </div>
+          )}
           {status === "approved" && other_projects_using_tag && other_projects_using_tag.length > 0 && (
             <div className="text-xs text-muted-foreground pt-1">
               <DropdownMenu>
@@ -1432,9 +1580,9 @@ function DashboardMain({
         </CardHeader>
         <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
           {refreshingMyProjects ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
               {[...Array(8)].map((_, i) => (
-                <Card key={i} className="h-[200px] 3xl:h-[440px]">
+                <Card key={i} className="h-[220px] 3xl:h-[460px]">
                   <CardHeader className="pb-3 pt-12">
                     <Skeleton className="h-5 w-3/4 mb-3" />
                     <div className="flex gap-1.5">
@@ -1446,7 +1594,7 @@ function DashboardMain({
               ))}
             </div>
           ) : stats.myProjects.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
               {stats.myProjects.slice(0, 8).map((project) => (
                 <ProjectCard key={project.id} {...project} />
               ))}
@@ -1493,9 +1641,9 @@ function DashboardMain({
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/3 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/8 pr-2">
             {refreshingFavorites ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
                 {[...Array(8)].map((_, i) => (
-                  <Card key={i} className="h-[200px] 3xl:h-[440px]">
+                  <Card key={i} className="h-[220px] 3xl:h-[460px]">
                     <CardHeader className="pb-3 pt-12">
                       <Skeleton className="h-5 w-3/4 mb-3" />
                       <Skeleton className="h-3 w-1/2" />
@@ -1504,7 +1652,7 @@ function DashboardMain({
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
                 {stats.myFavorites.slice(0, 8).map((favorite) => (
                 <FavoriteCard key={favorite.id} {...favorite} />
               ))}

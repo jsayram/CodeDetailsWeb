@@ -42,8 +42,11 @@ export interface UserDashboardStats {
     slug: string;
     title: string;
     owner_username: string | null;
+    owner_user_id: string | null;
     category: string;
     favorited_at: Date | null;
+    deleted_at: Date | null;
+    tags: string[];
   }[];
   topTags: {
     name: string;
@@ -66,9 +69,10 @@ export interface UserDashboardStats {
   myTagSubmissions: {
     id: string;
     tag_name: string;
-    project_id: string;
+    project_id: string | null;
     project_slug: string;
     project_title: string;
+    project_deleted_at: Date | null;
     status: string;
     admin_notes: string | null;
     created_at: Date | null;
@@ -192,8 +196,10 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         slug: projects.slug,
         title: projects.title,
         owner_username: profiles.username,
+        owner_user_id: projects.user_id,
         category: projects.category,
         favorited_at: favorites.created_at,
+        deleted_at: projects.deleted_at,
       })
       .from(favorites)
       .innerJoin(projects, eq(projects.id, favorites.project_id))
@@ -201,6 +207,22 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
       .where(eq(favorites.profile_id, profileId))
       .orderBy(desc(favorites.created_at))
       .limit(10);
+
+    // Get tags for each favorite project
+    const myFavoritesWithTags = await Promise.all(
+      myFavorites.map(async (fav) => {
+        const projectTags = await db
+          .select({ name: tags.name })
+          .from(project_tags)
+          .innerJoin(tags, eq(tags.id, project_tags.tag_id))
+          .where(eq(project_tags.project_id, fav.id))
+          .limit(5);
+        return {
+          ...fav,
+          tags: projectTags.map(t => t.name),
+        };
+      })
+    );
 
     // Count favorites given by user
     const favoritesGivenCount = await db
@@ -317,12 +339,13 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         project_id: tag_submissions.project_id,
         project_slug: projects.slug,
         project_title: projects.title,
+        project_deleted_at: projects.deleted_at,
         status: tag_submissions.status,
         admin_notes: tag_submissions.admin_notes,
         created_at: tag_submissions.created_at,
       })
       .from(tag_submissions)
-      .innerJoin(projects, eq(projects.id, tag_submissions.project_id))
+      .leftJoin(projects, eq(projects.id, tag_submissions.project_id))
       .where(eq(tag_submissions.submitter_email, userProfile[0].email_address || ""))
       .orderBy(desc(tag_submissions.created_at));
 
@@ -370,7 +393,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
           let other_projects_using_tag: { slug: string; title: string }[] = [];
 
           // For approved tags, check if tag is on original project and find other projects using it
-          if (sub.status === 'approved') {
+          if (sub.status === 'approved' && sub.project_id) {
             // Find the tag ID
             const tagRecord = await db
               .select({ id: tags.id })
@@ -381,7 +404,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
             if (tagRecord.length > 0) {
               const tagId = tagRecord[0].id;
 
-              // Check if tag is on original project
+              // Check if tag is on original project (only if project still exists)
               const originalProjectTag = await db
                 .select()
                 .from(project_tags)
@@ -421,15 +444,16 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
             id: sub.id,
             tag_name: sub.tag_name,
             project_id: sub.project_id,
-            project_slug: sub.project_slug,
-            project_title: sub.project_title,
+            project_slug: sub.project_slug || '',
+            project_title: sub.project_title || 'Project No Longer Exists',
+            project_deleted_at: sub.project_deleted_at,
             status: sub.status,
             admin_notes: sub.admin_notes,
             created_at: sub.created_at,
             // Flag if this rejected tag is now available system-wide
             is_now_available: sub.status === 'rejected' && approvedTagNames.has(sub.tag_name),
-            // Current tag count for the project
-            project_tag_count: tagCountMap.get(sub.project_id) || 0,
+            // Current tag count for the project (0 if project deleted)
+            project_tag_count: sub.project_id ? (tagCountMap.get(sub.project_id) || 0) : 0,
             // For approved tags: whether it's on the original project
             is_on_original_project,
             // For approved tags: other user projects using this tag
@@ -483,7 +507,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
         total_favorites: Number(project.total_favorites || 0),
         tags: project.tags || [],
       })),
-      myFavorites: myFavorites.map(fav => ({
+      myFavorites: myFavoritesWithTags.map(fav => ({
         ...fav,
         owner_username: fav.owner_username || "Unknown",
       })),

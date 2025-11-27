@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProjectBySlugServer } from "@/db/actions";
+import { auth } from "@clerk/nextjs/server";
 
 export async function GET(
   request: NextRequest,
@@ -7,7 +8,16 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const project = await getProjectBySlugServer(resolvedParams.slug);
+    
+    // Get auth data to check permissions
+    const { userId, sessionClaims } = await auth();
+    const userEmail = sessionClaims?.email as string | undefined;
+    
+    const project = await getProjectBySlugServer(
+      resolvedParams.slug,
+      userId,
+      userEmail
+    );
 
     if (!project) {
       return NextResponse.json(

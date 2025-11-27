@@ -374,6 +374,10 @@ export const ProjectCard = React.memo(
     };
 
     const handleCardClick = async () => {
+      // Prevent navigation for soft-deleted projects unless user is owner
+      if (project.deleted_at && !isOwner) {
+        return;
+      }
       if (isNavigating) return;
       setIsNavigating(true);
       router.push(`/projects/${project.slug}`);
@@ -382,6 +386,10 @@ export const ProjectCard = React.memo(
     const handleViewDetailsClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      // Prevent navigation for soft-deleted projects unless user is owner
+      if (project.deleted_at && !isOwner) {
+        return;
+      }
       if (isNavigating) return;
       setIsNavigating(true);
       router.push(`/projects/${project.slug}`);
@@ -457,13 +465,17 @@ export const ProjectCard = React.memo(
     return (
       <>
         <Card
-          className={`group relative overflow-hidden w-full flex flex-col transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
+          className={`group relative overflow-hidden w-full flex flex-col transition-all duration-200 project-card ${
+            project.deleted_at && !isOwner 
+              ? "cursor-not-allowed opacity-70 bg-muted/30 border-dashed border-red-300 dark:border-red-800" 
+              : "cursor-pointer hover:scale-[1.02]"
+          } border-2 border-transparent category-${
             project.category
           }
             ${project.deleted_at ? "deleted" : ""} ${
             isNavigating ? "opacity-70 pointer-events-none" : ""
           }`}
-          onClick={handleCardClick}
+          onClick={project.deleted_at && !isOwner ? undefined : handleCardClick}
         >
           {isNavigating && (
             <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
@@ -619,6 +631,26 @@ export const ProjectCard = React.memo(
                     </div>
                   )}
                 </>
+              ) : project.deleted_at && !isOwner ? (
+                // Soft-deleted project viewed by non-owner: show graveyard badge and unfavorite button
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-xs pointer-events-auto">
+                    🪦 In Graveyard
+                  </Badge>
+                  {isFavorite && user && onToggleFavorite && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-red-100 dark:hover:bg-red-950 pointer-events-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(project.id, false);
+                      }}
+                    >
+                      Unfavorite
+                    </Button>
+                  )}
+                </div>
               ) : (
                 isOwner && (
                   <div className="action-buttons-group">
@@ -684,18 +716,25 @@ export const ProjectCard = React.memo(
 
           {/* Card footer with extended section for tags - fixed at bottom */}
           <div className="flex flex-col flex-shrink-0 -mt-5">
+            {project.deleted_at && !isOwner && (
+              <div className="px-4 py-2 bg-red-50/50 dark:bg-red-950/20 border-t border-red-200 dark:border-red-800">
+                <p className="text-xs text-muted-foreground italic text-center">
+                  This project was sent to the owner's graveyard
+                </p>
+              </div>
+            )}
             <div className="card-footer border-t h-[60px] flex items-center justify-between">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 min-w-0 flex-1">
                 {/* Avatar navigates to user profile */}
                 <button
                   type="button"
                   disabled={isNavigatingUser}
                   onClick={handleNavigateUser}
-                  className={
+                  className={`flex-shrink-0 ${
                     isNavigatingUser
                       ? "opacity-50 cursor-wait p-0"
                       : "cursor-pointer p-0"
-                  }
+                  } ${project.deleted_at && !isOwner ? "pointer-events-auto" : ""}`}
                 >
                   <Avatar className="h-8 w-8">
                     {project.profile?.profile_image_url ? (
@@ -711,58 +750,75 @@ export const ProjectCard = React.memo(
                   </Avatar>
                 </button>
                 {/* Username navigates to user profile */}
-                <button
-                  type="button"
-                  disabled={isNavigatingUser}
-                  onClick={handleNavigateUser}
-                  className={`text-xs truncate max-w-[120px] cursor-pointer hover:underline ${
-                    isNavigatingUser ? "opacity-50 cursor-wait" : ""
-                  } ${project.deleted_at ? "text-red-400/50" : ""}`}
-                  title={displayUsername}
-                >
-                  {displayUsername}
-                </button>
+                <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                  <Badge
+                    variant="outline"
+                    className={`cursor-pointer hover:bg-primary/10 transition-colors truncate max-w-full ${
+                      isNavigatingUser ? "opacity-50 cursor-wait" : ""
+                    } ${
+                      project.deleted_at && !isOwner 
+                        ? "bg-primary/10 text-primary font-semibold border-primary/30 pointer-events-auto" 
+                        : project.deleted_at 
+                        ? "text-red-400/50" 
+                        : ""
+                    }`}
+                    onClick={handleNavigateUser}
+                    title={displayUsername}
+                  >
+                    {displayUsername}
+                  </Badge>
+                  {project.deleted_at && !isOwner && (
+                    <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                      Browse projects
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Share button moved to the left of View Project button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0 cursor-pointer"
-                      onClick={handleShareClick}
-                      aria-label="Share project"
-                    >
-                      <Share2 size={18} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copy project link to clipboard</p>
-                  </TooltipContent>
-                </Tooltip>
+                {/* Share button - disabled for non-owners of deleted projects */}
+                {!(project.deleted_at && !isOwner) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0 cursor-pointer"
+                        onClick={handleShareClick}
+                        aria-label="Share project"
+                      >
+                        <Share2 size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copy project link to clipboard</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
 
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleViewDetailsClick}
-                  className={`card-button ${
-                    project.deleted_at
-                      ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
-                      : ""
-                  } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
-                  disabled={isNavigating}
-                >
-                  {isNavigating ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                      Loading...
-                    </div>
-                  ) : (
-                    "View Project"
-                  )}
-                </Button>
+                {/* View Details button - disabled for non-owners of deleted projects */}
+                {!(project.deleted_at && !isOwner) && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleViewDetailsClick}
+                    className={`card-button ${
+                      project.deleted_at
+                        ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
+                        : ""
+                    } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                    disabled={isNavigating}
+                  >
+                    {isNavigating ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        Loading...
+                      </div>
+                    ) : (
+                      "View Project"
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -783,6 +839,8 @@ export const ProjectCard = React.memo(
                         } cursor-pointer text-xs px-2 py-0.5 ${
                           loadingTag === tag
                             ? "opacity-70 pointer-events-none"
+                            : project.deleted_at && !isOwner
+                            ? "pointer-events-auto"
                             : ""
                         }`}
                         onClick={(e) => handleTagClick(e, tag)}
