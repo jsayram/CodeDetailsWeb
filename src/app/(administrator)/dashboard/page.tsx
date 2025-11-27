@@ -57,6 +57,7 @@ import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categor
 import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
 import { toast } from "sonner";
 import UserDashboardLoading from "./loading";
+import { CreateFirstProjectPrompt } from "@/components/dashboard/CreateFirstProjectPrompt";
 
 // Type definitions
 interface StatsCardProps {
@@ -1061,6 +1062,13 @@ function DashboardMain({
           />
         </div>
       </div>
+
+      {/* Create First Project Prompt - Only show when user has 0 projects */}
+      {stats.totalProjects === 0 && (
+        <div className="mb-8">
+          <CreateFirstProjectPrompt />
+        </div>
+      )}
 
       {/* Stats Cards Row */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
