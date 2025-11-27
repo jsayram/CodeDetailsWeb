@@ -55,7 +55,7 @@ export function TagInput({
             (suggestion) => !displayTags.some((tag) => tag.id === suggestion.id)
           );
           setSuggestions(filteredResults);
-          setShowSuggestions(filteredResults.length > 0);
+          setShowSuggestions(true);
         } catch (error) {
           console.error("Error searching tags:", error);
           setError("Failed to search tags. Please try again.");
@@ -71,7 +71,7 @@ export function TagInput({
     };
 
     // Use a longer debounce timeout to reduce API calls
-    const timeoutId = setTimeout(search, 500);
+    const timeoutId = setTimeout(search, 300);
     return () => clearTimeout(timeoutId);
   }, [inputValue, searchTags, displayTags]);
 
@@ -175,22 +175,40 @@ export function TagInput({
         {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
 
         {/* Suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
-            <ul className="py-1">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={suggestion.id}
-                  className={cn(
-                    "px-3 py-2 cursor-pointer hover:bg-accent",
-                    selectedSuggestionIndex === index && "bg-accent"
-                  )}
-                  onClick={() => handleSelectTag(suggestion)}
-                >
-                  {suggestion.name}
-                </li>
-              ))}
-            </ul>
+        {showSuggestions && (
+          <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-y-auto">
+            {loading ? (
+              <div className="px-3 py-4 flex items-center justify-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Searching tags...</span>
+              </div>
+            ) : suggestions.length > 0 ? (
+              <ul className="py-1">
+                {suggestions.map((suggestion, index) => (
+                  <li
+                    key={suggestion.id}
+                    className={cn(
+                      "px-3 py-2 cursor-pointer hover:bg-accent",
+                      selectedSuggestionIndex === index && "bg-accent"
+                    )}
+                    onClick={() => handleSelectTag(suggestion)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{suggestion.name}</span>
+                      {suggestion.count > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {suggestion.count} {suggestion.count === 1 ? 'project' : 'projects'}
+                        </span>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : inputValue.trim().length > 0 ? (
+              <div className="px-3 py-3 text-sm text-muted-foreground text-center">
+                No matching tags found. Try a different search term.
+              </div>
+            ) : null}
           </div>
         )}
       </div>
