@@ -312,19 +312,6 @@ export default function UserProfilePage({ params }: PageProps) {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Users className="h-5 w-5 text-primary" />
-                      Community Impact
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-primary">{stats.communityProjects}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Projects from others</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
                       <Heart className="h-5 w-5 text-primary" />
                       Favorites Given
                     </CardTitle>
