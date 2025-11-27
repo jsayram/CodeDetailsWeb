@@ -49,7 +49,7 @@ export function UnsavedChangesConfirmationModal({
               className="transform -scale-x-100"
             />
             {/* Speech bubble */}
-            <div className="absolute -top-12 left-0 bg-card p-3 rounded-lg shadow-lg border border-yellow-500/30">
+            <div className="absolute -top-5 left-0 bg-card p-3 rounded-lg shadow-lg border border-yellow-500/30">
               <p className="text-xs font-medium text-yellow-200">
                 Don&apos;t lose your work!
               </p>

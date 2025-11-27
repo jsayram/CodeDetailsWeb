@@ -411,7 +411,7 @@ export function ProjectContent({
     }
 
     // Validate url_links - check for empty URLs and invalid formats
-    const hasEmptyLinks = formData.url_links.some(link => !link.url || link.url.trim() === '');
+    const hasEmptyLinks = formData.url_links.some(link => !link.url || link.url.trim() === '' || link.url === 'https://');
     if (hasEmptyLinks) {
       toast.error("Please fill in all link URLs or remove empty links before saving");
       // Trigger highlighting of empty URL fields
@@ -431,6 +431,8 @@ export function ProjectContent({
         description: "Please fix the URL format or use the 'Fix URL' button before saving",
         duration: 5000,
       });
+      // Trigger highlighting of invalid URL fields
+      window.dispatchEvent(new Event('highlight-invalid-links'));
       setIsUpdating(false);
       return false;
     }

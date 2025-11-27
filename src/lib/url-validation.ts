@@ -14,11 +14,83 @@ export function suggestUrlFix(url: string): string | null {
     return null;
   }
 
-  const trimmed = url.trim();
+  let fixed = url.trim();
 
-  // Already has protocol
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return null;
+  // Fix single slash after protocol (CRITICAL - common typo)
+  // https/example.com -> https://example.com
+  // http/example.com -> http://example.com
+  if (/^https?\/[^/]/.test(fixed)) {
+    fixed = fixed.replace(/^(https?)\//, '$1://');
+  }
+  
+  // Fix malformed protocol (missing colon)
+  // https//example.com -> https://example.com
+  // http//example.com -> http://example.com
+  else if (/^https?\/\//.test(fixed)) {
+    fixed = fixed.replace(/^(https?)(\/\/)/, '$1:$2');
+  }
+  
+  // Fix missing slash after colon
+  // https:/example.com -> https://example.com
+  // http:/example.com -> http://example.com
+  else if (/^https?:\/[^/]/.test(fixed)) {
+    fixed = fixed.replace(/^(https?):\/([^/])/, '$1://$2');
+  }
+  
+  // Fix triple or more slashes
+  // https:///example.com -> https://example.com
+  else if (/^https?:\/\/\/+/.test(fixed)) {
+    fixed = fixed.replace(/^(https?):\/\/\/+/, '$1://');
+  }
+  
+  // Fix missing slashes entirely
+  // https:example.com -> https://example.com
+  else if (/^https?:[^/]/.test(fixed)) {
+    fixed = fixed.replace(/^(https?):([^/])/, '$1://$2');
+  }
+  
+  // Fix wrong protocol separator
+  // https;example.com -> https://example.com
+  // https:;example.com -> https://example.com
+  if (/^https?[:;]+/.test(fixed)) {
+    fixed = fixed.replace(/^(https?)[:;]+/, '$1://');
+  }
+  
+  // Fix backslashes instead of forward slashes
+  // https:\\example.com -> https://example.com
+  if (/^https?:\\\\/.test(fixed)) {
+    fixed = fixed.replace(/^(https?):\\\\/, '$1://');
+  }
+  
+  // Fix spaces in URL
+  fixed = fixed.replace(/\s+/g, '');
+  
+  // Fix double dots in domain
+  // https://example..com -> https://example.com
+  fixed = fixed.replace(/\.{2,}/g, '.');
+  
+  // Fix trailing/leading dots in domain
+  fixed = fixed.replace(/:\/\/(\.*)(.*?)(\.*)(\/ |$)/, '://$2$4');
+
+  // Already has proper protocol - return it if we made fixes
+  if (fixed !== url.trim() && (fixed.startsWith('http://') || fixed.startsWith('https://'))) {
+    // Validate the fixed URL
+    try {
+      new URL(fixed);
+      return fixed;
+    } catch {
+      // If still invalid, continue to other fixes
+    }
+  }
+  
+  // Return early if already valid
+  if (fixed.startsWith('http://') || fixed.startsWith('https://')) {
+    try {
+      new URL(fixed);
+      return null; // Already valid, no fix needed
+    } catch {
+      // Continue to try other fixes
+    }
   }
 
   // Common patterns that can be fixed
@@ -27,8 +99,13 @@ export function suggestUrlFix(url: string): string | null {
   // www.example.com -> https://www.example.com
   
   // Check if it looks like a valid domain (has dot and valid characters)
-  if (/^[a-zA-Z0-9][-a-zA-Z0-9.]+\.[a-zA-Z]{2,}/.test(trimmed)) {
-    return `https://${trimmed}`;
+  if (/^[a-zA-Z0-9][-a-zA-Z0-9.]+\.[a-zA-Z]{2,}/.test(fixed)) {
+    return `https://${fixed}`;
+  }
+  
+  // Try with www. prefix if it looks like a domain without subdomain
+  if (/^[a-zA-Z0-9]+\.[a-zA-Z]{2,}$/.test(fixed)) {
+    return `https://www.${fixed}`;
   }
 
   return null;
@@ -44,6 +121,76 @@ export function validateUrlFormat(url: string): LinkValidationResult {
   }
 
   const trimmedUrl = url.trim();
+  
+  // Check for common obvious mistakes before URL parsing
+  
+  // Contains spaces
+  if (/\s/.test(trimmedUrl)) {
+    const suggestedFix = suggestUrlFix(trimmedUrl);
+    return {
+      valid: false,
+      error: 'URL contains spaces',
+      suggestedFix: suggestedFix || undefined,
+    };
+  }
+  
+  // Single slash after protocol (CRITICAL - catches https/example.com)
+  if (/^https?\/[^/]/.test(trimmedUrl)) {
+    const suggestedFix = suggestUrlFix(trimmedUrl);
+    return {
+      valid: false,
+      error: 'Malformed protocol - should be "https://" not "https/"',
+      suggestedFix: suggestedFix || undefined,
+    };
+  }
+  
+  // Malformed protocol patterns - missing colon
+  if (/^https?\/\//.test(trimmedUrl)) {
+    const suggestedFix = suggestUrlFix(trimmedUrl);
+    return {
+      valid: false,
+      error: 'Missing colon in protocol - should be "https://" not "https//"',
+      suggestedFix: suggestedFix || undefined,
+    };
+  }
+  
+  // Missing slashes - has colon but not enough slashes
+  if (/^https?:[^/]/.test(trimmedUrl)) {
+    const suggestedFix = suggestUrlFix(trimmedUrl);
+    return {
+      valid: false,
+      error: 'Malformed protocol - missing "//" after http/https',
+      suggestedFix: suggestedFix || undefined,
+    };
+  }
+  
+  // Missing one slash
+  if (/^https?:\/[^/]/.test(trimmedUrl)) {
+    const suggestedFix = suggestUrlFix(trimmedUrl);
+    return {
+      valid: false,
+      error: 'Missing slash in protocol - should be "https://" not "https:/"',
+      suggestedFix: suggestedFix || undefined,
+    };
+  }
+  
+  // Contains multiple dots in sequence
+  if (/\.{2,}/.test(trimmedUrl)) {
+    const suggestedFix = suggestUrlFix(trimmedUrl);
+    return {
+      valid: false,
+      error: 'URL contains multiple consecutive dots',
+      suggestedFix: suggestedFix || undefined,
+    };
+  }
+  
+  // Check for invalid characters
+  if (/[<>"{}|\\^`\[\]]/.test(trimmedUrl)) {
+    return {
+      valid: false,
+      error: 'URL contains invalid characters',
+    };
+  }
 
   try {
     const parsed = new URL(trimmedUrl);
@@ -52,7 +199,7 @@ export function validateUrlFormat(url: string): LinkValidationResult {
     if (!['http:', 'https:'].includes(parsed.protocol)) {
       return {
         valid: false,
-        error: 'URL must use HTTP or HTTPS protocol',
+        error: `Invalid protocol "${parsed.protocol}" - must use HTTP or HTTPS`,
       };
     }
 
@@ -63,15 +210,40 @@ export function validateUrlFormat(url: string): LinkValidationResult {
         error: 'URL must have a valid hostname',
       };
     }
+    
+    // Check hostname has at least one dot (TLD required)
+    if (!parsed.hostname.includes('.')) {
+      return {
+        valid: false,
+        error: 'Hostname must include a domain extension (e.g., .com, .org)',
+      };
+    }
+    
+    // Check for localhost or IP addresses (warn but allow)
+    if (parsed.hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(parsed.hostname)) {
+      // These are technically valid, so return valid: true
+      return { valid: true };
+    }
 
     return { valid: true };
   } catch (error) {
     // Try to suggest a fix
     const suggestedFix = suggestUrlFix(trimmedUrl);
     
+    let errorMessage = 'Invalid URL format';
+    
+    // Provide more specific error messages based on common patterns
+    if (!trimmedUrl.includes('.')) {
+      errorMessage = 'URL must include a domain (e.g., example.com)';
+    } else if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+      errorMessage = 'URL must start with http:// or https://';
+    } else if (trimmedUrl.includes('..')) {
+      errorMessage = 'URL contains consecutive dots';
+    }
+    
     return {
       valid: false,
-      error: 'Invalid URL format',
+      error: errorMessage,
       suggestedFix: suggestedFix || undefined,
     };
   }

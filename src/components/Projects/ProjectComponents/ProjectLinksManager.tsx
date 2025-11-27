@@ -67,6 +67,7 @@ export function ProjectLinksManager({
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyingIndex, setVerifyingIndex] = useState<number | null>(null);
   const [emptyUrlIndices, setEmptyUrlIndices] = useState<Set<number>>(new Set());
+  const [invalidUrlIndices, setInvalidUrlIndices] = useState<Set<number>>(new Set());
   const [urlSuggestions, setUrlSuggestions] = useState<Map<number, string>>(new Map());
 
   // Sync internal state with initialLinks prop changes
@@ -74,26 +75,48 @@ export function ProjectLinksManager({
     setLinks(initialLinks);
   }, [initialLinks]);
 
-  // Expose method to highlight empty URLs (called from parent)
+  // Expose method to highlight empty and invalid URLs (called from parent)
   React.useEffect(() => {
-    const checkEmptyUrls = () => {
+    const checkUrlIssues = () => {
       const emptyIndices = new Set<number>();
+      const invalidIndices = new Set<number>();
+      const suggestions = new Map<number, string>();
+      
       links.forEach((link, index) => {
         if (!link.url || link.url.trim() === '') {
           emptyIndices.add(index);
+        } else {
+          const formatResult = validateUrlFormat(link.url);
+          if (!formatResult.valid) {
+            invalidIndices.add(index);
+            // Store suggestion if available
+            if (formatResult.suggestedFix) {
+              suggestions.set(index, formatResult.suggestedFix);
+            }
+          }
         }
       });
-      if (emptyIndices.size > 0) {
+      
+      if (emptyIndices.size > 0 || invalidIndices.size > 0) {
         setEmptyUrlIndices(emptyIndices);
-        // Clear highlighting after 3 seconds
-        setTimeout(() => setEmptyUrlIndices(new Set()), 3000);
+        setInvalidUrlIndices(invalidIndices);
+        setUrlSuggestions(suggestions);
+        // Clear highlighting after 5 seconds
+        setTimeout(() => {
+          setEmptyUrlIndices(new Set());
+          setInvalidUrlIndices(new Set());
+        }, 5000);
       }
     };
     
     // Listen for validation trigger from parent
-    const handleValidationError = () => checkEmptyUrls();
+    const handleValidationError = () => checkUrlIssues();
     window.addEventListener('highlight-empty-links', handleValidationError);
-    return () => window.removeEventListener('highlight-empty-links', handleValidationError);
+    window.addEventListener('highlight-invalid-links', handleValidationError);
+    return () => {
+      window.removeEventListener('highlight-empty-links', handleValidationError);
+      window.removeEventListener('highlight-invalid-links', handleValidationError);
+    };
   }, [links]);
 
   // Add new link
@@ -105,7 +128,7 @@ export function ProjectLinksManager({
 
     const newLink: ProjectLink = {
       type: "repository",
-      url: "",
+      url: "https://",
     };
 
     const updatedLinks = [...links, newLink];
@@ -127,16 +150,49 @@ export function ProjectLinksManager({
   const handleUpdateLink = useCallback(
     (index: number, field: keyof ProjectLink, value: string) => {
       const updatedLinks = [...links];
-      updatedLinks[index] = {
-        ...updatedLinks[index],
-        [field]: value,
-      };
-
-      // If URL is being changed, clear verification status
+      
+      // Auto-prepend https:// if user starts typing without protocol
       if (field === 'url') {
+        let processedValue = value;
+        
+        // If user clears to empty or just whitespace, allow it
+        if (value.trim() === '') {
+          processedValue = '';
+        }
+        // If user is typing and doesn't have a protocol, prepend https://
+        else if (value.length > 0 && !value.startsWith('http://') && !value.startsWith('https://')) {
+          // Don't prepend if they're still typing the protocol itself
+          if (!value.startsWith('http') && !value.startsWith('htt') && !value.startsWith('ht') && !value.startsWith('h')) {
+            processedValue = `https://${value}`;
+          }
+        }
+        
+        updatedLinks[index] = {
+          ...updatedLinks[index],
+          url: processedValue,
+        };
+        
+        // Clear verification status when URL changes
         delete updatedLinks[index].reachable;
         delete updatedLinks[index].statusCode;
         delete updatedLinks[index].lastChecked;
+        
+        // Clear any validation highlighting
+        setInvalidUrlIndices(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(index);
+          return newSet;
+        });
+        setUrlSuggestions(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(index);
+          return newMap;
+        });
+      } else {
+        updatedLinks[index] = {
+          ...updatedLinks[index],
+          [field]: value,
+        };
       }
 
       setLinks(updatedLinks);
@@ -154,6 +210,17 @@ export function ProjectLinksManager({
       // Validate format first
       const formatResult = validateUrlFormat(link.url);
       if (!formatResult.valid) {
+        // Mark as invalid so it shows red highlighting
+        const updatedLinks = [...links];
+        updatedLinks[index] = {
+          ...updatedLinks[index],
+          reachable: false,
+          statusCode: 400,
+          lastChecked: new Date().toISOString(),
+        };
+        setLinks(updatedLinks);
+        onChange(updatedLinks);
+        
         // Store suggestion if available
         if (formatResult.suggestedFix) {
           setUrlSuggestions(prev => new Map(prev).set(index, formatResult.suggestedFix!));
@@ -275,11 +342,35 @@ export function ProjectLinksManager({
     setIsVerifying(true);
 
     try {
-      const verifyPromises = links.map(async (link, index) => {
-        if (!link.url) return;
+      // Filter links that are actually ready to verify
+      const validLinks = links.filter(link => 
+        link.url && 
+        link.url.trim() !== '' && 
+        link.url !== 'https://'
+      );
 
+      if (validLinks.length === 0) {
+        toast.error("No links to verify");
+        setIsVerifying(false);
+        return;
+      }
+
+      let invalidFormatCount = 0;
+      const invalidFormatErrors: string[] = [];
+
+      const verifyPromises = links.map(async (link, index) => {
+        // Skip empty or incomplete URLs
+        if (!link.url || link.url.trim() === '' || link.url === 'https://') {
+          return null;
+        }
+
+        // Check format validation
         const formatResult = validateUrlFormat(link.url);
-        if (!formatResult.valid) return;
+        if (!formatResult.valid) {
+          invalidFormatCount++;
+          invalidFormatErrors.push(`Link ${index + 1}: ${formatResult.error || 'Invalid format'}`);
+          return null;
+        }
 
         const result = await checkUrlReachability(link.url);
 
@@ -292,9 +383,18 @@ export function ProjectLinksManager({
       });
 
       const results = await Promise.all(verifyPromises);
+      const validResults = results.filter((r) => r !== null);
+
+      // Show format errors if any
+      if (invalidFormatCount > 0) {
+        toast.error(`${invalidFormatCount} link${invalidFormatCount !== 1 ? 's have' : ' has'} invalid URL format`, {
+          description: invalidFormatErrors[0], // Show first error
+          duration: 5000,
+        });
+      }
 
       const updatedLinks = [...links];
-      results.forEach((result) => {
+      validResults.forEach((result) => {
         if (result) {
           updatedLinks[result.index] = {
             ...updatedLinks[result.index],
@@ -308,8 +408,21 @@ export function ProjectLinksManager({
       setLinks(updatedLinks);
       onChange(updatedLinks);
 
-      const reachableCount = results.filter((r) => r?.reachable).length;
-      toast.success(`Verified ${reachableCount}/${links.length} links`);
+      const reachableCount = validResults.filter((r) => r?.reachable).length;
+      const totalVerified = validResults.length;
+      
+      if (totalVerified > 0) {
+        if (reachableCount === totalVerified) {
+          toast.success(`All ${totalVerified} link${totalVerified !== 1 ? 's' : ''} verified successfully!`);
+        } else {
+          toast.warning(`Verified ${reachableCount}/${totalVerified} links`, {
+            description: `${totalVerified - reachableCount} link${totalVerified - reachableCount !== 1 ? 's' : ''} may not be reachable`,
+          });
+        }
+      } else if (invalidFormatCount === 0) {
+        // No valid results and no format errors means all were skipped (empty)
+        toast.error("No valid links to verify");
+      }
     } catch (error) {
       toast.error("Failed to verify links");
     } finally {
@@ -339,6 +452,7 @@ export function ProjectLinksManager({
                 size="sm"
                 onClick={handleVerifyAll}
                 disabled={isVerifying}
+                className="cursor-pointer"
               >
                 {isVerifying ? (
                   <>
@@ -447,6 +561,9 @@ export function ProjectLinksManager({
 
                 <div className="space-y-2">
                   <label htmlFor={`link-url-${index}`} className="text-sm font-medium">URL</label>
+                  <p className="text-xs text-muted-foreground">
+                    Verification checks if the link works, not where it goes. Make sure the URL is correct and goes to your intended destination.
+                  </p>
                   <div className="flex gap-2">
                     <Input
                       id={`link-url-${index}`}
@@ -456,54 +573,36 @@ export function ProjectLinksManager({
                       }
                       onBlur={() => {
                         // Auto-verify when user leaves the URL field
-                        if (link.url && link.url.trim() !== '') {
+                        if (link.url && link.url.trim() !== '' && link.url !== 'https://') {
                           handleVerifyLink(index, true);
                         }
                       }}
-                      placeholder={
-                        LINK_TYPE_METADATA[link.type]?.placeholder ||
-                        "https://example.com"
-                      }
+                      placeholder="https://example.com"
                       className={`flex-1 transition-all ${
                         emptyUrlIndices.has(index)
                           ? "animate-pulse ring-2 ring-red-500 border-red-500"
-                          : link.reachable === false || urlSuggestions.has(index)
-                          ? "border-red-500 dark:border-red-700 focus-visible:ring-red-500"
+                          : link.reachable === true
+                          ? "ring-2 ring-green-500 border-green-500"
+                          : link.reachable === false
+                          ? "ring-2 ring-red-500 border-red-500"
                           : ""
                       }`}
                     />
-                    {urlSuggestions.has(index) ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleApplySuggestion(index)}
-                        className="bg-blue-50 dark:bg-blue-950 border-blue-300 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900"
-                      >
-                        Fix URL
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleVerifyLink(index)}
-                        disabled={!link.url || verifyingIndex === index}
-                      >
-                        {verifyingIndex === index ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCcw className="h-4 w-4" />
-                        )}
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleVerifyLink(index)}
+                      disabled={!link.url || link.url === 'https://' || verifyingIndex === index}
+                      className="cursor-pointer"
+                    >
+                      {verifyingIndex === index ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCcw className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-                  {urlSuggestions.has(index) && (
-                    <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Suggested: <code className="px-1 py-0.5 bg-blue-100 dark:bg-blue-900 rounded">{urlSuggestions.get(index)}</code>
-                    </div>
-                  )}
                 </div>
 
                 {/* Status indicator */}
