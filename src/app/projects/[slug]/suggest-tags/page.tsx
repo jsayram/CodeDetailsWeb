@@ -29,6 +29,7 @@ import { HeaderSectionNoSideBar } from "@/components/layout/HeaderSectionNoSideB
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PageBanner } from "@/components/ui/page-banner";
 import { UnsavedChangesConfirmationModal } from "@/components/Projects/ProjectComponents/UnsavedChangesConfirmationModal";
+import SuggestTagsLoading from "./loading";
 
 // Validation function for tag names with enhanced rules
 const validateTagName = async (
@@ -466,7 +467,7 @@ export default function SuggestTagsPage() {
   };
 
   if (!isLoaded || isLoadingProject) {
-    return null; // Loading state handled by loading.tsx
+    return <SuggestTagsLoading />;
   }
 
   if (!user) {
@@ -520,10 +521,8 @@ export default function SuggestTagsPage() {
             bannerTitle="Suggest Tags for Your Project"
             description={
               <div>
-                <p>Help categorize this project by suggesting relevant tags. Your suggestions will be reviewed before being added.</p>
-                <p className="mt-2 text-xs">
-                  <span className="font-semibold">Project:</span> {projectData?.title || "Loading..."} | 
-                  <span className="font-semibold ml-2">Your Email:</span> {email || "Loading..."}
+                  <p className="mt-2 text-xs">
+                  <span className="font-semibold">Project:</span> <Badge className="bg-transparent outline-1 text-fuchsia-600/60">{projectData?.title || "Loading..."}</Badge>
                 </p>
               </div>
             }
@@ -539,28 +538,28 @@ export default function SuggestTagsPage() {
         {/* Main Content */}
         <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
           <div className="container max-w-6xl mx-auto">
-            {/* Header with Back Button */}
-            <div className="mb-6 flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBack}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Project
-              </Button>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Centered Tag Input at Top */}
+              {/* Centered Tag Input at Top with Back Button */}
               <div className="max-w-4xl mx-auto">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-center gap-2">
-                      <TagIcon className="h-5 w-5" />
-                      Enter Tag Names
-                    </CardTitle>
+                    <div className="flex items-center justify-between mb-2">
+                      <Button
+                        type="button"
+                        variant="default"
+                        size="lg"
+                        onClick={handleBack}
+                        className="flex items-center gap-2 cursor-pointer font-semibold"
+                      >
+                        <ArrowLeft className="h-5 w-5" />
+                        Back to Project
+                      </Button>
+                      <CardTitle className="flex items-center gap-2">
+                        <TagIcon className="h-5 w-5" />
+                        Enter Tag Names
+                      </CardTitle>
+                      <div className="w-[180px]"></div> {/* Spacer for centering */}
+                    </div>
                     <CardDescription className="text-center">
                       Separate multiple tags with commas (e.g., react, next-js, typescript)
                     </CardDescription>
@@ -724,18 +723,18 @@ export default function SuggestTagsPage() {
                   <Card className="h-full border-2">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-4">
-                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5" />
+                        <CardTitle className="text-xs font-bold flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4" />
                           Tag Validation
                         </CardTitle>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge variant="outline" className="text-sm font-bold px-3 py-1">
+                          <Badge variant="outline" className="text-xs font-bold px-2 py-0.5">
                             <span className={remainingTagSlots > 0 ? 'text-success' : 'text-destructive'}>
-                              ({currentTagCount}/{MAX_PROJECT_TAGS}) Tags
+                              Current Project Has ({currentTagCount}/{MAX_PROJECT_TAGS}) Tags
                             </span>
                           </Badge>
                           {pendingTags.length > 0 && (
-                            <Badge variant="outline" className="text-sm font-bold px-3 py-1 border-warning text-warning">
+                            <Badge variant="outline" className="text-xs font-bold px-2 py-0.5 border-warning text-warning">
                              ({pendingTags.length}) Pending Approval
                             </Badge>
                           )}

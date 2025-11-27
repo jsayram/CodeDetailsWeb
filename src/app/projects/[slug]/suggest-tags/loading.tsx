@@ -31,17 +31,17 @@ export default function SuggestTagsLoading() {
         {/* Main Content Skeleton */}
         <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
           <div className="container max-w-6xl mx-auto">
-            {/* Back Button Skeleton */}
-            <div className="mb-6">
-              <div className="h-9 w-40 bg-muted rounded animate-pulse"></div>
-            </div>
-
             <div className="space-y-6">
               {/* Tag Input Card Skeleton */}
               <div className="max-w-4xl mx-auto">
                 <Card>
                   <CardHeader>
-                    <div className="h-6 bg-muted rounded w-48 mx-auto animate-pulse"></div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="h-10 w-44 bg-muted rounded animate-pulse"></div>
+                      <div className="h-6 bg-muted rounded w-48 animate-pulse"></div>
+                      <div className="w-[180px]"></div>
+                    </div>
+                    <div className="h-4 bg-muted rounded w-96 mx-auto animate-pulse"></div>
                   </CardHeader>
                   <CardContent>
                     <div className="h-16 bg-muted rounded animate-pulse"></div>
