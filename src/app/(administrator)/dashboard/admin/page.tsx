@@ -60,6 +60,8 @@ import { toast } from "sonner";
 import { TopContributorsCard } from "@/components/administrator/TopContributorsCard";
 import { TagPipelineCard, TopSubmittersCard, RecentSubmissionsCard } from "@/components/administrator/TagPipelineCard";
 import { HighlightText } from "@/components/HighlightText";
+import { PageBanner } from "@/components/ui/page-banner";
+import { useUser } from "@clerk/nextjs";
 
 // Type definitions
 interface StatsCardProps {
@@ -1121,6 +1123,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
 
 // Dashboard content component
 function DashboardContent() {
+  const { user } = useUser();
   const [stats, setStats] = React.useState<DashboardStats | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -1388,6 +1391,24 @@ function DashboardContent() {
 
   return (
     <div className="w-full min-w-0 px-4 2xl:px-8 3xl:px-12 py-8">
+      {/* Page Banner */}
+      <div className="mb-8">
+        <div className="mx-auto">
+          <PageBanner
+            icon={<ShieldCheck className="h-8 w-8 text-cyan-500" />}
+            userName={user?.fullName || user?.firstName || user?.emailAddresses?.[0]?.emailAddress || "Administrator"}
+            bannerTitle="System Administration"
+            description="Platform-wide analytics, user management, and system controls. Monitor performance, manage users, and oversee tag submissions."
+            isUserBanner={false}
+            gradientFrom="cyan-900"
+            gradientVia="blue-800"
+            gradientTo="sky-800"
+            borderColor="border-cyan-700/40"
+            textGradient="from-cyan-400 via-blue-400 to-sky-400"
+          />
+        </div>
+      </div>
+
       {/* Dashboard Header with Refresh Button */}
       <div className="mb-6 md:mb-8">
         <div className="flex items-center justify-between mb-2">

@@ -59,6 +59,7 @@ export default function FavoriteProjects() {
                             icon={<Heart className="h-8 w-8 text-red-500 fill-current animate-heartbeat" fill="currentColor" />}
                             userName={user?.fullName || "User"}
                             bannerTitle="Favorite Projects"
+                            description="A curated list of projects you've marked as favorites. Easily access and manage the projects you love the most ❤️"
                             userTier={userTier}
                             isUserBanner={true}
                             gradientFrom="indigo-900"

@@ -23,8 +23,10 @@ export const HeroSection = () => {
 
   // Add loading states
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
-  const [isLoadingLearn, setIsLoadingLearn] = useState(false);
-  const [isLoadingImplement, setIsLoadingImplement] = useState(false);
+  // const [isLoadingLearn, setIsLoadingLearn] = useState(false);
+  // const [isLoadingImplement, setIsLoadingImplement] = useState(false);
+  const [isLoadingSearch, setIsLoadingSearch] = useState(false);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(false);
 
   // If not loaded yet, show loading state
   if (!isLoaded) {
@@ -171,70 +173,70 @@ export const HeroSection = () => {
             unauthenticatedMessage="AUTHENTICATE TO CONTINUE"
             userInfo={
               user
-                ? {
-                    email: user.primaryEmailAddress?.emailAddress,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                  }
-                : undefined
+          ? {
+              email: user.primaryEmailAddress?.emailAddress,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            }
+          : undefined
             }
             links={[
               // System information commands (non-clickable)
               {
-                href: "#",
-                label: "git push -f origin main:prod # friday 5pm",
-                clickable: false,
-                className: "text-xl font-medium cursor-text text-gray-400",
-                visibleOn: ["mobile", "md", "lg", "xl", "2xl"],
+          href: "#",
+          label: "git push -f origin main:prod # friday 5pm",
+          clickable: false,
+          className: "text-xl font-medium cursor-text text-gray-400",
+          visibleOn: ["mobile", "md", "lg", "xl", "2xl"],
               },
               {
-                href: "#",
-                label: "git commit -m 'Fix bugs that never existed'",
-                clickable: false,
-                className: "text-xl font-medium cursor-text text-gray-400",
-                visibleOn: ["sm", "lg", "xl", "2xl"],
+          href: "#",
+          label: "git commit -m 'Fix bugs that never existed'",
+          clickable: false,
+          className: "text-xl font-medium cursor-text text-gray-400",
+          visibleOn: ["sm", "lg", "xl", "2xl"],
               },
               {
-                href: "#",
-                label: "docker run --rm -d my-responsibilities",
-                clickable: false,
-                className: "text-xl font-medium cursor-text text-gray-400",
-                visibleOn: ["lg", "xl", "2xl"],
+          href: "#",
+          label: "docker run --rm -d my-responsibilities",
+          clickable: false,
+          className: "text-xl font-medium cursor-text text-gray-400",
+          visibleOn: ["lg", "xl", "2xl"],
               },
               {
-                href: "#",
-                label: "npm i --s caffeine patience stackoverflow",
-                clickable: false,
-                visibleOn: ["lg", "xl", "2xl"],
-                className: "text-xl font-medium cursor-text text-gray-400",
+          href: "#",
+          label: "npm i --s caffeine patience stackoverflow",
+          clickable: false,
+          visibleOn: ["lg", "xl", "2xl"],
+          className: "text-xl font-medium cursor-text text-gray-400",
               },
-              // Learn section - CLICKABLE
+              // Search section - CLICKABLE
+              {
+          href: "/search",
+          label: isLoadingSearch ? "Loading Search..." : "Search_Code_Details",
+          clickable: !isLoadingSearch,
+          visibleOn: "all",
+          onClick: () => setIsLoadingSearch(true),
+              },
               // Projects section - CLICKABLE
               {
-                href: "/projects",
-                label: isLoadingProjects
-                  ? "Loading Projects..."
-                  : "Explore_Projects",
-                clickable: !isLoadingProjects,
-                visibleOn: "all",
-                onClick: () => setIsLoadingProjects(true),
+          href: "/projects",
+          label: isLoadingProjects
+            ? "Loading Projects..."
+            : "Explore_Projects",
+          clickable: !isLoadingProjects,
+          visibleOn: "all",
+          onClick: () => setIsLoadingProjects(true),
               },
+              // Dashboard section - CLICKABLE
               {
-                href: "/learn",
-                label: isLoadingLearn ? "Loading Learn..." : "Learn",
-                clickable: !isLoadingLearn,
-                visibleOn: "all",
-                onClick: () => setIsLoadingLearn(true),
-              },
-              // Implement section - CLICKABLE
-              {
-                href: "/implement",
-                label: isLoadingImplement
-                  ? "Loading Implement..."
-                  : "Implement",
-                clickable: !isLoadingImplement,
-                visibleOn: "all",
-                onClick: () => setIsLoadingImplement(true),
+          href: "/dashboard",
+          label: isLoadingDashboard
+            ? "Loading Dashboard..."
+            : `${user?.firstName+"'s" || "User"}_Dashboard`,
+          clickable: !isLoadingDashboard,
+          visibleOn: "all",
+          onClick: () => setIsLoadingDashboard(true),
               },
             ]}
           />

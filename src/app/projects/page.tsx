@@ -98,6 +98,7 @@ export default function DashBoard() {
                             <div className="flex flex-col space-y-4">
                               <PageBanner
                                 bannerTitle="Community Projects"
+                                description="Explore a diverse range of community projects. Discover, contribute, and be inspired by the creativity and innovation of fellow developers."
                                 isUserBanner={false}
                                 gradientFrom="indigo-900"
                                 gradientVia="blue-800"

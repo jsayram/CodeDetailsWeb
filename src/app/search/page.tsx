@@ -290,6 +290,21 @@ function SearchContent() {
     <div className="flex justify-center w-full mb-10">
       <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
         <div className="flex flex-col gap-6 mb-6 py-3">
+          {/* Page Banner */}
+          <div className="mb-8">
+            <PageBanner
+              icon={<Search className="h-8 w-8 text-cyan-500" />}
+              bannerTitle="Search Code Details"
+              description="Discover projects, explore categories, find tags, and connect with developers"
+              isUserBanner={false}
+              gradientFrom="purple-900"
+              gradientVia="blue-800"
+              gradientTo="cyan-800"
+              borderColor="border-purple-700/40"
+              textGradient="from-purple-400 via-blue-400 to-cyan-400"
+            />
+          </div>
+
           {/* Centered Hero Section with Mascot */}
           <div className="relative flex flex-col items-center justify-center gap-6 py-8">
             {/* Code Particles Background */}
@@ -304,81 +319,76 @@ function SearchContent() {
               depth="layered"
               containerClassName="absolute inset-0 -z-5 pointer-events-none opacity-20"
             />
-            
-            <div className="text-center relative z-10">
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 via-blue-500 to-cyan-400 text-transparent bg-clip-text mb-4">
-                Search Code Details
-              </h1>
-              <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
-                Discover projects, explore categories, find tags, and connect with developers
-              </p>
-            </div>
 
-            {/* Mascot with Speech Bubble */}
-            <div className="relative flex items-start justify-center gap-4 mb-4 z-10">
-              <div className="relative">
-                <img 
-                  src="/images/mascot.png" 
-                  alt="Code Details Mascot" 
-                  className="w-56 h-56 object-contain animate-bounce-slow"
-                />
-              </div>
-              <div className="relative max-w-md bg-card border-2 border-primary/30 rounded-2xl p-6 shadow-lg">
-                <div className="absolute -left-3 top-6 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-card border-b-8 border-b-transparent"></div>
-                <div className="absolute -left-4 top-6 w-0 h-0 border-t-8 border-t-transparent border-r-8 border-r-primary/30 border-b-8 border-b-transparent"></div>
-                <p className="text-base leading-relaxed">
-                  <span className="font-semibold text-primary text-lg">Hey there! 👋</span> 
-                  <br />
-                  I can help you find what you're looking for! Try searching for:
-                  <br />
-                  <span className="inline-flex items-center gap-1 mt-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 border border-primary/30 text-primary rounded-md text-sm font-medium">
-                      <Folder className="h-3.5 w-3.5" />
-                      Categories
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-accent/10 text-accent-foreground rounded-md text-sm font-medium">
-                      <Hash className="h-3.5 w-3.5" />
-                      Tags
-                    </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-secondary/30 text-secondary-foreground rounded-md text-sm font-medium">
-                      <Users className="h-3.5 w-3.5" />
-                      Users
-                    </span>
-                  </span>
-                  <br />
-                  <span className="text-muted-foreground text-sm mt-1 block">
-                    Just type a keyword and I'll show you all related content!
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Centered Search Input */}
-            <div className="relative w-full max-w-2xl z-10">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-200 peer-hover:text-primary peer-focus:text-primary" />
-              <Input
-                type="text"
-                placeholder="Search categories, tags, or users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="peer pl-12 pr-12 h-14 text-lg rounded-xl border-2 border-primary/20 hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-md transition-all duration-200"
-                autoFocus
-              />
-              {searchQuery && !isSearching && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 hover:scale-110 transition-transform cursor-pointer"
-                  aria-label="Clear search"
-                >
-                  <span className="text-2xl text-primary"><X/></span>
-                </button>
-              )}
-              {isSearching && (
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            {/* Mascot with Search Card */}
+            <Card className="relative w-full max-w-5xl z-10 border-2 border-primary/30 shadow-2xl bg-gradient-to-br from-card via-card to-primary/5">
+              <CardContent className="p-8 md:p-12">
+                <div className="flex flex-col lg:flex-row items-center justify-center gap-8 mb-8">
+                  <div className="relative flex-shrink-0">
+                    <img 
+                      src="/images/mascot.png" 
+                      alt="Code Details Mascot" 
+                      className="w-56 h-56 object-contain animate-bounce-slow"
+                    />
+                  </div>
+                  <div className="relative max-w-xl">
+                    <p className="text-lg leading-relaxed">
+                      <span className="font-semibold text-primary text-2xl">Hey there! 👋</span> 
+                      <br />
+                      <span className="text-base">I can help you find what you're looking for! Try searching for:</span>
+                      <br />
+                      <span className="inline-flex items-center gap-2 mt-3 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-3 py-2 border-2 border-primary/40 text-primary rounded-lg text-base font-medium hover:bg-primary/10 transition-colors">
+                          <Folder className="h-4 w-4" />
+                          Categories
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-3 py-2 border-2 border-accent/40 bg-accent/10 text-accent-foreground rounded-lg text-base font-medium hover:bg-accent/20 transition-colors">
+                          <Hash className="h-4 w-4" />
+                          Tags
+                        </span>
+                        <span className="inline-flex items-center gap-1 px-3 py-2 border-2 border-secondary/40 bg-secondary/30 text-secondary-foreground rounded-lg text-base font-medium hover:bg-secondary/40 transition-colors">
+                          <Users className="h-4 w-4" />
+                          Users
+                        </span>
+                      </span>
+                      <br />
+                      <span className="text-muted-foreground text-base mt-2 block">
+                        Just type a keyword and I'll show you all related content!
+                      </span>
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Enhanced Search Input */}
+                <div className="relative w-full max-w-4xl mx-auto">
+                  <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+                    <Search className="h-6 w-6 text-muted-foreground transition-colors duration-200" />
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="Search categories, tags, or users..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-16 pr-16 h-16 text-xl rounded-2xl border-2 border-primary/30 hover:border-primary/50 focus:border-primary focus:ring-4 focus:ring-primary/30 shadow-lg transition-all duration-200 bg-background"
+                    autoFocus
+                  />
+                  {searchQuery && !isSearching && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-6 top-1/2 -translate-y-1/2 hover:scale-110 transition-transform cursor-pointer"
+                      aria-label="Clear search"
+                    >
+                      <span className="text-2xl text-primary"><X className="h-6 w-6"/></span>
+                    </button>
+                  )}
+                  {isSearching && (
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2">
+                      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Empty State - No search yet */}
