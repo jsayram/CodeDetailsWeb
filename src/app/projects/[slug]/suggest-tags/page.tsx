@@ -466,25 +466,7 @@ export default function SuggestTagsPage() {
   };
 
   if (!isLoaded || isLoadingProject) {
-    return (
-      <SidebarProvider>
-        <SignedIn>
-          <AppSidebar />
-        </SignedIn>
-        <SidebarInset>
-          <SignedOut>
-            <HeaderSectionNoSideBar showMobileMenu={false} />
-          </SignedOut>
-          <SignedIn>
-            <HeaderSection />
-          </SignedIn>
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="animate-pulse text-muted-foreground">Loading...</div>
-          </div>
-          <FooterSection />
-        </SidebarInset>
-      </SidebarProvider>
-    );
+    return null; // Loading state handled by loading.tsx
   }
 
   if (!user) {

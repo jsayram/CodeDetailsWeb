@@ -65,9 +65,9 @@ export function PageBanner({
   return (
     <div className="flex justify-between items-center mb-4">
       <div
-        className={`flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r from-${gradientFrom} ${
-          gradientVia ? `via-${gradientVia}` : ""
-        } to-${gradientTo} rounded-2xl shadow-lg px-6 py-4 w-full border ${borderColor}`}
+        className={`flex flex-col md:flex-row items-center gap-4 bg-gradient-to-r dark:from-${gradientFrom}/20 ${
+          gradientVia ? `dark:via-${gradientVia}/20` : ""
+        } ${gradientTo ? `dark:to-${gradientTo}/20` : ""} dark:backdrop-blur-sm rounded-2xl shadow-lg px-6 py-4 w-full border ${borderColor}`}
       >
         <div className="flex items-center gap-4">
           {icon && icon} {/* Only render icon if it exists */}
