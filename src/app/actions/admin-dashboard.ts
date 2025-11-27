@@ -5,7 +5,7 @@ import { getPendingTagSubmissions } from "./tag-submissions";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/admin-utils";
 import { redirect } from "next/navigation";
-import { unstable_cache, revalidateTag } from 'next/cache';
+import { unstable_cache, updateTag } from 'next/cache';
 
 // Cache admin dashboard stats for 2 minutes
 export const getCachedDashboardStats = unstable_cache(
@@ -46,8 +46,8 @@ export async function fetchAdminDashboardData(forceRefresh = false) {
   // If force refresh is requested, revalidate the cache first
   if (forceRefresh) {
     console.log('[fetchAdminDashboardData] 🔄 Force refresh - revalidating admin dashboard cache');
-    revalidateTag('admin-dashboard');
-    revalidateTag('tag-submissions');
+    updateTag('admin-dashboard');
+    updateTag('tag-submissions');
   } else {
     console.log('[fetchAdminDashboardData] 📦 Using server cache (if available)');
   }

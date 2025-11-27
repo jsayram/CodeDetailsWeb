@@ -13,7 +13,7 @@ import {
 import { InsertProject } from "@/db/schema/projects";
 import { projects } from "@/db/schema/projects";
 import { project_tags } from "@/db/schema/project_tags";
-import { revalidatePath, unstable_cache, revalidateTag } from "next/cache";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
 import { favorites } from "@/db/schema/favorites";
@@ -109,9 +109,9 @@ export async function createProject(project: InsertProject, userId: string) {
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
     return {
       success: true,
       data: mapDrizzleProjectToProject(newProject),
@@ -179,10 +179,10 @@ export async function removeProject(id: string, userId: string) {
 
     const deletedProject = await deleteProjectServer(id);
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(deletedProject),
@@ -256,10 +256,10 @@ export async function updateProject(
     const updatedProject = await updateProjectServer(id, trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(updatedProject),
@@ -416,10 +416,10 @@ export async function permanentlyDeleteProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: null,
@@ -473,10 +473,10 @@ export async function restoreProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(restoredProject),
@@ -549,7 +549,7 @@ export async function addProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('project-detail');
+    updateTag('project-detail');
     return { success: true };
   } catch (error) {
     console.error("Failed to add favorite:", error);
@@ -607,7 +607,7 @@ export async function removeProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('project-detail');
+    updateTag('project-detail');
     return { success: true };
   } catch (error) {
     console.error("Failed to remove favorite:", error);

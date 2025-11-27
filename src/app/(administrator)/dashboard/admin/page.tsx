@@ -159,7 +159,7 @@ interface DashboardStats {
     submissions: Array<{
       id: string;
       tag_name: string;
-      project_id: string;
+      project_id: string | null;
       submitter_email: string;
       description: string | null;
       status: string;

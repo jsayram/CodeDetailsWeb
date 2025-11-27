@@ -1,13 +1,18 @@
 import { useEffect } from "react";
-import {
-  checkForDataUpdates,
-  checkForAuthDataUpdates,
-  BACKGROUND_REFRESH_INTERVAL,
-} from "@/lib/ProjectsCacheUtils";
+// NOTE: checkForDataUpdates and checkForAuthDataUpdates have been removed from ProjectsCacheUtils
+// This hook is deprecated and not currently in use
+// import {
+//   checkForDataUpdates,
+//   checkForAuthDataUpdates,
+//   BACKGROUND_REFRESH_INTERVAL,
+// } from "@/lib/ProjectsCacheUtils";
 import { getAllProjects, getUserProjects } from "@/app/actions/projects";
+
+const BACKGROUND_REFRESH_INTERVAL = 30000; // 30 seconds
 
 /**
  * Custom hook to manage background data updates
+ * NOTE: This hook is currently deprecated and uses non-existent functions
  */
 export function useBackgroundUpdates(
   userId: string | null,
@@ -30,11 +35,13 @@ export function useBackgroundUpdates(
 
     // Do an initial check for updates
     const runCheck = async () => {
-      await checkForDataUpdates(
-        isBrowser,
-        setHasFetchedFreeProjects,
-        getAllProjects
-      );
+      // TODO: Implement checkForDataUpdates or remove this hook
+      // await checkForDataUpdates(
+      //   isBrowser,
+      //   setHasFetchedFreeProjects,
+      //   getAllProjects
+      // );
+      console.warn('Background updates disabled - checkForDataUpdates not available');
     };
 
     runCheck();
@@ -64,12 +71,14 @@ export function useBackgroundUpdates(
 
     // Do an initial check for updates
     const runAuthCheck = async () => {
-      await checkForAuthDataUpdates(
-        isBrowser,
-        userId,
-        setHasFetchedProjects,
-        getUserProjects
-      );
+      // TODO: Implement checkForAuthDataUpdates or remove this hook
+      // await checkForAuthDataUpdates(
+      //   isBrowser,
+      //   userId,
+      //   setHasFetchedProjects,
+      //   getUserProjects
+      // );
+      console.warn('Background auth updates disabled - checkForAuthDataUpdates not available');
     };
 
     runAuthCheck();

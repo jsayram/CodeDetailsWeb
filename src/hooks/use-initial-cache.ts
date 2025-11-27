@@ -32,7 +32,7 @@ export function useInitialCache(
     const loadInitialCache = async () => {
       if (!userId && !isLoading && !hasFetchedFreeProjects) {
         try {
-          const cachedProjects = await loadCachedFreeProjects(isBrowser);
+          const cachedProjects = await loadCachedFreeProjects();
           console.log(
             "🔍 Initial Cache Check - Free Projects:",
             cachedProjects
@@ -62,10 +62,7 @@ export function useInitialCache(
       // Try to load cached authenticated projects if user is logged in
       if (userId && !isLoading && !hasFetchedProjects) {
         try {
-          const cachedAuthProjects = await loadCachedAuthenticatedProjects(
-            isBrowser,
-            userId
-          );
+          const cachedAuthProjects = await loadCachedAuthenticatedProjects(userId);
           console.log(
             "🔍 Initial Cache Check - Auth Projects:",
             cachedAuthProjects

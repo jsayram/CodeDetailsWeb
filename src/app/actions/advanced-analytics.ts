@@ -9,7 +9,7 @@ import { tag_submissions } from "@/db/schema/tag_submissions";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { isAdmin } from "@/lib/admin-utils";
 import { redirect } from "next/navigation";
-import { unstable_cache, revalidateTag } from 'next/cache';
+import { unstable_cache, updateTag } from 'next/cache';
 
 export interface TopContributor {
   user_id: string;
@@ -274,7 +274,7 @@ export const getCachedTagPipelineAnalytics = unstable_cache(
 export async function getTopContributors(limit: number, forceRefresh = false) {
   if (forceRefresh) {
     console.log('[getTopContributors] 🔄 Force refresh - revalidating contributors cache');
-    revalidateTag('contributors');
+    updateTag('contributors');
   } else {
     console.log('[getTopContributors] 📦 Using server cache for contributors (if available)');
   }
@@ -286,7 +286,7 @@ export async function getTopContributors(limit: number, forceRefresh = false) {
 export async function getTagPipelineAnalytics(forceRefresh = false) {
   if (forceRefresh) {
     console.log('[getTagPipelineAnalytics] 🔄 Force refresh - revalidating tag pipeline cache');
-    revalidateTag('tag-submissions');
+    updateTag('tag-submissions');
   } else {
     console.log('[getTagPipelineAnalytics] 📦 Using server cache for tag pipeline (if available)');
   }

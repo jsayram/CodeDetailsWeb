@@ -76,7 +76,9 @@ export function TagSubmissionManagement({
 
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          errors.push(`Failed to approve tag for ${projectNames[groupedTag.submissions[index].project_id]}: ${result.reason?.message || 'Unknown error'}`);
+          const projectId = groupedTag.submissions[index].project_id;
+          const projectName = projectId ? projectNames[projectId] : 'Unknown Project';
+          errors.push(`Failed to approve tag for ${projectName}: ${result.reason?.message || 'Unknown error'}`);
         } else {
           successCount++;
         }
@@ -198,12 +200,13 @@ export function TagSubmissionManagement({
         group.submissions.map((submission) => submission.project_id)
       );
 
-      const uniqueProjectIds = Array.from(new Set(projectIds));
+      const uniqueProjectIds = Array.from(new Set(projectIds)).filter((id): id is string => id !== null);
       const projectNameMap: Record<string, string> = {};
       const projectSlugMap: Record<string, string> = {};
 
       // Fetch project details
       for (const projectId of uniqueProjectIds) {
+        if (!projectId) continue; // Skip null project IDs
         const project = await getProjectById(projectId);
         if (project) {
           projectNameMap[projectId] = project.title;
@@ -260,7 +263,7 @@ export function TagSubmissionManagement({
                   <AccordionContent>
                     <div className="space-y-3">
                       {groupedTag.submissions.map((submission) => {
-                        const tagCount = projectTagCounts[submission.project_id] || 0;
+                        const tagCount = submission.project_id ? (projectTagCounts[submission.project_id] || 0) : 0;
                         const isAtMax = tagCount >= MAX_PROJECT_TAGS;
                         
                         return (
@@ -275,7 +278,7 @@ export function TagSubmissionManagement({
                               <div className="flex items-center gap-2 flex-wrap">
                                 <p className="font-medium text-sm">
                                   Project:{" "}
-                                  {projectNames[submission.project_id] && projectSlugs[submission.project_id] ? (
+                                  {submission.project_id && projectNames[submission.project_id] && projectSlugs[submission.project_id] ? (
                                     <Link 
                                       href={`/projects/${projectSlugs[submission.project_id]}`}
                                       className="text-primary hover:underline"
@@ -284,7 +287,7 @@ export function TagSubmissionManagement({
                                       {projectNames[submission.project_id]}
                                     </Link>
                                   ) : (
-                                    projectNames[submission.project_id] || "Loading..."
+                                    submission.project_id ? (projectNames[submission.project_id] || "Loading...") : "N/A"
                                   )}
                                 </p>
                                 <Badge 

@@ -9,9 +9,9 @@ import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/pagination
 
 export async function GET(
   request: NextRequest,
-  context: { params: { username: string } }
+  context: { params: Promise<{ username: string }> }
 ) {
-  const params = await Promise.resolve(context.params);
+  const params = await context.params;
   const username = params.username.toLowerCase();
 
   // Get parameters from URL

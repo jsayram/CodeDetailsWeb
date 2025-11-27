@@ -1,4 +1,4 @@
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -6,11 +6,11 @@ export async function POST(request: Request) {
     const { tag, tags } = await request.json();
 
     if (tag) {
-      revalidateTag(tag);
+      updateTag(tag);
     }
 
     if (tags && Array.isArray(tags)) {
-      tags.forEach((tag) => revalidateTag(tag));
+      tags.forEach((tag) => updateTag(tag));
     }
 
     return NextResponse.json({ revalidated: true, now: Date.now() });

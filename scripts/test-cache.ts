@@ -164,7 +164,7 @@ async function runCacheTests() {
   console.log('\n🔧 Testing Admin Cache...');
   results.push(await testCachePerformance('admin:getCachedDashboardStats', () => adminDashboardStats()));
   results.push(await testCachePerformance('admin:getCachedTagSubmissions', () => adminTagSubmissions()));
-  results.push(await testCachePerformance('admin:getCachedTopContributors', () => getCachedTopContributors()));
+  results.push(await testCachePerformance('admin:getCachedTopContributors', () => getCachedTopContributors(10)));
   results.push(await testCachePerformance('admin:getCachedTagPipeline', () => getCachedTagPipelineAnalytics()));
   
   if (results.length > 0) {

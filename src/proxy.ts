@@ -121,7 +121,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect();
   }
-});
+}) as any; // Type assertion for Next.js 16 proxy compatibility
 
 export const config = {
   matcher: [

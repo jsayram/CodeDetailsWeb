@@ -160,7 +160,11 @@ td .flex.flex-wrap {
   cursor: ns-resize;
   opacity: 0;
   transition: opacity 0.2s ease;
-  background: linear-gradient(to bottom, transparent, var(--primary/10));
+  background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.1));
+}
+
+.dark .resize-handle {
+  background: linear-gradient(to bottom, transparent, rgba(167, 139, 250, 0.1));
 }
 
 .table-description-cell:hover .resize-handle {

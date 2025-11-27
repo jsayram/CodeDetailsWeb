@@ -158,6 +158,10 @@ export async function approveTagSubmission(
 
     // Count current project tags only if we're approving for the project
     if (approvalType === "project") {
+      if (!submission.project_id) {
+        throw new Error("Cannot approve tag for project - submission has no project_id");
+      }
+      
       const currentProjectTags = await db
         .select({ count: sql<number>`count(*)` })
         .from(project_tags)
@@ -191,16 +195,19 @@ export async function approveTagSubmission(
     }
 
     // Check if the project already has this specific tag
-    const existingProjectTag = await db
-      .select()
-      .from(project_tags)
-      .where(
-        and(
-          eq(project_tags.project_id, submission.project_id),
-          eq(project_tags.tag_id, tagId)
+    let existingProjectTag: any[] = [];
+    if (submission.project_id) {
+      existingProjectTag = await db
+        .select()
+        .from(project_tags)
+        .where(
+          and(
+            eq(project_tags.project_id, submission.project_id),
+            eq(project_tags.tag_id, tagId)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+    }
 
     // Begin collecting updates
     const updates = [];
@@ -220,7 +227,7 @@ export async function approveTagSubmission(
     );
 
     // Only create project-tag association if approving for project AND it doesn't exist
-    if (approvalType === "project" && existingProjectTag.length === 0) {
+    if (approvalType === "project" && submission.project_id && existingProjectTag.length === 0) {
       updates.push(
         db.insert(project_tags).values({
           project_id: submission.project_id,
@@ -243,6 +250,22 @@ export async function approveTagSubmission(
 
     // Update other pending submissions for the same tag
     for (const pendingSubmission of otherPendingSubmissions) {
+      // Only count tags if the submission has a project_id
+      if (!pendingSubmission.project_id) {
+        // Auto-approve system-wide tag submissions without a project
+        updates.push(
+          db
+            .update(tag_submissions)
+            .set({
+              status: "approved",
+              admin_notes: "Auto-approved - tag approved for system-wide use",
+              reviewed_at: new Date(),
+            })
+            .where(eq(tag_submissions.id, pendingSubmission.id))
+        );
+        continue;
+      }
+      
       // Count tags for this project
       const projectTags = await db
         .select({ count: sql<number>`count(*)` })
