@@ -217,6 +217,9 @@ export const ProjectCard = React.memo(
       return user?.id === project.user_id;
     }, [user?.id, project.user_id]);
 
+    // Check if we can navigate to the user profile (has valid username)
+    const canNavigateToUser = !!project.profile?.username;
+
     // Display username logic
     const displayUsername = useMemo(() => {
       // First try full name
@@ -755,35 +758,45 @@ export const ProjectCard = React.memo(
             )}
             <div className="card-footer border-t h-[60px] flex items-center justify-between">
               <div className="flex items-center space-x-2 min-w-0 flex-1">
-                {/* Avatar navigates to user profile */}
-                <button
-                  type="button"
-                  disabled={isNavigatingUser}
-                  onClick={handleNavigateUser}
-                  className={`flex-shrink-0 ${
-                    isNavigatingUser
-                      ? "opacity-50 cursor-wait p-0"
-                      : "cursor-pointer p-0"
-                  } ${project.deleted_at && !isOwner ? "pointer-events-auto" : ""}`}
-                >
-                  <Avatar className="h-8 w-8">
-                    {project.profile?.profile_image_url ? (
-                      <AvatarImage
-                        src={project.profile.profile_image_url}
-                        alt={displayUsername}
-                      />
-                    ) : (
+                {/* Avatar - only clickable if user exists */}
+                {canNavigateToUser ? (
+                  <button
+                    type="button"
+                    disabled={isNavigatingUser}
+                    onClick={handleNavigateUser}
+                    className={`flex-shrink-0 ${
+                      isNavigatingUser
+                        ? "opacity-50 cursor-wait p-0"
+                        : "cursor-pointer p-0"
+                    } ${project.deleted_at && !isOwner ? "pointer-events-auto" : ""}`}
+                  >
+                    <Avatar className="h-8 w-8">
+                      {project.profile?.profile_image_url ? (
+                        <AvatarImage
+                          src={project.profile.profile_image_url}
+                          alt={displayUsername}
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-muted text-xs font-medium">
+                          {userInitials || <User className="h-4 w-4" />}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </button>
+                ) : (
+                  <div className="flex-shrink-0 cursor-not-allowed opacity-60">
+                    <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-muted text-xs font-medium">
-                        {userInitials || <User className="h-4 w-4" />}
+                        <User className="h-4 w-4" />
                       </AvatarFallback>
-                    )}
-                  </Avatar>
-                </button>
+                    </Avatar>
+                  </div>
+                )}
                 {/* Username navigates to user profile */}
                 <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
                   <Badge
                     variant="outline"
-                    className={`cursor-pointer hover:bg-primary/10 transition-colors truncate max-w-full ${
+                    className={`${canNavigateToUser ? "cursor-pointer hover:bg-primary/10" : "cursor-not-allowed opacity-60"} transition-colors truncate max-w-full ${
                       isNavigatingUser ? "opacity-50 cursor-wait" : ""
                     } ${
                       project.deleted_at && !isOwner 
@@ -792,8 +805,8 @@ export const ProjectCard = React.memo(
                         ? "text-red-400/50" 
                         : ""
                     }`}
-                    onClick={project.deleted_at && !isOwner ? handleNavigatetoUsersProjects : handleNavigateUser}
-                    title={displayUsername}
+                    onClick={canNavigateToUser ? (project.deleted_at && !isOwner ? handleNavigatetoUsersProjects : handleNavigateUser) : undefined}
+                    title={canNavigateToUser ? displayUsername : "User no longer exists"}
                   >
                     {displayUsername}
                   </Badge>
