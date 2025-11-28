@@ -78,16 +78,15 @@ export default function UserProjectsPage({ params }: PageProps) {
         }
 
         // Safely parse JSON
-        const data = await response.json();
+        const result = await response.json();
         
         // Check if this is a redirect response (old username was used)
-        if (data.redirect && data.currentUsername) {
-          router.replace(`/projects/users/${encodeURIComponent(data.currentUsername)}`);
-          return;
+        if (result.success && result.data?.redirect && result.data?.currentUsername) {
+          router.replace(`/projects/users/${encodeURIComponent(result.data.currentUsername)}`);\n          return;
         }
         
-        if (data.profile) {
-          setProfileData(data.profile);
+        if (result.success && result.data?.profile) {
+          setProfileData(result.data.profile);
         }
       } catch (err) {
         console.error("Error fetching profile:", err);

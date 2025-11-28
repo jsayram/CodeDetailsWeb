@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { executeQuery } from "@/db/server";
 import { profiles } from "@/db/schema/profiles";
 import { usernameHistory } from "@/db/schema/username-history";
-import { eq, or } from "drizzle-orm";
+import { eq, or, and } from "drizzle-orm";
 import { notFound, serverError, success } from "@/lib/api-errors";
 
 export async function GET(
@@ -13,80 +13,56 @@ export async function GET(
     const resolvedParams = await Promise.resolve(params);
     const username = decodeURIComponent(resolvedParams.username);
 
-    const profile = await executeQuery(async (db) => {
+    // Single query with LEFT JOIN to find profile by:
+    // 1. Direct username match
+    // 2. Email match
+    // 3. Historical username match (via username_history)
+    const result = await executeQuery(async (db) => {
       return await db
-        .select()
+        .select({
+          profile: profiles,
+          historyOldUsername: usernameHistory.old_username,
+        })
         .from(profiles)
+        .leftJoin(
+          usernameHistory,
+          and(
+            eq(usernameHistory.user_id, profiles.user_id),
+            eq(usernameHistory.old_username, username)
+          )
+        )
         .where(
           or(
             eq(profiles.username, username),
-            eq(profiles.email_address, username)
+            eq(profiles.email_address, username),
+            eq(usernameHistory.old_username, username)
           )
         )
         .limit(1);
     });
 
-    if (!profile.length) {
-      // Profile not found - check if this is a historical username
-      const historyRecord = await executeQuery(async (db) => {
-        return await db
-          .select()
-          .from(usernameHistory)
-          .where(eq(usernameHistory.old_username, username))
-          .limit(1);
-      });
-
-      if (historyRecord.length) {
-        // Found in history - return redirect info
-        const newUsername = historyRecord[0].new_username;
-        
-        // Verify the new username still exists (in case of multiple changes)
-        const currentProfile = await executeQuery(async (db) => {
-          return await db
-            .select()
-            .from(profiles)
-            .where(eq(profiles.username, newUsername))
-            .limit(1);
-        });
-
-        if (currentProfile.length) {
-          // Return 301-style redirect response with current profile info
-          return success({
-            redirect: true,
-            oldUsername: username,
-            currentUsername: currentProfile[0].username,
-            profile: currentProfile[0],
-          });
-        }
-        
-        // The new_username in history is also outdated - look up by user_id instead
-        const profileByUserId = await executeQuery(async (db) => {
-          return await db
-            .select()
-            .from(profiles)
-            .where(eq(profiles.user_id, historyRecord[0].user_id))
-            .limit(1);
-        });
-        
-        if (profileByUserId.length) {
-          return success({
-            redirect: true,
-            oldUsername: username,
-            currentUsername: profileByUserId[0].username,
-            profile: profileByUserId[0],
-          });
-        }
-      }
-
+    if (!result.length) {
       return notFound("profile", { 
         identifier: username, 
         identifierType: "username or email" 
       });
     }
 
-    return success({ profile: profile[0] });
+    const { profile, historyOldUsername } = result[0];
+
+    // If we matched via history (old username), return redirect response
+    if (historyOldUsername && profile.username !== username) {
+      return success({
+        redirect: true,
+        oldUsername: username,
+        currentUsername: profile.username,
+        profile,
+      });
+    }
+
+    // Direct match - return profile
+    return success({ profile });
   } catch (error) {
-    console.error("Error looking up profile:", error);
     return serverError(error, "Failed to lookup profile");
   }
 }

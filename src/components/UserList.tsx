@@ -43,8 +43,10 @@ export function UserList() {
       setIsLoading(true);
       const response = await fetch("/api/profiles");
       if (!response.ok) throw new Error("Failed to fetch users");
-      const data = await response.json();
-      setUsers(data);
+      const result = await response.json();
+      if (result.success) {
+        setUsers(result.data);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch users");
       console.error("Error fetching users:", err);

@@ -128,12 +128,14 @@ export default function SuggestTagsPage() {
         if (!response.ok) {
           throw new Error("Failed to fetch project");
         }
-        const data = await response.json();
-        setProjectData({
-          id: data.id,
-          title: data.title,
-          tags: data.tags || [],
-        });
+        const result = await response.json();
+        if (result.success) {
+          setProjectData({
+            id: result.data.id,
+            title: result.data.title,
+            tags: result.data.tags || [],
+          });
+        }
       } catch (error) {
         console.error("Error fetching project:", error);
         toast.error("Failed to load project data");
@@ -158,10 +160,10 @@ export default function SuggestTagsPage() {
           )}`,
           { cache: "no-store" }
         );
-        const submissions = await response.json();
+        const result = await response.json();
 
-        if (Array.isArray(submissions)) {
-          setPendingTags(submissions);
+        if (result.success && Array.isArray(result.data)) {
+          setPendingTags(result.data);
         }
       } catch (error) {
         console.error("Failed to load pending tag submissions:", error);

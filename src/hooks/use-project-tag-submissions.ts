@@ -38,12 +38,12 @@ export function useProjectTagSubmissions(projectId: string) {
         throw new Error(`Failed to fetch pending tags: ${response.status}`);
       }
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (Array.isArray(data)) {
-        setPendingTags(data);
+      if (result.success && Array.isArray(result.data)) {
+        setPendingTags(result.data);
       } else {
-        console.error("Invalid submissions response:", data);
+        console.error("Invalid submissions response:", result);
         setPendingTags([]);
       }
     } catch (err) {

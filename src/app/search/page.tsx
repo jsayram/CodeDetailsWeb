@@ -60,8 +60,10 @@ function SearchContent() {
       setProfilesLoading(true);
       const response = await fetch("/api/profiles");
       if (!response.ok) throw new Error("Failed to fetch profiles");
-      const data = await response.json();
-      setAllProfiles(data);
+      const result = await response.json();
+      if (result.success) {
+        setAllProfiles(result.data);
+      }
     } catch (error) {
       console.error("Error fetching profiles:", error);
     } finally {
