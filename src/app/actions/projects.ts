@@ -18,6 +18,7 @@ import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
 import { favorites } from "@/db/schema/favorites";
 import { getProfileByUserId } from "@/db/operations";
+import { createProjectSchema, updateProjectSchema } from "@/types/schemas";
 
 const pathToRevalidate = "/projects";
 
@@ -87,24 +88,42 @@ export async function createProject(project: InsertProject, userId: string) {
       };
     }
 
-    // Trim title and slug to ensure no leading/trailing spaces
+    // Validate input with Zod schema
+    const validationResult = createProjectSchema.safeParse({
+      title: project.title,
+      slug: project.slug,
+      description: project.description,
+      category: project.category,
+      url_links: project.url_links,
+      tags: [], // Tags are handled separately
+    });
+
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
+      return {
+        success: false,
+        error: firstError.message,
+        validationErrors: validationResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
+      };
+    }
+
+    // Use validated and transformed data
+    const validatedData = validationResult.data;
+
     const trimmedProject = {
       ...project,
-      title: project.title.trim(),
-      slug: project.slug.trim(),
-      user_id: userId, // Always assign the user ID to the project
-      url_links: project.url_links || [], // Ensure url_links is included
+      title: validatedData.title,
+      slug: validatedData.slug,
+      description: validatedData.description,
+      category: validatedData.category,
+      user_id: userId,
+      url_links: validatedData.url_links,
     };
 
     console.log('Creating project with data:', JSON.stringify(trimmedProject, null, 2));
-
-    // Basic validation
-    if (!trimmedProject.title || !trimmedProject.slug) {
-      return {
-        success: false,
-        error: "Project title and slug are required",
-      };
-    }
 
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
@@ -220,36 +239,49 @@ export async function updateProject(
       };
     }
 
-    // Create a new project object with trimmed values
-    const trimmedProject = { ...project };
+    // Validate input with Zod schema
+    const validationResult = updateProjectSchema.safeParse({
+      title: project.title,
+      slug: project.slug,
+      description: project.description,
+      category: project.category,
+      url_links: project.url_links,
+      tags: project.tags,
+    });
 
-    // Only trim if the fields are defined
-    if (trimmedProject.title !== undefined) {
-      trimmedProject.title = trimmedProject.title.trim();
-    }
-
-    if (trimmedProject.slug !== undefined) {
-      trimmedProject.slug = trimmedProject.slug.trim();
-    }
-
-    // Ensure url_links is included if provided
-    if (project.url_links !== undefined) {
-      trimmedProject.url_links = project.url_links;
-    }
-
-    // Basic validation - if slug or title is provided, ensure they're not empty
-    if (trimmedProject.title !== undefined && !trimmedProject.title) {
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
       return {
         success: false,
-        error: "Project title is required",
+        error: firstError.message,
+        validationErrors: validationResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
       };
     }
 
-    if (trimmedProject.slug !== undefined && !trimmedProject.slug) {
-      return {
-        success: false,
-        error: "Project slug is required",
-      };
+    // Use validated and transformed data
+    const validatedData = validationResult.data;
+
+    // Create a new project object with validated values
+    const trimmedProject: Partial<InsertProject> = {};
+
+    // Only include fields that were provided and validated
+    if (validatedData.title !== undefined) {
+      trimmedProject.title = validatedData.title;
+    }
+    if (validatedData.slug !== undefined) {
+      trimmedProject.slug = validatedData.slug;
+    }
+    if (validatedData.description !== undefined) {
+      trimmedProject.description = validatedData.description;
+    }
+    if (validatedData.category !== undefined) {
+      trimmedProject.category = validatedData.category;
+    }
+    if (validatedData.url_links !== undefined) {
+      trimmedProject.url_links = validatedData.url_links;
     }
 
     console.log('Updating project with data:', JSON.stringify(trimmedProject, null, 2));

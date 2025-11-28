@@ -8,6 +8,16 @@ import { eq, and, not } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { sql } from "drizzle-orm/sql";
 import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { z } from "zod";
+import { tagNameSchema, tagDescriptionSchema } from "@/types/schemas";
+
+// Schema for submitNewTag input validation
+const submitNewTagSchema = z.object({
+  tagName: tagNameSchema,
+  projectId: z.string().uuid("Invalid project ID format"),
+  submitterEmail: z.string().email("Invalid email format"),
+  description: tagDescriptionSchema,
+});
 
 export async function submitNewTag(
   tagName: string,
@@ -15,8 +25,21 @@ export async function submitNewTag(
   submitterEmail: string,
   description?: string
 ) {
+  // Validate input with Zod schema
+  const validationResult = submitNewTagSchema.safeParse({
+    tagName,
+    projectId,
+    submitterEmail,
+    description,
+  });
+
+  if (!validationResult.success) {
+    const firstError = validationResult.error.issues[0];
+    throw new Error(firstError.message);
+  }
+
   return executeQuery(async (db) => {
-    const normalizedTagName = tagName.trim().toLowerCase();
+    const normalizedTagName = validationResult.data.tagName;
 
     // First check if tag already exists in approved tags (case-insensitive)
     const existingTag = await db
@@ -142,22 +165,43 @@ export async function getPendingTagSubmissions() {
   });
 }
 
+// Schema for approveTagSubmission input validation
+const approveTagSubmissionSchema = z.object({
+  submissionId: z.string().uuid("Invalid submission ID format"),
+  adminNotes: z.string().max(500, "Admin notes must be at most 500 characters").optional(),
+  approvalType: z.enum(["system", "project"]).default("project"),
+});
+
 export async function approveTagSubmission(
   submissionId: string, 
   adminNotes?: string,
   approvalType: "system" | "project" = "project"
 ) {
+  // Validate input with Zod schema
+  const validationResult = approveTagSubmissionSchema.safeParse({
+    submissionId,
+    adminNotes,
+    approvalType,
+  });
+
+  if (!validationResult.success) {
+    const firstError = validationResult.error.issues[0];
+    throw new Error(firstError.message);
+  }
+
+  const validated = validationResult.data;
+
   return executeQuery(async (db) => {
     // Get the submission
     const [submission] = await db
       .select()
       .from(tag_submissions)
-      .where(eq(tag_submissions.id, submissionId));
+      .where(eq(tag_submissions.id, validated.submissionId));
 
     if (!submission) throw new Error("Submission not found");
 
     // Count current project tags only if we're approving for the project
-    if (approvalType === "project") {
+    if (validated.approvalType === "project") {
       if (!submission.project_id) {
         throw new Error("Cannot approve tag for project - submission has no project_id");
       }
@@ -218,16 +262,16 @@ export async function approveTagSubmission(
         .update(tag_submissions)
         .set({
           status: "approved",
-          admin_notes: adminNotes || (approvalType === "system" 
+          admin_notes: validated.adminNotes || (validated.approvalType === "system" 
             ? "Approved for system-wide use only" 
             : "Approved for system and project"),
           reviewed_at: new Date(),
         })
-        .where(eq(tag_submissions.id, submissionId))
+        .where(eq(tag_submissions.id, validated.submissionId))
     );
 
     // Only create project-tag association if approving for project AND it doesn't exist
-    if (approvalType === "project" && submission.project_id && existingProjectTag.length === 0) {
+    if (validated.approvalType === "project" && submission.project_id && existingProjectTag.length === 0) {
       updates.push(
         db.insert(project_tags).values({
           project_id: submission.project_id,

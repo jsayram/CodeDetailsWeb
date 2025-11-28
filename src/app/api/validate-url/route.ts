@@ -4,34 +4,24 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { urlValidationRequestSchema } from '@/types/schemas';
 
 export async function POST(request: NextRequest) {
   try {
-    const { url } = await request.json();
+    const body = await request.json();
 
-    if (!url || typeof url !== 'string') {
-      return NextResponse.json(
-        { error: 'URL is required' },
-        { status: 400 }
-      );
-    }
+    // Validate input with Zod schema
+    const validationResult = urlValidationRequestSchema.safeParse(body);
 
-    // Validate URL format
-    let parsedUrl: URL;
-    try {
-      parsedUrl = new URL(url);
-      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
-        return NextResponse.json({
-          reachable: false,
-          error: 'URL must use HTTP or HTTPS protocol',
-        });
-      }
-    } catch {
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
       return NextResponse.json({
         reachable: false,
-        error: 'Invalid URL format',
+        error: firstError.message,
       });
     }
+
+    const { url } = validationResult.data;
 
     const startTime = Date.now();
     const timeoutMs = 5000;
