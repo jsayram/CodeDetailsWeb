@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProjectCardView } from "./ProjectComponents/ProjectCardViewComponent";
 import { Project } from "@/types/models/project";
 import { PaginationControls } from "@/components/navigation/Pagination/PaginationControlComponent";
@@ -30,6 +31,7 @@ export function SharedProjectsGrid({
   currentPage = 1,
   onPageChange,
 }: SharedProjectsGridProps) {
+  const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<
@@ -68,6 +70,12 @@ export function SharedProjectsGrid({
       }
 
       const result = await response.json();
+      
+      // Check if this is a redirect response (old username was used)
+      if (result.redirect && result.currentUsername) {
+        router.replace(`/shared-projects/${encodeURIComponent(result.currentUsername)}`);
+        return;
+      }
 
       if (!result.data || !Array.isArray(result.data)) {
         throw new Error("Invalid response format");
@@ -96,7 +104,7 @@ export function SharedProjectsGrid({
     } finally {
       setLoading(false);
     }
-  }, [username, currentPage, sortBy, selectedCategory]);
+  }, [username, currentPage, sortBy, selectedCategory, router]);
 
   useEffect(() => {
     fetchSharedProjects();

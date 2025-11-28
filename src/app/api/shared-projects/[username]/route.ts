@@ -5,6 +5,7 @@ import { projects } from "@/db/schema/projects";
 import { profiles } from "@/db/schema/profiles";
 import { project_tags } from "@/db/schema/project_tags";
 import { tags } from "@/db/schema/tags";
+import { usernameHistory } from "@/db/schema/username-history";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 
 export async function GET(
@@ -24,6 +25,50 @@ export async function GET(
 
   try {
     const result = await executeQuery(async (db) => {
+      // First check if this username exists in profiles
+      const profileCheck = await db
+        .select({ username: profiles.username })
+        .from(profiles)
+        .where(eq(sql`lower(${profiles.username})`, username))
+        .limit(1);
+      
+      // If no profile found, check username history for redirect
+      if (profileCheck.length === 0) {
+        const historyRecord = await db
+          .select()
+          .from(usernameHistory)
+          .where(eq(sql`lower(${usernameHistory.old_username})`, username))
+          .limit(1);
+        
+        if (historyRecord.length) {
+          // Found in history - look up current username by user_id
+          const currentProfile = await db
+            .select({ username: profiles.username })
+            .from(profiles)
+            .where(eq(profiles.user_id, historyRecord[0].user_id))
+            .limit(1);
+          
+          if (currentProfile.length) {
+            return {
+              redirect: true,
+              oldUsername: username,
+              currentUsername: currentProfile[0].username,
+            };
+          }
+        }
+        
+        // Not found at all
+        return {
+          data: [],
+          pagination: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          },
+        };
+      }
+
       // Build where conditions
       const whereConditions = [
         eq(sql`lower(${profiles.username})`, username),

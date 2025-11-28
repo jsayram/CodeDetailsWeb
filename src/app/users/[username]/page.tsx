@@ -58,12 +58,21 @@ export default function UserProfilePage({ params }: PageProps) {
             throw new Error("Failed to fetch profile");
           }
           const data = await response.json();
+          
+          // Check if this is a redirect response (old username was used)
+          if (data.redirect && data.currentUsername) {
+            // Redirect to the current username URL
+            router.replace(`/users/${encodeURIComponent(data.currentUsername)}`);
+            return null; // Stop the chain
+          }
+          
           // Fetch profile with stats in a single request
           return fetch(
             `/api/profiles/by-id/${data.profile.user_id}?includeStats=true`
           );
         })
         .then(async (res) => {
+          if (!res) return null; // Redirect happened
           if (!res.ok) {
             const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
             console.error("API Error:", errorData);
@@ -74,6 +83,7 @@ export default function UserProfilePage({ params }: PageProps) {
 
       profilePromise
         .then((data) => {
+          if (!data) return; // Redirect happened
           if (data.profile) {
             setProfileData(data.profile);
           }
@@ -86,7 +96,7 @@ export default function UserProfilePage({ params }: PageProps) {
           setIsLoading(false);
         });
     }
-  }, [username]);
+  }, [username, router]);
 
   if (isLoading || !profileData) {
     return (

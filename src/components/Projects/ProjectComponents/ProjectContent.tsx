@@ -54,6 +54,7 @@ import { ProjectLinksManager } from "./ProjectLinksManager";
 import { ProjectLinksDisplay } from "./ProjectLinksDisplay";
 import { ProjectLink } from "@/types/project-links";
 import { UnsavedChangesConfirmationModal } from "./UnsavedChangesConfirmationModal";
+import { SelectProjectWithOwner } from "@/db/schema/projects";
 
 interface UserProfile extends SelectProject {
   user_id: string;
@@ -67,7 +68,7 @@ interface UserProfile extends SelectProject {
 }
 
 interface ProjectContentProps {
-  project: SelectProject | null;
+  project: SelectProjectWithOwner | null;
   error?: string;
   userProfile?: UserProfile | null;
   create?: boolean;
@@ -370,6 +371,10 @@ export function ProjectContent({
     });
   }, [searchParams, router, create, project, hasUnsavedChanges]);
 
+  // Check if we have a valid username to navigate to (handle orphaned projects)
+  const navigableUsername = userProfile?.username || project?.owner_username;
+  const canNavigateToUser = !!navigableUsername;
+
   const handleNavigateUser = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -389,9 +394,9 @@ export function ProjectContent({
       );
       return;
     }
-    if (isNavigatingUser || !userProfile?.username) return;
+    if (isNavigatingUser || !canNavigateToUser || !navigableUsername) return;
     setIsNavigatingUser(true);
-    router.push(`/users/${encodeURIComponent(userProfile.username)}`);
+    router.push(`/users/${encodeURIComponent(navigableUsername)}`);
   };
 
   const validateForm = (): boolean => {
@@ -592,7 +597,9 @@ export function ProjectContent({
     }
   };
 
-  if (!project || !userProfile || error) {
+  // Only show error if project is missing or there's an explicit error
+  // userProfile can be null for orphaned projects (deleted users)
+  if (!project || error) {
     return (
       <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
         <Card>
@@ -614,10 +621,13 @@ export function ProjectContent({
     );
   }
 
+  // Handle display name for orphaned projects (no userProfile)
   const displayName =
     userProfile?.full_name ||
-    userProfile?.username.split("@")[0] ||
-    "Anonymous User";
+    userProfile?.username?.split("@")[0] ||
+    project.owner_full_name ||
+    project.owner_username?.split("@")[0] ||
+    "Unknown User";
 
   const renderContent = () => (
     <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
@@ -674,9 +684,9 @@ export function ProjectContent({
               aria-label="View user profile"
             >
               <Avatar className="h-24 w-24 border-4 border-background">
-                {userProfile?.profile_image_url ? (
+                {(userProfile?.profile_image_url || project.owner_profile_image_url) ? (
                   <AvatarImage
-                    src={userProfile.profile_image_url}
+                    src={userProfile?.profile_image_url || project.owner_profile_image_url || ""}
                     alt={displayName}
                   />
                 ) : (
@@ -699,17 +709,23 @@ export function ProjectContent({
                   {create ? "Create New Project" : project.title}
                 </h1>
                 {!create && (
-                  <button
-                    onClick={handleNavigateUser}
-                    disabled={isNavigatingUser}
-                    className={`text-muted-foreground ${
-                      isNavigatingUser
-                        ? "cursor-wait opacity-70"
-                        : "hover:text-primary hover:underline cursor-pointer"
-                    }`}
-                  >
-                    by {displayName}
-                  </button>
+                  canNavigateToUser ? (
+                    <button
+                      onClick={handleNavigateUser}
+                      disabled={isNavigatingUser}
+                      className={`text-muted-foreground ${
+                        isNavigatingUser
+                          ? "cursor-wait opacity-70"
+                          : "hover:text-primary hover:underline cursor-pointer"
+                      }`}
+                    >
+                      by {displayName}
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      by {displayName}
+                    </span>
+                  )
                 )}
               </div>
             </div>
