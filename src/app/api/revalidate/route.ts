@@ -1,6 +1,7 @@
 import { updateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { revalidateRequestSchema } from "@/types/schemas";
+import { invalidInput, validationError, success } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   try {
@@ -10,16 +11,11 @@ export async function POST(request: Request) {
     const validationResult = revalidateRequestSchema.safeParse(body);
 
     if (!validationResult.success) {
-      const firstError = validationResult.error.issues[0];
-      return NextResponse.json(
-        { 
-          error: firstError.message,
-          validationErrors: validationResult.error.issues.map((issue) => ({
-            field: issue.path.join('.'),
-            message: issue.message,
-          })),
-        }, 
-        { status: 400 }
+      return validationError(
+        validationResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        }))
       );
     }
 
@@ -33,8 +29,8 @@ export async function POST(request: Request) {
       tags.forEach((t) => updateTag(t));
     }
 
-    return NextResponse.json({ revalidated: true, now: Date.now() });
+    return success({ revalidated: true, now: Date.now() });
   } catch (err) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return invalidInput("Invalid request body");
   }
 }

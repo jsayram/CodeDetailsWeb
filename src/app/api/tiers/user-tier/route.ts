@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { getUserTier } from "@/app/actions/user-tier";
+import { success } from "@/lib/api-errors";
 
 /**
  * API route for getting the current user's subscription tier
@@ -35,19 +36,10 @@ export async function GET(_request: NextRequest) {
     }
 
     // Return the user's tier as JSON
-    return NextResponse.json({
-      success: true,
-      tier: userTier,
-    });
+    return success({ tier: userTier });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Error getting user tier:", errorMessage);
-
     // Even on error, return a valid JSON response with the default tier
-    return NextResponse.json({
-      success: false,
-      tier: "free",
-      error: `Failed to get user tier: ${errorMessage}`,
-    });
+    // Note: Using success with fallback tier for graceful degradation
+    return success({ tier: "free", fallback: true });
   }
 }

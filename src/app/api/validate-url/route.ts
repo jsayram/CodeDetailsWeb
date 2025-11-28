@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { urlValidationRequestSchema } from '@/types/schemas';
+import { serverError } from '@/lib/api-errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -94,10 +95,6 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error('Error validating URL:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return serverError("URL validation service failed");
   }
 }

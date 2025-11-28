@@ -5,6 +5,7 @@ import { projects } from "@/db/schema/projects";
 import { project_tags } from "@/db/schema/project_tags";
 import { favorites } from "@/db/schema/favorites";
 import { eq, sql, desc, and, or, isNull, isNotNull, ne } from "drizzle-orm";
+import { success, notFound, invalidInput, databaseError } from "@/lib/api-errors";
 
 export async function GET(
   req: Request,
@@ -17,7 +18,7 @@ export async function GET(
   const includeStats = url.searchParams.get("includeStats") === "true";
 
   if (!userId) {
-    return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+    return invalidInput("Missing userId parameter");
   }
 
   try {
@@ -141,12 +142,12 @@ export async function GET(
     });
 
     if (!profile) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return notFound("profile", { identifier: userId, identifierType: "userId" });
     }
 
-    return NextResponse.json(profile);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return success(profile);
+  } catch (error) {
+    return databaseError(error, "Failed to fetch profile");
   }
 }
 
@@ -158,10 +159,7 @@ export async function POST(
   const userId = resolvedParams.userId;
   const { username, profile_image_url } = await req.json();
   if (!userId || !username) {
-    return NextResponse.json(
-      { error: "Missing userId or username" },
-      { status: 400 }
-    );
+    return invalidInput("Missing userId or username");
   }
   try {
     const updated = await executeQuery(async (db) => {
@@ -173,10 +171,10 @@ export async function POST(
       return result;
     });
     if (!updated) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return notFound("profile", { identifier: userId, identifierType: "userId" });
     }
-    return NextResponse.json({ profile: updated });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return success({ profile: updated });
+  } catch (error) {
+    return databaseError(error, "Failed to update profile");
   }
 }

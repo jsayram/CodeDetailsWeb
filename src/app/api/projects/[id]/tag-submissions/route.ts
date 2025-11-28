@@ -2,24 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { executeQuery } from "@/db/server";
 import { tag_submissions } from "@/db/schema/tag_submissions";
 import { eq, and } from "drizzle-orm";
+import { success, invalidInput, databaseError } from "@/lib/api-errors";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params; // Await params to resolve it
-    const projectId = resolvedParams.id; // Access id after resolving params
+    const resolvedParams = await params;
+    const projectId = resolvedParams.id;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || "pending";
     const submitterEmail = searchParams.get("email");
 
     if (!submitterEmail) {
-      return NextResponse.json(
-        { error: "Submitter email is required" },
-        { status: 400 }
-      );
+      return invalidInput("Submitter email is required");
     }
 
     const submissions = await executeQuery(async (db) => {
@@ -36,12 +34,8 @@ export async function GET(
         .orderBy(tag_submissions.created_at);
     });
 
-    return NextResponse.json(submissions);
+    return success(submissions);
   } catch (error) {
-    console.error("Error fetching tag submissions:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch tag submissions" },
-      { status: 500 }
-    );
+    return databaseError(error, "Failed to fetch tag submissions");
   }
 }

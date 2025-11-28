@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProjectBySlugServer } from "@/db/actions";
 import { auth } from "@clerk/nextjs/server";
+import { success, notFound, databaseError } from "@/lib/api-errors";
 
 export async function GET(
   request: NextRequest,
@@ -20,18 +21,11 @@ export async function GET(
     );
 
     if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return notFound("project", { identifier: resolvedParams.slug, identifierType: "slug" });
     }
 
-    return NextResponse.json(project);
+    return success(project);
   } catch (error) {
-    console.error("Error fetching project by slug:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch project" },
-      { status: 500 }
-    );
+    return databaseError(error, "Failed to fetch project");
   }
 }
