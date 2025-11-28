@@ -23,6 +23,7 @@ export default function UserProfilePage({ params }: PageProps) {
   const username = decodeURIComponent(resolvedParams.username);
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalLikes: 0,
     totalTags: 0,
@@ -57,13 +58,26 @@ export default function UserProfilePage({ params }: PageProps) {
           if (!response.ok) {
             throw new Error("Failed to fetch profile");
           }
-          const data = await response.json();
+          const responseData = await response.json();
+          
+          // Check for API error responses (RFC 7807 format)
+          if (responseData.success === false || responseData.error) {
+            throw new Error(responseData.error?.detail || responseData.detail || "Profile not found");
+          }
+          
+          // The success() helper wraps data in { success: true, data: {...} }
+          const data = responseData.data || responseData;
           
           // Check if this is a redirect response (old username was used)
           if (data.redirect && data.currentUsername) {
             // Redirect to the current username URL
             router.replace(`/users/${encodeURIComponent(data.currentUsername)}`);
             return null; // Stop the chain
+          }
+          
+          // Check if profile exists in response
+          if (!data.profile) {
+            throw new Error("Profile data not found in response");
           }
           
           // Fetch profile with stats in a single request
@@ -82,8 +96,12 @@ export default function UserProfilePage({ params }: PageProps) {
         });
 
       profilePromise
-        .then((data) => {
-          if (!data) return; // Redirect happened
+        .then((responseData) => {
+          if (!responseData) return; // Redirect happened
+          
+          // Handle both old format (direct) and new format (wrapped in data)
+          const data = responseData.data || responseData;
+          
           if (data.profile) {
             setProfileData(data.profile);
           }
@@ -91,12 +109,46 @@ export default function UserProfilePage({ params }: PageProps) {
             setStats(data.stats);
           }
         })
-        .catch((err) => console.error("Error fetching profile:", err))
+        .catch((err) => {
+          console.error("Error fetching profile:", err);
+          setError(err.message || "Failed to load profile");
+        })
         .finally(() => {
           setIsLoading(false);
         });
     }
   }, [username, router]);
+
+  // Error state
+  if (error) {
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <HeaderSection />
+          <div className="container mx-auto px-4 py-8">
+            <Card className="max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <User className="h-5 w-5" />
+                  Profile Not Found
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  The user &quot;{username}&quot; could not be found. They may have changed their username or the profile doesn&apos;t exist.
+                </p>
+                <Button onClick={() => router.push("/users")} variant="outline">
+                  Browse Users
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          <FooterSection />
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
 
   if (isLoading || !profileData) {
     return (

@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "@/styles/globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ToasterProvider } from "@/components/ui/toaster";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata = {
   title: "Code Details",
@@ -25,7 +26,9 @@ export default function RootLayout({
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             {/* Main content with centered container and responsive padding */}
-            <div className="max-w-[100vw] overflow-x-hidden">{children}</div>
+            <ErrorBoundary>
+              <div className="max-w-[100vw] overflow-x-hidden">{children}</div>
+            </ErrorBoundary>
             <ToasterProvider />
           </ThemeProvider>
         </ClerkProvider>

@@ -34,35 +34,29 @@ export function useProjectFetching(
     let lastFetchTime = 0;
 
     if (!systemReady || hasFetchedFreeProjects || freeProjects.length > 0) {
-      console.log("📦 Skipping fetch - Already have data or not ready");
       return;
     }
 
     if (isLoading) {
-      console.log("⏳ Skipping fetch - Loading in progress");
       return;
     }
 
     if (userId || isAuthenticating) {
-      console.log("👤 Skipping fetch - User authentication in progress");
       return;
     }
 
     async function loadProjects() {
       const now = Date.now();
       if (now - lastFetchTime < FETCH_COOLDOWN) {
-        console.log("⏲️ Skipping fetch - Within cooldown period");
         return;
       }
 
       lastFetchTime = now;
       setFreeLoading(true);
-      console.log("🔄 Fetching free projects from cache");
 
       try {
         const projects = await fetchCachedProjects();
         if (isMounted.current) {
-          console.log(`✅ Loaded ${projects.length} free projects from cache`);
           setFreeProjects(projects);
           setHasFetchedFreeProjects(true);
           setCachingDebug(true);
@@ -106,9 +100,6 @@ export function useProjectFetching(
     }
 
     if (!isAuthenticated || isLoading || hasFetchedProjects) {
-      console.log(
-        "👤 Skipping auth fetch - Not authenticated or already fetched"
-      );
       return;
     }
 
@@ -117,20 +108,15 @@ export function useProjectFetching(
 
       const now = Date.now();
       if (now - lastFetchTime < FETCH_COOLDOWN) {
-        console.log("⏲️ Skipping auth fetch - Within cooldown period");
         return;
       }
 
       lastFetchTime = now;
       setLoading(true);
-      console.log("🔄 Fetching authenticated user projects from cache");
 
       try {
         const projects = await fetchCachedUserProjects(userId);
         if (isMounted.current) {
-          console.log(
-            `✅ Loaded ${projects.length} authenticated projects from cache`
-          );
           setProjects(projects);
           setHasFetchedProjects(true);
           setCachingDebug(true);

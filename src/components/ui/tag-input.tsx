@@ -195,7 +195,7 @@ export function TagInput({
                   >
                     <div className="flex items-center justify-between">
                       <span>{suggestion.name}</span>
-                      {suggestion.count > 0 && (
+                      {suggestion.count !== undefined && suggestion.count > 0 && (
                         <span className="text-xs text-muted-foreground">
                           {suggestion.count} {suggestion.count === 1 ? 'project' : 'projects'}
                         </span>

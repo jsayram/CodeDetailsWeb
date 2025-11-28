@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { executeQuery } from "@/db/server";
 import { profiles } from "@/db/schema/profiles";
 import { usernameHistory } from "@/db/schema/username-history";
 import { eq, or } from "drizzle-orm";
+import { notFound, serverError, success } from "@/lib/api-errors";
 
 export async function GET(
   _request: NextRequest,
@@ -50,8 +51,7 @@ export async function GET(
 
         if (currentProfile.length) {
           // Return 301-style redirect response with current profile info
-          return NextResponse.json({
-            success: true,
+          return success({
             redirect: true,
             oldUsername: username,
             currentUsername: currentProfile[0].username,
@@ -69,8 +69,7 @@ export async function GET(
         });
         
         if (profileByUserId.length) {
-          return NextResponse.json({
-            success: true,
+          return success({
             redirect: true,
             oldUsername: username,
             currentUsername: profileByUserId[0].username,
@@ -79,18 +78,15 @@ export async function GET(
         }
       }
 
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return notFound("profile", { 
+        identifier: username, 
+        identifierType: "username or email" 
+      });
     }
 
-    return NextResponse.json({
-      success: true,
-      profile: profile[0],
-    });
+    return success({ profile: profile[0] });
   } catch (error) {
     console.error("Error looking up profile:", error);
-    return NextResponse.json(
-      { error: "Failed to lookup profile" },
-      { status: 500 }
-    );
+    return serverError(error, "Failed to lookup profile");
   }
 }
