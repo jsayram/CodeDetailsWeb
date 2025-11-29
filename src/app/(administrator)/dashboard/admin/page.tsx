@@ -1927,7 +1927,10 @@ function DashboardContent() {
             </div>
           </CardHeader>
           <CardContent className="pt-0 flex-1 overflow-y-auto overscroll-behavior-y-contain scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40">
-            <TagSubmissionManagement initialSubmissions={stats.submissions} />
+            <TagSubmissionManagement 
+              initialSubmissions={stats.submissions} 
+              onRefresh={refreshTagSubmissions}
+            />
           </CardContent>
         </Card>
       </div>

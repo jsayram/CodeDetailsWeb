@@ -39,10 +39,12 @@ interface GroupedTagSubmission {
 
 interface TagSubmissionManagementProps {
   initialSubmissions: GroupedTagSubmission[];
+  onRefresh?: () => void | Promise<void>;
 }
 
 export function TagSubmissionManagement({
   initialSubmissions,
+  onRefresh,
 }: TagSubmissionManagementProps) {
   const [submissions, setSubmissions] = useState(initialSubmissions);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
@@ -105,11 +107,16 @@ export function TagSubmissionManagement({
       }
 
       await refreshCache();
-
+      
       // Remove all submissions that were handled (either approved or rejected)
       setSubmissions((prevSubmissions) =>
         prevSubmissions.filter((group) => group.tag_name !== groupedTag.tag_name)
       );
+      
+      // Notify parent to refresh its data (don't await to avoid Suspense boundary issues)
+      if (onRefresh) {
+        void onRefresh();
+      }
     } catch (error) {
       console.error("Error approving tags:", error);
       toast.error("Failed to approve some tags");
@@ -151,6 +158,11 @@ export function TagSubmissionManagement({
           .filter((group) => group.submissions.length > 0);
         return updatedSubmissions;
       });
+      
+      // Notify parent to refresh its data (don't await to avoid Suspense boundary issues)
+      if (onRefresh) {
+        void onRefresh();
+      }
     } catch (error) {
       console.error("Error approving tag:", error);
       toast.error(error instanceof Error ? error.message : "Failed to approve tag");
@@ -187,6 +199,11 @@ export function TagSubmissionManagement({
           })
           .filter((group) => group.count > 0)
       );
+      
+      // Notify parent to refresh its data (don't await to avoid Suspense boundary issues)
+      if (onRefresh) {
+        void onRefresh();
+      }
     } catch (error) {
       toast.error("Failed to reject tag submission");
     } finally {
