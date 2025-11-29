@@ -5,6 +5,7 @@ import { projects } from "@/db/schema/projects";
 import { project_tags } from "@/db/schema/project_tags";
 import { tags } from "@/db/schema/tags";
 import { eq, sql, desc, and } from "drizzle-orm";
+import { success, notFound, databaseError } from "@/lib/api-errors";
 
 export async function GET(
   _request: NextRequest,
@@ -25,7 +26,7 @@ export async function GET(
     });
 
     if (!profile.length) {
-      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+      return notFound("profile", { identifier: username, identifierType: "username" });
     }
 
     const userId = profile[0].user_id;
@@ -85,15 +86,8 @@ export async function GET(
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      stats,
-    });
+    return success({ stats });
   } catch (error) {
-    console.error("Error fetching profile stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch profile stats" },
-      { status: 500 }
-    );
+    return databaseError(error, "Failed to fetch profile stats");
   }
 }

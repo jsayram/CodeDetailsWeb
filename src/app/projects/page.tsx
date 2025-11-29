@@ -72,30 +72,25 @@ export default function DashBoard() {
 
   return (
     <>
-      {isLoading ? (
-        <div className="container mx-auto px-4 py-">
-          <ProjectListLoadingState />
-        </div>
-      ) : (
-        <ProjectsProvider
-          token={token}
-          userId={user?.id ?? null}
-          isLoading={isLoading}
-        >
-          <SidebarProvider>
-            <SignedIn>
-              <AppSidebar />
-            </SignedIn>
-            <SidebarInset>
-              <HeaderSection />
+      <ProjectsProvider
+        token={token}
+        userId={user?.id ?? null}
+        isLoading={isLoading}
+      >
+        <SidebarProvider>
+          <SignedIn>
+            <AppSidebar />
+          </SignedIn>
+          <SidebarInset>
+            <HeaderSection />
 
-              <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
-                {/* Centered content container */}
-                <div className="flex justify-center w-full mb-20">
-                  <div className="w-full px-4 2xl:px-8 3xl:px-12">
-                    {/* Main content */}
-                    <div className="flex flex-col gap-4">
-                      <SignedIn>
+            <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
+              {/* Centered content container */}
+              <div className="flex justify-center w-full mb-20">
+                <div className="w-full px-4 2xl:px-8 3xl:px-12">
+                  {/* Main content */}
+                  <div className="flex flex-col gap-4">
+                    <SignedIn>
                         <>
                           {/* All Projects Section */}
 
@@ -103,6 +98,7 @@ export default function DashBoard() {
                             <div className="flex flex-col space-y-4">
                               <PageBanner
                                 bannerTitle="Community Projects"
+                                description="Explore a diverse range of community projects. Discover, contribute, and be inspired by the creativity and innovation of fellow developers."
                                 isUserBanner={false}
                                 gradientFrom="indigo-900"
                                 gradientVia="blue-800"
@@ -168,11 +164,10 @@ export default function DashBoard() {
                   </div>
                 </div>
               </ProtectedPage>
-              <FooterSection />
-            </SidebarInset>
-          </SidebarProvider>
-        </ProjectsProvider>
-      )}
+            <FooterSection />
+          </SidebarInset>
+        </SidebarProvider>
+      </ProjectsProvider>
     </>
   );
 }

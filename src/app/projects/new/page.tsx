@@ -43,9 +43,10 @@ export default function CreateProjectPage() {
     title: "",
     slug: "",
     description: "",
-    category: "web",
-    total_favorites: "0",
-    created_at: currentDate,
+    category: "",
+    total_favorites: "",
+    url_links: null,
+    created_at: new Date(),
     updated_at: currentDate,
     deleted_at: null,
 

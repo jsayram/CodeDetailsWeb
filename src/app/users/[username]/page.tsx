@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { use } from "react";
-import { User, Heart, Tag, FolderKanban } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
-import Link from "next/link";
+import { User, Heart, FolderKanban, Calendar } from "lucide-react";
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { HeaderSection } from "@/components/layout/HeaderSection";
@@ -12,7 +10,6 @@ import { FooterSection } from "@/components/layout/FooterSection";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SelectProfile } from "@/db/schema/profiles";
 import { useRouter } from "next/navigation";
@@ -24,17 +21,20 @@ interface PageProps {
 export default function UserProfilePage({ params }: PageProps) {
   const resolvedParams = params instanceof Promise ? use(params) : params;
   const username = decodeURIComponent(resolvedParams.username);
-  const { user, isLoaded } = useUser();
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalLikes: 0,
     totalTags: 0,
     totalProjects: 0,
+    activeProjects: 0,
+    graveyardProjects: 0,
+    communityProjects: 0,
     projectsFavorited: 0,
     projectsReceivedFavorites: 0,
     mostLikedProject: { title: "", favorites: 0 },
+    joinedDate: null as Date | null,
   });
   const [isNavigating, setIsNavigating] = useState(false);
   const router = useRouter();
@@ -58,21 +58,50 @@ export default function UserProfilePage({ params }: PageProps) {
           if (!response.ok) {
             throw new Error("Failed to fetch profile");
           }
-          const data = await response.json();
+          const responseData = await response.json();
+          
+          // Check for API error responses (RFC 7807 format)
+          if (responseData.success === false || responseData.error) {
+            throw new Error(responseData.error?.detail || responseData.detail || "Profile not found");
+          }
+          
+          // The success() helper wraps data in { success: true, data: {...} }
+          const data = responseData.data || responseData;
+          
+          // Check if this is a redirect response (old username was used)
+          if (data.redirect && data.currentUsername) {
+            // Redirect to the current username URL
+            router.replace(`/users/${encodeURIComponent(data.currentUsername)}`);
+            return null; // Stop the chain
+          }
+          
+          // Check if profile exists in response
+          if (!data.profile) {
+            throw new Error("Profile data not found in response");
+          }
+          
           // Fetch profile with stats in a single request
           return fetch(
             `/api/profiles/by-id/${data.profile.user_id}?includeStats=true`
           );
         })
-        .then((res) => {
+        .then(async (res) => {
+          if (!res) return null; // Redirect happened
           if (!res.ok) {
-            throw new Error("Failed to fetch profile stats");
+            const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+            console.error("API Error:", errorData);
+            throw new Error(errorData.error || "Failed to fetch profile stats");
           }
           return res.json();
         });
 
       profilePromise
-        .then((data) => {
+        .then((responseData) => {
+          if (!responseData) return; // Redirect happened
+          
+          // Handle both old format (direct) and new format (wrapped in data)
+          const data = responseData.data || responseData;
+          
           if (data.profile) {
             setProfileData(data.profile);
           }
@@ -80,36 +109,48 @@ export default function UserProfilePage({ params }: PageProps) {
             setStats(data.stats);
           }
         })
-        .catch((err) => console.error("Error fetching profile:", err))
+        .catch((err) => {
+          console.error("Error fetching profile:", err);
+          setError(err.message || "Failed to load profile");
+        })
         .finally(() => {
           setIsLoading(false);
         });
     }
-  }, [username]);
+  }, [username, router]);
 
-  const handleSaveProfile = async () => {
-    if (!profileData) return;
+  // Error state
+  if (error) {
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <HeaderSection />
+          <div className="container mx-auto px-4 py-8">
+            <Card className="max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <User className="h-5 w-5" />
+                  Profile Not Found
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  The user &quot;{username}&quot; could not be found. They may have changed their username or the profile doesn&apos;t exist.
+                </p>
+                <Button onClick={() => router.push("/users")} variant="outline">
+                  Browse Users
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+          <FooterSection />
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
 
-    try {
-      const response = await fetch(`/api/profiles/${username}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(profileData),
-      });
-
-      if (!response.ok) throw new Error("Failed to update profile");
-
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-    }
-  };
-
-  const isOwnProfile = user?.id === profileData?.user_id;
-
-  if (!isLoaded || isLoading || !profileData) {
+  if (isLoading || !profileData) {
     return (
       <SidebarProvider>
         <AppSidebar />
@@ -210,71 +251,14 @@ export default function UserProfilePage({ params }: PageProps) {
                         </AvatarFallback>
                       )}
                     </Avatar>
-                    {isEditing ? (
-                      <div className="space-y-2 mt-4 w-full">
-                        <Input
-                          placeholder="Username"
-                          value={profileData?.username || ""}
-                          onChange={(e) =>
-                            setProfileData((prev) =>
-                              prev
-                                ? { ...prev, username: e.target.value }
-                                : null
-                            )
-                          }
-                        />
-                        <Input
-                          placeholder="Email"
-                          value={profileData?.email_address || ""}
-                          onChange={(e) =>
-                            setProfileData((prev) =>
-                              prev
-                                ? { ...prev, email_address: e.target.value }
-                                : null
-                            )
-                          }
-                        />
-                        <Input
-                          placeholder="Profile Image URL"
-                          value={profileData?.profile_image_url || ""}
-                          onChange={(e) =>
-                            setProfileData((prev) =>
-                              prev
-                                ? { ...prev, profile_image_url: e.target.value }
-                                : null
-                            )
-                          }
-                        />
-                        <div className="flex gap-2">
-                          <Button onClick={handleSaveProfile} className="cursor-pointer">Save</Button>
-                          <Button
-                            variant="outline"
-                            className="cursor-pointer"
-                            onClick={() => setIsEditing(false)}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-center mt-4">
-                        <h2 className="text-xl font-semibold">
-                          {profileData?.username || "Loading..."}
-                        </h2>
-                        <p className="text-muted-foreground">
-                          {profileData?.email_address}
-                        </p>
-                        {isOwnProfile && (
-                          <Button
-                            variant="outline"
-                            className="mt-2 cursor-pointer"
-                            onClick={() => setIsEditing(true)}
-                          >
-                            Edit Profile
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                    <div className="text-center mt-4">
+                      <h2 className="text-xl font-semibold">
+                        {profileData?.username || "Loading..."}
+                      </h2>
+                      <p className="text-muted-foreground text-sm">
+                        {profileData?.email_address}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -282,89 +266,58 @@ export default function UserProfilePage({ params }: PageProps) {
 
             {/* Stats Grid */}
             <div className="md:col-span-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Public Stats - Visible to everyone */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Heart className="h-5 w-5" />
-                      Project Stats
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <FolderKanban className="h-5 w-5 text-primary" />
+                      Active Projects
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <dl className="space-y-2">
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Total Projects
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.totalProjects}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Projects Favorited
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.projectsFavorited}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Received Favorites
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.projectsReceivedFavorites}
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Tag className="h-5 w-5" />
-                      Most Popular Project
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <dl className="space-y-2">
-                      <div>
-                        <dt className="text-sm text-muted-foreground">Title</dt>
-                        <dd className="text-xl font-semibold">
-                          {stats.mostLikedProject?.title || "No projects yet"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-sm text-muted-foreground">
-                          Favorites
-                        </dt>
-                        <dd className="text-2xl font-semibold">
-                          {stats.mostLikedProject?.favorites || 0}
-                        </dd>
-                      </div>
-                    </dl>
-                  </CardContent>
-                </Card>
-
-                              
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FolderKanban className="h-5 w-5" />
-                      Projects
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                    <div className="text-3xl font-bold text-primary">{stats.activeProjects}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Public projects</p>
                     <Button
-                      variant="link"
-                      className="text-blue-500 hover:text-blue-700 flex items-center gap-2 p-0 cursor-pointer"
+                      className="mt-3 w-full bg-primary hover:bg-primary/90 cursor-pointer"
                       onClick={handleProjectsClick}
                     >
-                      Check out their projects →
+                      View Projects →
                     </Button>
                   </CardContent>
                 </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Heart className="h-5 w-5 text-primary" />
+                      Favorites Given
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-primary">{stats.projectsFavorited}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Projects favorited</p>
+                  </CardContent>
+                </Card>
+
+                {stats.joinedDate && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Calendar className="h-5 w-5 text-primary" />
+                        Member Since
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-sm font-semibold">
+                        {new Date(stats.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {Math.floor((Date.now() - new Date(stats.joinedDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           </div>

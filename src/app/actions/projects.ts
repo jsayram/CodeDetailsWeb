@@ -12,11 +12,13 @@ import {
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
 import { projects } from "@/db/schema/projects";
-import { revalidatePath, unstable_cache, revalidateTag } from "next/cache";
+import { project_tags } from "@/db/schema/project_tags";
+import { revalidatePath, unstable_cache, updateTag } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
 import { favorites } from "@/db/schema/favorites";
 import { getProfileByUserId } from "@/db/operations";
+import { createProjectSchema, updateProjectSchema } from "@/types/schemas";
 
 const pathToRevalidate = "/projects";
 
@@ -86,28 +88,50 @@ export async function createProject(project: InsertProject, userId: string) {
       };
     }
 
-    // Trim title and slug to ensure no leading/trailing spaces
-    const trimmedProject = {
-      ...project,
-      title: project.title.trim(),
-      slug: project.slug.trim(),
-      user_id: userId, // Always assign the user ID to the project
-    };
+    // Validate input with Zod schema
+    const validationResult = createProjectSchema.safeParse({
+      title: project.title,
+      slug: project.slug,
+      description: project.description,
+      category: project.category,
+      url_links: project.url_links,
+      tags: project.tags || [],
+    });
 
-    // Basic validation
-    if (!trimmedProject.title || !trimmedProject.slug) {
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
       return {
         success: false,
-        error: "Project title and slug are required",
+        error: firstError.message,
+        validationErrors: validationResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
       };
     }
+
+    // Use validated and transformed data
+    const validatedData = validationResult.data;
+
+    const trimmedProject = {
+      ...project,
+      title: validatedData.title,
+      slug: validatedData.slug,
+      description: validatedData.description,
+      category: validatedData.category,
+      user_id: userId,
+      url_links: validatedData.url_links,
+      tags: validatedData.tags,
+    };
+
+    console.log('Creating project with data:', JSON.stringify(trimmedProject, null, 2));
 
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
     return {
       success: true,
       data: mapDrizzleProjectToProject(newProject),
@@ -175,10 +199,10 @@ export async function removeProject(id: string, userId: string) {
 
     const deletedProject = await deleteProjectServer(id);
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(deletedProject),
@@ -216,40 +240,70 @@ export async function updateProject(
       };
     }
 
-    // Create a new project object with trimmed values
-    const trimmedProject = { ...project };
+    // Validate input with Zod schema
+    const validationResult = updateProjectSchema.safeParse({
+      title: project.title,
+      slug: project.slug,
+      description: project.description,
+      category: project.category,
+      url_links: project.url_links,
+      tags: project.tags,
+    });
 
-    // Only trim if the fields are defined
-    if (trimmedProject.title !== undefined) {
-      trimmedProject.title = trimmedProject.title.trim();
-    }
-
-    if (trimmedProject.slug !== undefined) {
-      trimmedProject.slug = trimmedProject.slug.trim();
-    }
-
-    // Basic validation - if slug or title is provided, ensure they're not empty
-    if (trimmedProject.title !== undefined && !trimmedProject.title) {
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
       return {
         success: false,
-        error: "Project title is required",
+        error: firstError.message,
+        validationErrors: validationResult.error.issues.map((issue) => ({
+          field: issue.path.join('.'),
+          message: issue.message,
+        })),
       };
     }
 
-    if (trimmedProject.slug !== undefined && !trimmedProject.slug) {
-      return {
-        success: false,
-        error: "Project slug is required",
-      };
+    // Use validated and transformed data
+    const validatedData = validationResult.data;
+
+    // Create a new project object with validated values
+    const trimmedProject: Partial<InsertProject> = {};
+
+    // Only include fields that were provided and validated
+    if (validatedData.title !== undefined) {
+      trimmedProject.title = validatedData.title;
+    }
+    if (validatedData.slug !== undefined) {
+      trimmedProject.slug = validatedData.slug;
+    }
+    if (validatedData.description !== undefined) {
+      trimmedProject.description = validatedData.description;
+    }
+    if (validatedData.category !== undefined) {
+      trimmedProject.category = validatedData.category;
+    }
+    if (validatedData.url_links !== undefined) {
+      trimmedProject.url_links = validatedData.url_links;
+    }
+    if (validatedData.tags !== undefined) {
+      trimmedProject.tags = validatedData.tags;
     }
 
+    console.log('Updating project with data:', JSON.stringify(trimmedProject, null, 2));
     const updatedProject = await updateProjectServer(id, trimmedProject);
+    
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    
+    // Revalidate the specific project page (using the new slug if changed, otherwise the original)
+    const projectSlug = updatedProject.slug || validatedData.slug;
+    if (projectSlug) {
+      revalidatePath(`/projects/${projectSlug}`);
+    }
+    
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(updatedProject),
@@ -406,10 +460,10 @@ export async function permanentlyDeleteProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: null,
@@ -463,10 +517,10 @@ export async function restoreProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('projects');
-    revalidateTag('user-projects');
-    revalidateTag('user-own-projects');
-    revalidateTag('project-detail');
+    updateTag('projects');
+    updateTag('user-projects');
+    updateTag('user-own-projects');
+    updateTag('project-detail');
     return {
       success: true,
       data: mapDrizzleProjectToProject(restoredProject),
@@ -539,7 +593,7 @@ export async function addProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('project-detail');
+    updateTag('project-detail');
     return { success: true };
   } catch (error) {
     console.error("Failed to add favorite:", error);
@@ -597,7 +651,7 @@ export async function removeProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    revalidateTag('project-detail');
+    updateTag('project-detail');
     return { success: true };
   } catch (error) {
     console.error("Failed to remove favorite:", error);
@@ -611,8 +665,6 @@ export async function removeProjectFavorite(
 export async function getProjectTagCounts(projectIds: string[]) {
   return executeQuery(async (db) => {
     if (projectIds.length === 0) return {};
-
-    const { project_tags } = await import("@/db/schema/project_tags");
     
     const tagCounts = await db
       .select({

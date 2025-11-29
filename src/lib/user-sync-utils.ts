@@ -130,6 +130,34 @@ export async function createOrUpdateUserProfile(data: any) {
       // User exists - update their profile (preserve tier if not provided in metadata)
       console.log(`✅ User ${user_id} already exists, updating profile`);
       
+      // Check if username is changing
+      const oldUsername = existingProfile.username;
+      const newUsername = userData.username;
+      const usernameChanged = oldUsername && newUsername && oldUsername !== newUsername;
+      
+      if (usernameChanged) {
+        console.log(`📝 Username changed from "${oldUsername}" to "${newUsername}", logging to history`);
+        
+        // Log the old username to history table for redirect support
+        const { error: historyError } = await supabaseServer
+          .from("username_history")
+          .upsert({
+            old_username: oldUsername,
+            user_id: user_id,
+            new_username: newUsername,
+            changed_at: new Date().toISOString(),
+          }, {
+            onConflict: 'old_username'
+          });
+        
+        if (historyError) {
+          console.error("Error logging username change to history:", historyError);
+          // Don't throw - we still want to update the profile even if history fails
+        } else {
+          console.log(`✅ Username history logged: "${oldUsername}" -> "${newUsername}"`);
+        }
+      }
+      
       const updateData: any = {
         email_address: userData.email_address,
         first_name: userData.first_name,
@@ -161,6 +189,9 @@ export async function createOrUpdateUserProfile(data: any) {
         status: "updated",
         message: `User ${user_id} profile updated successfully`,
         user: existingProfile,
+        usernameChanged,
+        oldUsername: usernameChanged ? oldUsername : undefined,
+        newUsername: usernameChanged ? newUsername : undefined,
       };
     } else {
       // User doesn't exist - create new profile

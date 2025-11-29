@@ -37,6 +37,11 @@ export interface ProjectFilters {
 interface PageCache {
   [key: string]: {
     data: Project[];
+    pagination: {
+      total: number;
+      totalPages: number;
+      currentPage: number;
+    };
     timestamp: number;
   };
 }
@@ -93,7 +98,7 @@ export function ProjectsProvider({
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<ProjectFilters>({
     showAll: true, // Set showAll to true by default
-    sortBy: "newest",
+    sortBy: "recently-edited",
     category: "all",
     showMyProjects: false,
     showFavorites: false,
@@ -155,10 +160,7 @@ export function ProjectsProvider({
       console.log("🎯 Using cached page data for page", filters.page);
       setProjects(cached.data);
       setLoading(false); // Ensure loading is false when using cache
-      setPagination((prev) => ({
-        ...prev,
-        currentPage: filters.page,
-      }));
+      setPagination(cached.pagination); // Restore full pagination state from cache
       return;
     }
 
@@ -200,16 +202,17 @@ export function ProjectsProvider({
         throw new Error(result.error || "Failed to fetch projects");
       }
 
-      if (result.pagination) {
-        setPagination({
-          total: result.pagination.total,
-          totalPages: result.pagination.totalPages,
-          currentPage: filters.page,
-        });
-      }
+      const paginationState = {
+        total: result.pagination?.total || 0,
+        totalPages: result.pagination?.totalPages || 1,
+        currentPage: filters.page,
+      };
+
+      setPagination(paginationState);
 
       globalPageCache[cacheKey] = {
         data: result.data || [],
+        pagination: paginationState,
         timestamp: now,
       };
 
@@ -344,6 +347,12 @@ export function ProjectsProvider({
     let result = [...projects];
 
     switch (filters.sortBy) {
+      case "recently-edited":
+        return result.sort((a, b) => {
+          const dateA = new Date(a.updated_at || a.created_at || 0).getTime();
+          const dateB = new Date(b.updated_at || b.created_at || 0).getTime();
+          return dateB - dateA;
+        });
       case "newest":
         return result.sort((a, b) => {
           const dateA = new Date(a.created_at || 0).getTime();

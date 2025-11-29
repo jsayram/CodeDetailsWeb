@@ -34,15 +34,19 @@ export default async function ProjectPage({
 }) {
   // Ensure params is handled as a Promise
   const resolvedParams = await Promise.resolve(params);
+  
+  // Get auth data first
+  const { userId, sessionClaims } = await auth();
+  const userEmail = sessionClaims?.email as string | undefined;
+  
   const project = (await getProjectBySlugServer(
-    resolvedParams.slug
+    resolvedParams.slug,
+    userId,
+    userEmail
   )) as SelectProjectWithOwner;
   const user = (await getProjectUsersProfileBySlugServer(
     resolvedParams.slug
   )) as SelectUserWithProject;
-
-  // Get auth data
-  const { userId } = await auth();
   const cookieStore = await cookies();
   const token = cookieStore.get("__supabase_auth_token")?.value || null;
 

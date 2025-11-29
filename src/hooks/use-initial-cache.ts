@@ -31,64 +31,37 @@ export function useInitialCache(
     // Try to load cached projects on initial mount
     const loadInitialCache = async () => {
       if (!userId && !isLoading && !hasFetchedFreeProjects) {
-        try {
-          const cachedProjects = await loadCachedFreeProjects(isBrowser);
+        const result = await loadCachedFreeProjects();
+        
+        if (result.success && result.data.length > 0 && isMounted.current) {
           console.log(
-            "🔍 Initial Cache Check - Free Projects:",
-            cachedProjects
-              ? `${cachedProjects.length} projects in cache`
-              : "No cache available"
+            "🔄 Loading",
+            result.data.length,
+            "free projects from cache on mount"
           );
-
-          if (
-            cachedProjects &&
-            cachedProjects.length > 0 &&
-            isMounted.current
-          ) {
-            console.log(
-              "🔄 Loading",
-              cachedProjects.length,
-              "free projects from cache on mount"
-            );
-            setFreeProjects(cachedProjects);
-            setFreeLoading(false);
-            setHasFetchedFreeProjects(true);
-          }
-        } catch (error) {
-          console.error("Error loading cached free projects:", error);
+          setFreeProjects(result.data);
+          setFreeLoading(false);
+          setHasFetchedFreeProjects(true);
+        } else if (!result.success) {
+          console.error("Error loading cached free projects:", result.error);
         }
       }
 
       // Try to load cached authenticated projects if user is logged in
       if (userId && !isLoading && !hasFetchedProjects) {
-        try {
-          const cachedAuthProjects = await loadCachedAuthenticatedProjects(
-            isBrowser,
-            userId
-          );
+        const result = await loadCachedAuthenticatedProjects(userId);
+        
+        if (result.success && result.data.length > 0 && isMounted.current) {
           console.log(
-            "🔍 Initial Cache Check - Auth Projects:",
-            cachedAuthProjects
-              ? `${cachedAuthProjects.length} projects in cache`
-              : "No cache available"
+            "🔄 Loading",
+            result.data.length,
+            "authenticated projects from cache on mount"
           );
-
-          if (
-            cachedAuthProjects &&
-            cachedAuthProjects.length > 0 &&
-            isMounted.current
-          ) {
-            console.log(
-              "🔄 Loading",
-              cachedAuthProjects.length,
-              "authenticated projects from cache on mount"
-            );
-            setProjects(cachedAuthProjects);
-            setLoading(false);
-            setHasFetchedProjects(true);
-          }
-        } catch (error) {
-          console.error("Error loading cached auth projects:", error);
+          setProjects(result.data);
+          setLoading(false);
+          setHasFetchedProjects(true);
+        } else if (!result.success) {
+          console.error("Error loading cached auth projects:", result.error);
         }
       }
     };

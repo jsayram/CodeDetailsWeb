@@ -2,7 +2,7 @@
 
 import { getUserDashboardStats } from "@/db/operations/userDashboardOperations";
 import { auth } from "@clerk/nextjs/server";
-import { unstable_cache, revalidateTag } from 'next/cache';
+import { unstable_cache, updateTag } from 'next/cache';
 
 // Cache user dashboard stats for 2 minutes
 export const getCachedUserDashboardStats = unstable_cache(
@@ -29,7 +29,7 @@ export async function fetchUserDashboardData(forceRefresh = false) {
   // If force refresh is requested, revalidate the cache first
   if (forceRefresh) {
     console.log('[fetchUserDashboardData] 🔄 Force refresh - revalidating server cache');
-    revalidateTag('user-dashboard');
+    updateTag('user-dashboard');
   } else {
     console.log('[fetchUserDashboardData] 📦 Checking Next.js server cache...');
   }

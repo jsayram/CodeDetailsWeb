@@ -8,6 +8,7 @@ import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { createOrUpdateUserProfile, recentlyVerifiedUsers, CACHE_TTL, cleanupCache } from "@/lib/user-sync-utils";
 import { ClerkUserData } from "@/types/models/clerkUserData";
+import { unauthorized, serverError, success } from "@/lib/api-errors";
 
 export async function POST(request: Request) {
   try {
@@ -21,10 +22,7 @@ export async function POST(request: Request) {
       targetUserId = body.userId || "";
       
       if (!targetUserId) {
-        return NextResponse.json(
-          { error: "Not authenticated" },
-          { status: 401 }
-        );
+        return unauthorized();
       }
     }
 
@@ -47,10 +45,7 @@ export async function POST(request: Request) {
     }
     
     if (!user) {
-      return NextResponse.json(
-        { error: "Could not fetch user data" },
-        { status: 500 }
-      );
+      return serverError("Could not fetch user data from Clerk");
     }
 
     // Convert Clerk's currentUser() format to ClerkUserData format
@@ -73,13 +68,6 @@ export async function POST(request: Request) {
     
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error in user sync:", error);
-    return NextResponse.json(
-      { 
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error"
-      },
-      { status: 500 }
-    );
+    return serverError();
   }
 }

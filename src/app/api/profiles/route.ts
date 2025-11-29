@@ -3,6 +3,7 @@ import { executeQuery } from "@/db/server";
 import { profiles } from "@/db/schema/profiles";
 import { projects } from "@/db/schema/projects";
 import { desc, sql, eq, isNull } from "drizzle-orm";
+import { success, databaseError } from "@/lib/api-errors";
 
 // Next.js Route Segment Config - Cache for 5 minutes, revalidate in background
 export const revalidate = 300; // 5 minutes in seconds
@@ -32,16 +33,10 @@ export async function GET() {
     );
 
     // Return with explicit cache headers for browser/CDN caching
-    return NextResponse.json(allProfiles, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-      },
-    });
+    const response = success(allProfiles);
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    return response;
   } catch (error) {
-    console.error("Error fetching profiles:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch profiles" },
-      { status: 500 }
-    );
+    return databaseError(error, "Failed to fetch profiles");
   }
 }

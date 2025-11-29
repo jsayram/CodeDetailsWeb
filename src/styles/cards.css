@@ -90,109 +90,116 @@
   }
 }
 
+/* ===== DELETED CARDS - GRAVEYARD THEME ===== */
 
-.project-card.deleted .project-tags {
-  background-color: oklch(0.22 0.05 280); /* Dark background for tags section */
-  border-color: oklch(0.3 0.05 280);
+/* Light mode deleted cards - muted with red accents */
+.project-card.deleted {
+  background: linear-gradient(
+    to bottom,
+    oklch(0.94 0.03 15),
+    oklch(0.92 0.03 15)
+  );
+  border: 2px solid oklch(0.65 0.2 25); /* Muted red border */
+  opacity: 0.85;
+  box-shadow: 0 2px 8px -2px oklch(0.65 0.15 25 / 0.15);
+}
+
+.project-card.deleted:hover {
+  opacity: 0.95;
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: 
+    0 12px 20px -8px oklch(0.65 0.15 25 / 0.2),
+    0 4px 10px -4px oklch(0.65 0.15 25 / 0.15);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.95 0.03 15),
+    oklch(0.93 0.03 15)
+  );
+  border-color: oklch(0.65 0.22 25);
+}
+
+.project-card.deleted .card-footer {
+  background-color: oklch(0.95 0.01 285); /* Matches muted light theme */
+  border-top: 1px solid oklch(0.85 0.03 275);
+}
+
+.project-card.deleted .bg-muted\/5 {
+  background-color: oklch(0.94 0.01 285) !important; /* Tags section background */
+  border-top: 1px solid oklch(0.85 0.03 275);
 }
 
 .project-card.deleted .tag-badge-deleted {
-  background-color: oklch(0.3 0.05 280); /* Slightly lighter than background */
-  color: oklch(0.85 0.02 280); /* Light text */
-  border: 1px solid oklch(0.35 0.05 280);
+  background-color: oklch(0.9 0.02 285); /* Light muted background */
+  color: oklch(0.35 0.05 280); /* Dark purple text */
+  border: 1px solid oklch(0.85 0.03 275);
 }
 
-.project-card.deleted .muted-tag {
-  color: oklch(0.85 0.02 280); /* Light text for dark background */
-}
-
-/* Tags section for deleted cards */
-.project-card.deleted .bg-muted\/5 {
-  background-color: oklch(0.25 0.05 280); /* Dark background for better contrast */
+.project-card.deleted .tag-badge-deleted:hover {
+  background-color: oklch(0.88 0.03 285);
+  transform: translateY(-1px);
 }
 
 .project-card.deleted span.text-xs.text-muted-foreground {
-  color: oklch(0.85 0.02 280); /* Light text for "No tags added" text */
+  color: oklch(0.55 0.07 280); /* Muted foreground from palette */
 }
 
-/* External link styling for deleted cards */
-.project-card.deleted a.text-muted-foreground {
-  color: oklch(0.85 0.02 280);
+.project-card.deleted .card-description {
+  color: oklch(0.35 0.05 280); /* Darker text for readability */
 }
 
-.project-card.deleted a.text-muted-foreground:hover {
-  color: oklch(0.95 0.02 280);
-}
-
-/* Make category badge border-only when in deleted state */
-.project-card.deleted .category-badge [data-variant="destructive"] {
-  background-color: transparent;
-  border: 2px solid oklch(0.55 0.25 25); /* Muted red border */
-  color: var(--foreground); /* Use theme text color */
-  font-weight: 500;
-}
-
-.project-card.deleted .category-badge [data-variant="destructive"]:hover {
-  background-color: oklch(0.55 0.15 25 / 0.1); /* Subtle hover effect */
-  border-color: oklch(0.55 0.15 25);
-}
-
-/* Softer deleted indicator */
-.project-card.deleted::before {
-  /* position: absolute; */
-  top: 4rem;
-  right: 1rem; 
-  font-size: 1rem;
-  /* font-weight: 500;
-  letter-spacing: 0.1em;
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background-color: oklch(0.55 0.15 25); 
-  color: oklch(0.3 0.02 280);  */
-  opacity: 0.9;
-  box-shadow: 0 2px 4px -1px oklch(0.55 0.15 25 / 0.2);
-}
-
+/* Dark mode deleted cards - darker with red accents */
 .dark .project-card.deleted {
-  background-color: oklch(0.15 0.04 280); /* Even darker purple in dark mode */
-  border-color: oklch(0.6 0.15 20); /* Muted red border in dark mode */
-  opacity: 0.9;
+  background: linear-gradient(
+    to bottom,
+    oklch(0.16 0.06 15),
+    oklch(0.14 0.06 15)
+  );
+  border: 2px solid oklch(0.7 0.18 20); /* Muted red border */
+  opacity: 0.85;
+  box-shadow: 0 2px 8px -2px oklch(0.7 0.15 20 / 0.3);
 }
 
 .dark .project-card.deleted:hover {
   opacity: 0.95;
-  background-color: oklch(0.17 0.05 280);
-  border-color: oklch(0.6 0.15 20);
-}
-
-.dark .project-card.deleted .card-title {
-  color: oklch(0.7 0.1 25 / 0.9);
-  text-decoration-color: oklch(0.6 0.15 25 / 0.5);
-}
-
-.dark .project-card.deleted .project-metadata {
-  color: oklch(0.65 0.1 25 / 0.8);
-  background-color: oklch(0.6 0.15 25 / 0.05);
-}
-
-.dark .project-card.deleted .card-description {
-  color: oklch(0.6 0.1 25 / 0.7);
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: 
+    0 12px 20px -8px oklch(0.7 0.15 20 / 0.4),
+    0 4px 10px -4px oklch(0.7 0.15 20 / 0.3);
+  background: linear-gradient(
+    to bottom,
+    oklch(0.18 0.07 15),
+    oklch(0.16 0.06 15)
+  );
+  border-color: oklch(0.7 0.2 20);
 }
 
 .dark .project-card.deleted .card-footer {
-  background-color: oklch(0.18 0.04 280);
-  border-color: oklch(0.25 0.04 280);
+  background-color: oklch(0.17 0.05 280); /* Slightly lighter than card */
+  border-top: 1px solid oklch(1 0 0 / 15%);
 }
 
-.dark .project-card.deleted .project-tags {
-  background-color: oklch(0.16 0.04 280);
-  border-color: oklch(0.25 0.04 280);
+.dark .project-card.deleted .bg-muted\/5 {
+  background-color: oklch(0.16 0.05 280) !important; /* Tags section background */
+  border-top: 1px solid oklch(1 0 0 / 15%);
 }
 
 .dark .project-card.deleted .tag-badge-deleted {
-  background-color: oklch(0.2 0.04 280);
-  color: oklch(0.8 0.02 280);
-  border-color: oklch(0.25 0.04 280);
+  background-color: oklch(0.25 0.05 280); /* Darker muted background */
+  color: oklch(0.85 0.02 280); /* Light text */
+  border: 1px solid oklch(1 0 0 / 20%);
+}
+
+.dark .project-card.deleted .tag-badge-deleted:hover {
+  background-color: oklch(0.28 0.06 280);
+  transform: translateY(-1px);
+}
+
+.dark .project-card.deleted span.text-xs.text-muted-foreground {
+  color: oklch(0.7 0.08 280); /* Muted foreground from dark palette */
+}
+
+.dark .project-card.deleted .card-description {
+  color: oklch(0.75 0.05 280); /* Lighter text for dark background */
 }
 
 /* Card hover effects */

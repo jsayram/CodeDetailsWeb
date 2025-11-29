@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { TerminalWindowSection } from "@/components/layout/TerminalWindowSection";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
+import { useRouter } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ username: string }> | { username: string };
@@ -31,6 +32,7 @@ export default function UserProjectsPage({ params }: PageProps) {
   const { token, loading: tokenLoading } = useSupabaseToken();
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
+  const router = useRouter();
 
   // derive the decoded username from route params immediately
   const decodedUsername = resolvedParams.username
@@ -76,9 +78,16 @@ export default function UserProjectsPage({ params }: PageProps) {
         }
 
         // Safely parse JSON
-        const data = await response.json();
-        if (data.profile) {
-          setProfileData(data.profile);
+        const result = await response.json();
+        
+        // Check if this is a redirect response (old username was used)
+        if (result.success && result.data?.redirect && result.data?.currentUsername) {
+          router.replace(`/projects/users/${encodeURIComponent(result.data.currentUsername)}`);
+          return;
+        }
+        
+        if (result.success && result.data?.profile) {
+          setProfileData(result.data.profile);
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -86,7 +95,7 @@ export default function UserProjectsPage({ params }: PageProps) {
     };
 
     fetchProfile();
-  }, [decodedUsername]);
+  }, [decodedUsername, user, router]);
 
   // Only consider loading if we're waiting for auth-related data AND we don't have profile data yet
   const isLoading = (!userLoaded || tokenLoading) && !profileData;

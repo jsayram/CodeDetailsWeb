@@ -223,28 +223,27 @@ export function TagSubmissionModal({
       const autoApproved = [];
 
       for (const tag of validTags) {
-        try {
-          const result = await submitNewTag(
-            tag.name,
-            projectId,
-            email,
-            description
-          );
-          if (result.status === "auto_approved") {
-            autoApproved.push(tag.name);
-          } else {
-            results.push(result);
-          }
-        } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-          errors.push(`${tag.name}: ${errorMessage}`);
-          console.error(`Error submitting tag ${tag.name}:`, error);
+        const result = await submitNewTag(
+          tag.name,
+          projectId,
+          email,
+          description
+        );
+        
+        // Check if this is an error response (from validation failure)
+        if ('success' in result && result.success === false) {
+          errors.push(`${tag.name}: ${result.error}`);
+          console.error(`Error submitting tag ${tag.name}:`, result.error);
+        } else if ('status' in result && result.status === "auto_approved") {
+          autoApproved.push(tag.name);
+        } else {
+          results.push(result);
         }
       }
 
       // If any tags were auto-approved, refresh the tag cache
       if (autoApproved.length > 0) {
-        await refreshCache();
+        await refreshCache(true);
       }
 
       if (errors.length > 0) {

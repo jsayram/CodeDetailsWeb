@@ -5,7 +5,7 @@
   "scripts": {
     "validate-env": "node -r ts-node/register ./scripts/validateEnv.ts",
     "set-env": "node -r ts-node/register ./scripts/setEnv.ts",
-    "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev",
+    "dev": "cross-env NODE_ENV=development npm run set-env && npm run validate-env && next dev --turbopack",
     "test": "cross-env NODE_ENV=test npm run set-env && npm run validate-env && jest && playwright test",
     "build": "cross-env NODE_ENV=production npm run set-env && npm run validate-env && next build",
     "start": "cross-env NODE_ENV=production npm run set-env && npm run validate-env && next start",
@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@algolia/client-search": "^5.20.3",
-    "@clerk/nextjs": "^6.18.0",
+    "@clerk/nextjs": "^6.35.5",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-avatar": "^1.1.3",
     "@radix-ui/react-checkbox": "^1.2.3",
@@ -42,7 +42,7 @@
     "drizzle-orm": "^0.41.0",
     "framer-motion": "^12.4.7",
     "lucide-react": "^0.476.0",
-    "next": "^15.3.0-canary.24",
+    "next": "^16.0.5",
     "next-themes": "^0.4.6",
     "postgres": "^3.4.5",
     "react": "^19.0.0",

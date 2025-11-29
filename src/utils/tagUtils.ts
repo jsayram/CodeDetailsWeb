@@ -93,7 +93,6 @@ export async function setProjectTags(
       // Create association
       await db.insert(project_tags).values({
         project_id: projectId,
-        project_slug: projectSlug,
         tag_id: tagId,
       });
     }

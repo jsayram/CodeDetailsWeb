@@ -103,7 +103,12 @@ td .flex.flex-wrap {
   max-height: 120px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--muted-foreground/30) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.dark .table-description-content,
+.dark td .flex.flex-wrap {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 /* Webkit scrollbar styling */
@@ -119,13 +124,23 @@ td .flex.flex-wrap::-webkit-scrollbar-track {
 
 .table-description-content::-webkit-scrollbar-thumb,
 td .flex.flex-wrap::-webkit-scrollbar-thumb {
-  background-color: var(--muted-foreground/30);
+  background-color: rgba(0, 0, 0, 0.2);
   border-radius: 4px;
+}
+
+.dark .table-description-content::-webkit-scrollbar-thumb,
+.dark td .flex.flex-wrap::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .table-description-content::-webkit-scrollbar-thumb:hover,
 td .flex.flex-wrap::-webkit-scrollbar-thumb:hover {
-  background-color: var(--muted-foreground/50);
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.dark .table-description-content::-webkit-scrollbar-thumb:hover,
+.dark td .flex.flex-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 /* Tags container styles */
@@ -145,7 +160,11 @@ td .flex.flex-wrap {
   cursor: ns-resize;
   opacity: 0;
   transition: opacity 0.2s ease;
-  background: linear-gradient(to bottom, transparent, var(--primary/10));
+  background: linear-gradient(to bottom, transparent, rgba(139, 92, 246, 0.1));
+}
+
+.dark .resize-handle {
+  background: linear-gradient(to bottom, transparent, rgba(167, 139, 250, 0.1));
 }
 
 .table-description-cell:hover .resize-handle {
@@ -155,7 +174,12 @@ td .flex.flex-wrap {
 .resize-handle.resizing,
 .resize-handle:hover {
   opacity: 1;
-  background-color: var(--primary/20);
+  background-color: rgba(139, 92, 246, 0.2);
+}
+
+.dark .resize-handle.resizing,
+.dark .resize-handle:hover {
+  background-color: rgba(167, 139, 250, 0.2);
 }
 
 /* Copy button styles */

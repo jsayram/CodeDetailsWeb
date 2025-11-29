@@ -159,17 +159,17 @@ export function TagSelector({
     if (projectId === "new" || !user?.primaryEmailAddress?.emailAddress) return;
 
     try {
-      const submissions = await fetch(
+      const result = await fetch(
         `/api/projects/${projectId}/tag-submissions?status=pending&email=${encodeURIComponent(
           user.primaryEmailAddress.emailAddress
         )}`,
         { cache: "no-store" }
       ).then((res) => res.json());
 
-      if (Array.isArray(submissions)) {
-        setPendingTags(submissions);
+      if (result.success && Array.isArray(result.data)) {
+        setPendingTags(result.data);
       } else {
-        console.error("Invalid submissions response:", submissions);
+        console.error("Invalid submissions response:", result);
         setPendingTags([]);
       }
     } catch (error) {
@@ -206,6 +206,26 @@ export function TagSelector({
               Optimal: 6-10 tags for best discoverability
             </p>
           </div>
+          {!isTagCacheLoading && cachedTags.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                💡 {cachedTags.length} tags available in the system. Start typing to search and add tags.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                🎯 <strong>Choose tags that match your project&apos;s tech stack and purpose</strong> for better discoverability. Select the most relevant tags from the available list.
+              </p>
+              {projectId !== "new" && selectedTags.length < MAX_PROJECT_TAGS && (
+                <p className="text-xs text-muted-foreground">
+                  💭 Don&apos;t see a perfect tag? You can suggest new tags after creating your project (approval required). Suggested tags become available system-wide for all users if approved.
+                </p>
+              )}
+              {projectId === "new" && (
+                <p className="text-xs text-muted-foreground">
+                  💭 After creating your project, you can suggest new tags if you don&apos;t find what you need (approval required).
+                </p>
+              )}
+            </div>
+          )}
           <div className="flex gap-2 items-center">
             <TagInput
               tags={selectedTags}

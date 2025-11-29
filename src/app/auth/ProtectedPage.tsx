@@ -132,8 +132,8 @@ export default function ProtectedPage({
   // Show loading state
   if (!isLoaded || loadingTier) {
     return (
-      <div className="p-4 max-w-screen-xl mx-auto">
-        <ProjectListLoadingState />
+      <div className="container mx-auto px-4 py-8">
+        <ProjectListLoadingState/>
       </div>
     );
   }

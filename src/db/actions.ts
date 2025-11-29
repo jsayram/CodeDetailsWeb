@@ -14,6 +14,7 @@ import {
 } from "./schema/projects";
 import { eq, and, isNull, or, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { isAdmin } from "../lib/admin-utils";
 
 /**
  * Server-side function to create a new project
@@ -87,7 +88,9 @@ export async function getProjectTagNames(projectId: string): Promise<string[]> {
  * Server-side function to get a project by slug
  */
 export async function getProjectBySlugServer(
-  slug: string
+  slug: string,
+  viewerUserId?: string | null,
+  viewerEmail?: string | null
 ): Promise<SelectProject | null> {
   return await executeQuery(async (db) => {
     const projectData = await db
@@ -100,6 +103,7 @@ export async function getProjectBySlugServer(
           category: projects.category,
           user_id: projects.user_id,
           total_favorites: projects.total_favorites,
+          url_links: projects.url_links,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
           deleted_at: projects.deleted_at,
@@ -125,22 +129,35 @@ export async function getProjectBySlugServer(
       return null;
     }
 
-    const tags = await getProjectTagNames(projectData[0].project.id);
+    const project = projectData[0].project;
+    const profile = projectData[0].profile;
+
+    // Check if project is soft-deleted
+    if (project.deleted_at !== null) {
+      const isOwner = viewerUserId && project.user_id === viewerUserId;
+      const isAdminUser = isAdmin(viewerEmail);
+      
+      // Only owner or admin can view soft-deleted projects
+      if (!isOwner && !isAdminUser) {
+        return null;
+      }
+    }
+
+    const tags = await getProjectTagNames(project.id);
 
     // Map the results to include owner information
     return {
-      ...projectData[0].project,
+      ...project,
       tags,
-      owner_id: projectData[0].profile?.id || null,
-      owner_user_id: projectData[0].profile?.user_id || null,
-      owner_username: projectData[0].profile?.username || null,
-      owner_full_name: projectData[0].profile?.full_name || null,
-      owner_profile_image_url:
-        projectData[0].profile?.profile_image_url || null,
-      owner_tier: projectData[0].profile?.tier || null,
-      owner_email_address: projectData[0].profile?.email_address || null,
-      owner_created_at: projectData[0].profile?.created_at || null,
-      owner_updated_at: projectData[0].profile?.updated_at || null,
+      owner_id: profile?.id || null,
+      owner_user_id: profile?.user_id || null,
+      owner_username: profile?.username || null,
+      owner_full_name: profile?.full_name || null,
+      owner_profile_image_url: profile?.profile_image_url || null,
+      owner_tier: profile?.tier || null,
+      owner_email_address: profile?.email_address || null,
+      owner_created_at: profile?.created_at || null,
+      owner_updated_at: profile?.updated_at || null,
     };
   });
 }
@@ -209,9 +226,6 @@ export async function deleteProjectServer(id: string): Promise<SelectProject> {
       throw new Error(`Project with ID ${id} not found`);
     }
 
-    // Remove all favorites for this project since it's being sent to graveyard
-    await db.delete(favorites).where(eq(favorites.project_id, id));
-
     // Get the tags associated with the project
     const tags = await getProjectTagNames(id);
 
@@ -228,6 +242,8 @@ export async function updateProjectServer(
   project: Partial<InsertProject>
 ): Promise<SelectProject> {
   return await executeQuery(async (db) => {
+    console.log('updateProjectServer received project:', JSON.stringify(project, null, 2));
+    
     // Update the project
     const [updatedProject] = await db
       .update(projects)
@@ -299,6 +315,7 @@ export async function getAccessibleProjectsServer(
           category: projects.category,
           user_id: projects.user_id,
           total_favorites: projects.total_favorites,
+          url_links: projects.url_links,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
           deleted_at: projects.deleted_at,

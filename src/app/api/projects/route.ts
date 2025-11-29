@@ -3,6 +3,7 @@ import { eq, and, SQL, inArray, desc, sql } from "drizzle-orm";
 import { executeQuery } from "@/db/server";
 import { getProject } from "@/app/actions/projects";
 import { projects } from "@/db/schema/projects";
+import { serverError, notFound, success } from "@/lib/api-errors";
 import { tags as tagsTable } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
 import { profiles } from "@/db/schema/profiles";
@@ -39,6 +40,8 @@ const applySorting = (query: any, sortBy: string) => {
   switch (sortBy) {
     case "oldest":
       return query.orderBy(sql`${projects.created_at} asc`);
+    case "recently-edited":
+      return query.orderBy(sql`${projects.updated_at} desc`);
     case "popular":
       return query.orderBy(sql`${projects.total_favorites} desc`);
     case "newest":
@@ -377,16 +380,6 @@ export async function GET(request: NextRequest) {
     // Ensure we always return a response with headers
     return new NextResponse(JSON.stringify(result), { status: 200, headers });
   } catch (error) {
-    console.error("Error in projects API:", error);
-    const headers = new Headers();
-    headers.set("Content-Type", "application/json");
-
-    return new NextResponse(
-      JSON.stringify({
-        success: false,
-        error: "Failed to fetch projects",
-      }),
-      { status: 500, headers }
-    );
+    return serverError();
   }
 }

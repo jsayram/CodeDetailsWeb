@@ -5,13 +5,15 @@ import { projects } from "@/db/schema/projects";
 import { profiles } from "@/db/schema/profiles";
 import { project_tags } from "@/db/schema/project_tags";
 import { tags } from "@/db/schema/tags";
+import { usernameHistory } from "@/db/schema/username-history";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import { serverError, success } from "@/lib/api-errors";
 
 export async function GET(
   request: NextRequest,
-  context: { params: { username: string } }
+  context: { params: Promise<{ username: string }> }
 ) {
-  const params = await Promise.resolve(context.params);
+  const params = await context.params;
   const username = params.username.toLowerCase();
 
   // Get parameters from URL
@@ -24,6 +26,50 @@ export async function GET(
 
   try {
     const result = await executeQuery(async (db) => {
+      // First check if this username exists in profiles
+      const profileCheck = await db
+        .select({ username: profiles.username })
+        .from(profiles)
+        .where(eq(sql`lower(${profiles.username})`, username))
+        .limit(1);
+      
+      // If no profile found, check username history for redirect
+      if (profileCheck.length === 0) {
+        const historyRecord = await db
+          .select()
+          .from(usernameHistory)
+          .where(eq(sql`lower(${usernameHistory.old_username})`, username))
+          .limit(1);
+        
+        if (historyRecord.length) {
+          // Found in history - look up current username by user_id
+          const currentProfile = await db
+            .select({ username: profiles.username })
+            .from(profiles)
+            .where(eq(profiles.user_id, historyRecord[0].user_id))
+            .limit(1);
+          
+          if (currentProfile.length) {
+            return {
+              redirect: true,
+              oldUsername: username,
+              currentUsername: currentProfile[0].username,
+            };
+          }
+        }
+        
+        // Not found at all
+        return {
+          data: [],
+          pagination: {
+            total: 0,
+            page,
+            limit,
+            totalPages: 0,
+          },
+        };
+      }
+
       // Build where conditions
       const whereConditions = [
         eq(sql`lower(${profiles.username})`, username),
@@ -103,12 +149,14 @@ export async function GET(
       };
     });
 
-    return NextResponse.json(result);
+    // Handle redirect responses specially (need to maintain backward compatibility)
+    if ("redirect" in result && result.redirect) {
+      return NextResponse.json(result);
+    }
+
+    return success(result);
   } catch (error) {
     console.error("Error fetching shared projects:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch shared projects" },
-      { status: 500 }
-    );
+    return serverError(error, "Failed to fetch shared projects");
   }
 }
