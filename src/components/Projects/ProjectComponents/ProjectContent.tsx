@@ -14,6 +14,7 @@ import {
   PROJECT_CATEGORIES,
   ProjectCategory,
 } from "@/constants/project-categories";
+import { PROJECT_TEXT_LIMITS } from "@/constants/project-limits";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Heart,
@@ -573,7 +574,20 @@ export function ProjectContent({
       }
 
       if (!result.success) {
-        throw new Error(result.error);
+        // Parse validation errors and set form field errors
+        if (result.validationErrors && Array.isArray(result.validationErrors)) {
+          const newFormErrors: typeof formErrors = {};
+          result.validationErrors.forEach((err: { field: string; message: string }) => {
+            if (err.field === 'title') newFormErrors.title = err.message;
+            if (err.field === 'description') newFormErrors.description = err.message;
+            if (err.field === 'category') newFormErrors.category = err.message;
+            if (err.field === 'slug') newFormErrors.slug = err.message;
+          });
+          setFormErrors(newFormErrors);
+        }
+        // Show error toast but don't throw - fail gracefully
+        toast.error(result.error || "Failed to save project");
+        return;
       }
     } catch (error) {
       console.error("Error saving project:", error);
@@ -755,13 +769,19 @@ export function ProjectContent({
                     id="title"
                     value={formData.title}
                     onChange={(e) => handleFieldChange("title", e.target.value)}
+                    maxLength={PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH}
                     className={formErrors?.title ? "border-red-500" : ""}
                   />
-                  {formErrors?.title && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {formErrors.title}
-                    </p>
-                  )}
+                  <div className="flex justify-between text-xs">
+                    {formErrors?.title ? (
+                      <p className="text-red-500">{formErrors.title}</p>
+                    ) : (
+                      <span />
+                    )}
+                    <span className="text-muted-foreground">
+                      {formData.title.length}/{PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -776,6 +796,7 @@ export function ProjectContent({
                       onChange={(e) =>
                         handleFieldChange("slug", e.target.value)
                       }
+                      maxLength={PROJECT_TEXT_LIMITS.MAX_SLUG_LENGTH}
                       className={`flex-1 ${
                         formErrors?.slug ? "border-red-500" : ""
                       }`}
@@ -830,9 +851,13 @@ export function ProjectContent({
                     onChange={(e) =>
                       handleFieldChange("description", e.target.value)
                     }
+                    maxLength={PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH}
                     rows={5}
                     className="resize-none"
                   />
+                  <div className="flex justify-end text-xs text-muted-foreground">
+                    {formData.description.length}/{PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH}
+                  </div>
                 </div>
 
                 <div className="space-y-2">

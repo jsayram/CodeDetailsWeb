@@ -35,7 +35,7 @@ export async function submitNewTag(
 
   if (!validationResult.success) {
     const firstError = validationResult.error.issues[0];
-    throw new Error(firstError.message);
+    return { success: false, error: firstError.message };
   }
 
   return executeQuery(async (db) => {
@@ -186,7 +186,7 @@ export async function approveTagSubmission(
 
   if (!validationResult.success) {
     const firstError = validationResult.error.issues[0];
-    throw new Error(firstError.message);
+    return { success: false, error: firstError.message };
   }
 
   const validated = validationResult.data;

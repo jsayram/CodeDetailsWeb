@@ -27,38 +27,42 @@ export function useTierTracker(
         return;
       }
       
-      try {
-        isFetching.current = true;
-        // We can safely use userId here since we checked it's not null above
-        const currentTier = await fetchCachedUserTier(userId as string);
-        console.log("🎫 Tier check: current=", currentTier);
-
-        // Check for tier changes
-        if (
-          previousTierRef.current &&
-          previousTierRef.current !== currentTier
-        ) {
-          console.log(
-            "🔄 Tier changed from",
-            previousTierRef.current,
-            "to",
-            currentTier
-          );
-          await revalidateUserCache(userId as string);
-          setHasFetchedProjects(false);
-        } else if (previousTierRef.current === currentTier) {
-          console.log("✅ Tier unchanged:", currentTier);
-        } else {
-          console.log("🔄 Initial tier loaded:", currentTier);
-        }
-
-        // Update tier ref
-        previousTierRef.current = currentTier;
-      } catch (error) {
-        console.error("Failed to check tier changes:", error);
-      } finally {
+      isFetching.current = true;
+      
+      // We can safely use userId here since we checked it's not null above
+      const result = await fetchCachedUserTier(userId as string);
+      
+      if (!result.success) {
+        console.error("Failed to check tier changes:", result.error);
         isFetching.current = false;
+        return;
       }
+      
+      const currentTier = result.data;
+      console.log("🎫 Tier check: current=", currentTier);
+
+      // Check for tier changes
+      if (
+        previousTierRef.current &&
+        previousTierRef.current !== currentTier
+      ) {
+        console.log(
+          "🔄 Tier changed from",
+          previousTierRef.current,
+          "to",
+          currentTier
+        );
+        await revalidateUserCache(userId as string);
+        setHasFetchedProjects(false);
+      } else if (previousTierRef.current === currentTier) {
+        console.log("✅ Tier unchanged:", currentTier);
+      } else {
+        console.log("🔄 Initial tier loaded:", currentTier);
+      }
+
+      // Update tier ref
+      previousTierRef.current = currentTier;
+      isFetching.current = false;
     }
 
     checkTierChanges();

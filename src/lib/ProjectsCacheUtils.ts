@@ -33,95 +33,117 @@ function setInMemoryCache<T>(key: string, data: T): void {
   console.log(`💾 Stored in memory cache: ${key}`);
 }
 
+type CacheResult<T> = 
+  | { success: true; data: T }
+  | { success: false; error: string };
+
 /**
  * Fetch projects with Next.js Data Cache and memory cache
+ * Returns a result object instead of throwing errors for graceful handling
  */
-export async function fetchCachedProjects(): Promise<Project[]> {
+export async function fetchCachedProjects(): Promise<CacheResult<Project[]>> {
   const cacheKey = "all-projects";
   const cachedData = getFromMemoryCache<Project[]>(cacheKey);
-  if (cachedData) return cachedData;
+  if (cachedData) return { success: true, data: cachedData };
 
   console.log("🔄 Fetching projects from API");
-  const response = await fetch(API_ROUTES.PROJECTS.BASE, {
-    next: {
-      tags: ["projects"],
-    },
-  });
+  try {
+    const response = await fetch(API_ROUTES.PROJECTS.BASE, {
+      next: {
+        tags: ["projects"],
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch projects");
+    if (!response.ok) {
+      return { success: false, error: "Failed to fetch projects" };
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      return { success: false, error: result.error || "Failed to fetch projects" };
+    }
+
+    const projects = result.data || [];
+    setInMemoryCache(cacheKey, projects);
+    return { success: true, data: projects };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch projects";
+    return { success: false, error: message };
   }
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || "Failed to fetch projects");
-  }
-
-  const projects = result.data || [];
-  setInMemoryCache(cacheKey, projects);
-  return projects;
 }
 
 /**
  * Fetch authenticated user projects with caching
+ * Returns a result object instead of throwing errors for graceful handling
  */
 export async function fetchCachedUserProjects(
   userId: string
-): Promise<Project[]> {
+): Promise<CacheResult<Project[]>> {
   const cacheKey = `user-projects-${userId}`;
   const cachedData = getFromMemoryCache<Project[]>(cacheKey);
-  if (cachedData) return cachedData;
+  if (cachedData) return { success: true, data: cachedData };
 
   console.log("🔄 Fetching user projects from API");
-  const response = await fetch(API_ROUTES.PROJECTS.WITH_FILTERS({ userId }), {
-    next: {
-      tags: ["projects", `user-${userId}`],
-    },
-  });
+  try {
+    const response = await fetch(API_ROUTES.PROJECTS.WITH_FILTERS({ userId }), {
+      next: {
+        tags: ["projects", `user-${userId}`],
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch user projects");
+    if (!response.ok) {
+      return { success: false, error: "Failed to fetch user projects" };
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      return { success: false, error: result.error || "Failed to fetch user projects" };
+    }
+
+    const projects = result.data || [];
+    setInMemoryCache(cacheKey, projects);
+    return { success: true, data: projects };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch user projects";
+    return { success: false, error: message };
   }
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || "Failed to fetch user projects");
-  }
-
-  const projects = result.data || [];
-  setInMemoryCache(cacheKey, projects);
-  return projects;
 }
 
 /**
  * Fetch user tier with caching (no time-based expiration)
+ * Returns a result object instead of throwing errors for graceful handling
  */
-export async function fetchCachedUserTier(userId: string): Promise<ValidTier> {
+export async function fetchCachedUserTier(userId: string): Promise<CacheResult<ValidTier>> {
   const cacheKey = `user-tier-${userId}`;
   const cachedData = getFromMemoryCache<ValidTier>(cacheKey);
   if (cachedData) {
-    return cachedData;
+    return { success: true, data: cachedData };
   }
 
   console.log("🔄 Fetching user tier from API");
-  const response = await fetch(API_ROUTES.TIERS.USER_TIER, {
-    next: {
-      tags: ["tier", `user-${userId}`],
-    },
-  });
+  try {
+    const response = await fetch(API_ROUTES.TIERS.USER_TIER, {
+      next: {
+        tags: ["tier", `user-${userId}`],
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch user tier");
+    if (!response.ok) {
+      return { success: false, error: "Failed to fetch user tier" };
+    }
+
+    const result = await response.json();
+    if (!result.success) {
+      return { success: false, error: result.error || "Failed to fetch user tier" };
+    }
+
+    const tier = result.tier as ValidTier;
+    setInMemoryCache(cacheKey, tier);
+    return { success: true, data: tier };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to fetch user tier";
+    return { success: false, error: message };
   }
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.error || "Failed to fetch user tier");
-  }
-
-  const tier = result.tier as ValidTier;
-  setInMemoryCache(cacheKey, tier);
-  return tier;
 }
 
 /**

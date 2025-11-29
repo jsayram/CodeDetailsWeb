@@ -1,7 +1,47 @@
 /**
  * Project Limits Configuration
- * Defines maximum limits for images, links, and file uploads
+ * Defines maximum limits for text fields, images, links, and file uploads
+ * Single source of truth for all project-related limits
  */
+
+// ============================================================================
+// TEXT FIELD LIMITS
+// ============================================================================
+
+export const PROJECT_TEXT_LIMITS = {
+  /** Maximum length for project title */
+  MAX_TITLE_LENGTH: 100,
+  
+  /** Minimum length for project title */
+  MIN_TITLE_LENGTH: 1,
+  
+  /** Maximum length for project slug */
+  MAX_SLUG_LENGTH: 100,
+  
+  /** Minimum length for project slug */
+  MIN_SLUG_LENGTH: 1,
+  
+  /** Maximum length for project description */
+  MAX_DESCRIPTION_LENGTH: 5000,
+  
+  /** Maximum length for link labels */
+  MAX_LINK_LABEL_LENGTH: 100,
+} as const;
+
+export const TAG_LIMITS = {
+  /** Maximum length for a single tag name */
+  MAX_TAG_LENGTH: 50,
+  
+  /** Minimum length for a single tag name */
+  MIN_TAG_LENGTH: 1,
+  
+  /** Maximum number of tags per project */
+  MAX_TAGS_PER_PROJECT: 15,
+} as const;
+
+// ============================================================================
+// IMAGE LIMITS
+// ============================================================================
 
 export const PROJECT_IMAGE_LIMITS = {
   /** Maximum number of cover images per project */

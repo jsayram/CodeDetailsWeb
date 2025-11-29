@@ -166,10 +166,24 @@ export function isApiError(response: ApiResponse): response is ApiError {
 /**
  * Helper to extract data from a successful response
  * @throws Error if response is not successful
+ * @deprecated Use safeUnwrapApiResponse for graceful error handling
  */
 export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
   if (isApiSuccess(response)) {
     return response.data;
   }
   throw new Error(`API Error: ${response.error.detail}`);
+}
+
+/**
+ * Safe helper to extract data from a response without throwing
+ * Returns { success: true, data } or { success: false, error }
+ */
+export function safeUnwrapApiResponse<T>(response: ApiResponse<T>): 
+  | { success: true; data: T }
+  | { success: false; error: string } {
+  if (isApiSuccess(response)) {
+    return { success: true, data: response.data };
+  }
+  return { success: false, error: response.error.detail };
 }

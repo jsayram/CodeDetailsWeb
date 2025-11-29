@@ -159,17 +159,17 @@ export function TagSelector({
     if (projectId === "new" || !user?.primaryEmailAddress?.emailAddress) return;
 
     try {
-      const submissions = await fetch(
+      const result = await fetch(
         `/api/projects/${projectId}/tag-submissions?status=pending&email=${encodeURIComponent(
           user.primaryEmailAddress.emailAddress
         )}`,
         { cache: "no-store" }
       ).then((res) => res.json());
 
-      if (Array.isArray(submissions)) {
-        setPendingTags(submissions);
+      if (result.success && Array.isArray(result.data)) {
+        setPendingTags(result.data);
       } else {
-        console.error("Invalid submissions response:", submissions);
+        console.error("Invalid submissions response:", result);
         setPendingTags([]);
       }
     } catch (error) {

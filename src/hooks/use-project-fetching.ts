@@ -54,23 +54,18 @@ export function useProjectFetching(
       lastFetchTime = now;
       setFreeLoading(true);
 
-      try {
-        const projects = await fetchCachedProjects();
-        if (isMounted.current) {
-          setFreeProjects(projects);
+      const result = await fetchCachedProjects();
+      if (isMounted.current) {
+        if (result.success) {
+          setFreeProjects(result.data);
           setHasFetchedFreeProjects(true);
           setCachingDebug(true);
-        }
-      } catch (error) {
-        console.error("❌ Failed to load projects:", error);
-        if (isMounted.current) {
+        } else {
+          console.error("❌ Failed to load projects:", result.error);
           setFreeProjects([]);
           setCachingDebug(false);
         }
-      } finally {
-        if (isMounted.current) {
-          setFreeLoading(false);
-        }
+        setFreeLoading(false);
       }
     }
 
@@ -114,23 +109,18 @@ export function useProjectFetching(
       lastFetchTime = now;
       setLoading(true);
 
-      try {
-        const projects = await fetchCachedUserProjects(userId);
-        if (isMounted.current) {
-          setProjects(projects);
+      const result = await fetchCachedUserProjects(userId);
+      if (isMounted.current) {
+        if (result.success) {
+          setProjects(result.data);
           setHasFetchedProjects(true);
           setCachingDebug(true);
-        }
-      } catch (error) {
-        console.error("❌ Failed to load user projects:", error);
-        if (isMounted.current) {
+        } else {
+          console.error("❌ Failed to load user projects:", result.error);
           setProjects([]);
           setCachingDebug(false);
         }
-      } finally {
-        if (isMounted.current) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
 

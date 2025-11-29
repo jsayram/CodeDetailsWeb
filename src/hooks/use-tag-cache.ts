@@ -1,64 +1,57 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { TagInfo } from '@/db/operations/tag-operations';
 import { searchTagsAction } from '@/app/actions/tags';
-import { usePathname } from 'next/navigation';
 
-// Cache structure with expiration
+// Cache structure - no expiration, invalidate only on mutations
 interface CacheEntry {
   data: TagInfo[];
   timestamp: number;
-  visited: boolean;
 }
 
-interface TagCache {
-  [key: string]: CacheEntry;
+let globalTagCache: CacheEntry | null = null;
+
+// Export function to invalidate cache from server actions
+// Call this after tag approval, submission, or deletion
+export function invalidateGlobalTagCache() {
+  globalTagCache = null;
 }
 
-let globalTagCache: TagCache = {};
-const CACHE_DURATION = 60 * 1000; // 1 minute cache duration
-
-export function useTagCache(invalidateOnPathChange = true) {
+export function useTagCache() {
   const [tags, setTags] = useState<TagInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const pathname = usePathname();
+  const hasFetchedRef = useRef(false);
 
   const invalidateCache = useCallback(() => {
-    globalTagCache = {};
+    globalTagCache = null;
+    hasFetchedRef.current = false;
   }, []);
 
   const addTagToCache = useCallback((tag: TagInfo) => {
-    const cacheKey = '';  // Empty key for global tag list
-    const existingEntry = globalTagCache[cacheKey];
-    if (!existingEntry?.data.some(t => t.id === tag.id)) {
-      const updatedTags = existingEntry ? [...existingEntry.data, tag] : [tag];
-      globalTagCache[cacheKey] = {
+    if (globalTagCache && !globalTagCache.data.some(t => t.id === tag.id)) {
+      const updatedTags = [...globalTagCache.data, tag];
+      globalTagCache = {
         data: updatedTags,
         timestamp: Date.now(),
-        visited: true
       };
       setTags(updatedTags);
     }
   }, []);
 
+  // Force refresh - call this after tag mutations (approval, submission, deletion)
   const refreshCache = useCallback(async (forceRefresh = false) => {
     setIsLoading(true);
     try {
-      const cacheKey = '';  // Empty key for global tag list
-      const now = Date.now();
-      const cached = globalTagCache[cacheKey];
-
-      if (forceRefresh || 
-          !cached || 
-          now - cached.timestamp >= CACHE_DURATION) {
+      // Only fetch if forced or no cache exists
+      if (forceRefresh || !globalTagCache) {
         const fetchedTags = await searchTagsAction('');
-        globalTagCache[cacheKey] = {
+        globalTagCache = {
           data: fetchedTags,
-          timestamp: now,
-          visited: true
+          timestamp: Date.now(),
         };
         setTags(fetchedTags);
       } else {
-        setTags(cached.data);
+        // Use cached data
+        setTags(globalTagCache.data);
       }
     } catch (error) {
       console.error('Error fetching tags:', error);
@@ -68,10 +61,13 @@ export function useTagCache(invalidateOnPathChange = true) {
     }
   }, [invalidateCache]);
 
-  // Refresh cache when component mounts or path changes (if enabled)
+  // Only fetch once on mount if cache is empty
   useEffect(() => {
-    refreshCache();
-  }, [refreshCache, invalidateOnPathChange && pathname]);
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      refreshCache(false);
+    }
+  }, [refreshCache]);
 
   return {
     tags,

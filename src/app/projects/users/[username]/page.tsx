@@ -82,7 +82,8 @@ export default function UserProjectsPage({ params }: PageProps) {
         
         // Check if this is a redirect response (old username was used)
         if (result.success && result.data?.redirect && result.data?.currentUsername) {
-          router.replace(`/projects/users/${encodeURIComponent(result.data.currentUsername)}`);\n          return;
+          router.replace(`/projects/users/${encodeURIComponent(result.data.currentUsername)}`);
+          return;
         }
         
         if (result.success && result.data?.profile) {

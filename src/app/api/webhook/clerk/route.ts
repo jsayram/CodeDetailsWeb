@@ -146,7 +146,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
     const { data: clerkUser, error } = await fetchClerkUser(userId);
 
     if (error || !clerkUser) {
-      return notFound("user", userId);
+      return notFound("user", { identifier: userId });
     }
 
     // Use existing handleUserCreated function to create profile

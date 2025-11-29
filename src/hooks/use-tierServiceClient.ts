@@ -63,44 +63,35 @@ export function useUserTier(
 
     // Create a promise for this fetch and store it globally
     const fetchPromise = (async () => {
-      try {
-        console.log(`🎫 Fetching tier for user ${userId}...`);
-        const data = await fetchCachedUserTier(userId);
+      console.log(`🎫 Fetching tier for user ${userId}...`);
+      const result = await fetchCachedUserTier(userId);
 
-        if (isValidTier(data)) {
-          console.log(`🎫 User tier fetched: ${data}`);
-          return data;
-        } else {
-          console.warn(
-            `Invalid tier value: ${data || "none"}, defaulting to 'free'`
-          );
-          return "free" as ValidTier;
-        }
-      } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : "Unknown error";
-        console.error("Failed to fetch user tier:", errorMessage);
-        throw err;
-      } finally {
-        // Clean up the global state after fetch completes
-        globalFetchingState.delete(cacheKey);
+      // Clean up the global state after fetch completes
+      globalFetchingState.delete(cacheKey);
+
+      if (!result.success) {
+        console.error("Failed to fetch user tier:", result.error);
+        return "free" as ValidTier;
+      }
+
+      if (isValidTier(result.data)) {
+        console.log(`🎫 User tier fetched: ${result.data}`);
+        return result.data;
+      } else {
+        console.warn(
+          `Invalid tier value: ${result.data || "none"}, defaulting to 'free'`
+        );
+        return "free" as ValidTier;
       }
     })();
 
     globalFetchingState.set(cacheKey, fetchPromise);
 
-    try {
-      const tier = await fetchPromise;
-      setUserTier(tier);
-      setIsReady(true);
-      hasFetched.current = true;
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      setError(`Failed to fetch tier: ${errorMessage}`);
-      setUserTier("free");
-      setIsReady(true);
-    } finally {
-      setLoading(false);
-    }
+    const tier = await fetchPromise;
+    setUserTier(tier);
+    setIsReady(true);
+    hasFetched.current = true;
+    setLoading(false);
   }, [userId, skipFetch]);
 
   // Fetch on mount or user change

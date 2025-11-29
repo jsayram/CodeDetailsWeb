@@ -104,7 +104,7 @@ export function TagSubmissionManagement({
         );
       }
 
-      await refreshCache();
+      await refreshCache(true);
 
       // Remove all submissions that were handled (either approved or rejected)
       setSubmissions((prevSubmissions) =>
@@ -139,7 +139,7 @@ export function TagSubmissionManagement({
       toast.success(approvalMessage);
       
       // Refresh the tag cache
-      await refreshCache();
+      await refreshCache(true);
       
       // Update state to remove the approved submission
       setSubmissions((prevSubmissions) => {
