@@ -8,6 +8,7 @@ import { PaginationControls } from "@/components/navigation/Pagination/Paginatio
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { API_ROUTES } from "@/constants/api-routes";
+import { type ProjectQueryInput } from "@/types/schemas/project";
 import {
   Select,
   SelectContent,
@@ -37,7 +38,7 @@ export function SharedProjectsGrid({
   const [selectedCategory, setSelectedCategory] = useState<
     ProjectCategory | "all"
   >("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState<NonNullable<ProjectQueryInput["sortBy"]>>("random");
   const [pagination, setPagination] = useState({
     total: 0,
     totalPages: 1,
@@ -141,7 +142,7 @@ export function SharedProjectsGrid({
   };
 
   const handleSortChange = (value: string) => {
-    setSortBy(value);
+    setSortBy(value as NonNullable<ProjectQueryInput["sortBy"]>);
   };
   const hasCategoryProjects = (categoryKey: string) => {
     const hasProjects = projects.some(
@@ -199,7 +200,14 @@ export function SharedProjectsGrid({
               <SelectContent>
                 <SelectItem value="newest">Newest First</SelectItem>
                 <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="recently-edited">Recently Edited</SelectItem>
                 <SelectItem value="popular">Most Popular</SelectItem>
+                <SelectItem value="alphabetical">A-Z</SelectItem>
+                <SelectItem value="alphabetical-desc">Z-A</SelectItem>
+                <SelectItem value="most-tagged">Most Tagged</SelectItem>
+                <SelectItem value="least-favorited">Least Popular</SelectItem>
+                <SelectItem value="trending">Trending</SelectItem>
+                <SelectItem value="random">Random</SelectItem>
               </SelectContent>
             </Select>
           </div>

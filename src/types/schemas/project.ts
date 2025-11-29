@@ -164,9 +164,66 @@ export const projectQuerySchema = z.object({
   tags: z.array(z.string()).optional(),
   showFavorites: z.coerce.boolean().default(false),
   showDeleted: z.coerce.boolean().default(false),
-  sortBy: z.enum(["newest", "oldest", "recently-edited", "popular"]).default("newest"),
+  sortBy: z.enum([
+    "newest",
+    "oldest",
+    "recently-edited",
+    "popular",
+    "alphabetical",
+    "alphabetical-desc",
+    "most-tagged",
+    "least-favorited",
+    "trending",
+    "random"
+  ]).default("random"),
   page: z.coerce.number().min(DEFAULT_PAGE).default(DEFAULT_PAGE),
   limit: z.coerce.number().min(0).max(MAX_PROJECTS_PER_PAGE).default(DEFAULT_PROJECTS_PER_PAGE),
 });
 
 export type ProjectQueryInput = z.infer<typeof projectQuerySchema>;
+
+/**
+ * Schema for shared projects query parameters (public profile pages)
+ */
+export const sharedProjectsQuerySchema = z.object({
+  page: z.coerce.number().min(DEFAULT_PAGE).default(DEFAULT_PAGE),
+  limit: z.coerce.number().min(1).max(MAX_PROJECTS_PER_PAGE).default(DEFAULT_PROJECTS_PER_PAGE),
+  category: projectCategoryEnum.or(z.literal("all")).optional(),
+  sortBy: z.enum([
+    "newest",
+    "oldest",
+    "recently-edited",
+    "popular",
+    "alphabetical",
+    "alphabetical-desc",
+    "most-tagged",
+    "least-favorited",
+    "trending",
+    "random"
+  ]).default("random"),
+});
+
+export type SharedProjectsQueryInput = z.infer<typeof sharedProjectsQuerySchema>;
+
+/**
+ * Helper to parse URLSearchParams into a plain object for Zod validation
+ */
+export function parseSearchParams(searchParams: URLSearchParams): Record<string, string | string[]> {
+  const result: Record<string, string | string[]> = {};
+  
+  searchParams.forEach((value, key) => {
+    const existing = result[key];
+    if (existing !== undefined) {
+      // Handle array values (e.g., multiple tags)
+      if (Array.isArray(existing)) {
+        existing.push(value);
+      } else {
+        result[key] = [existing, value];
+      }
+    } else {
+      result[key] = value;
+    }
+  });
+  
+  return result;
+}

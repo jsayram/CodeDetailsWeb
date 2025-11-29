@@ -3,15 +3,14 @@ import { eq, and, SQL, inArray, desc, sql } from "drizzle-orm";
 import { executeQuery, DrizzleClient } from "@/db/server";
 import { getProject } from "@/app/actions/projects";
 import { projects } from "@/db/schema/projects";
-import { serverError, notFound, success } from "@/lib/api-errors";
+import { serverError, notFound, success, invalidInput } from "@/lib/api-errors";
 import { tags as tagsTable } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
 import { profiles } from "@/db/schema/profiles";
 import { favorites } from "@/db/schema/favorites";
-import {
-  ProjectCategory,
-  PROJECT_CATEGORIES,
-} from "@/constants/project-categories";
+import { PROJECT_CATEGORIES } from "@/constants/project-categories";
+import { projectQuerySchema, parseSearchParams, type ProjectQueryInput } from "@/types/schemas/project";
+import { ZodError } from "zod";
 
 // Helper function to build base project selection
 const buildProjectSelection = () => ({
@@ -45,6 +44,27 @@ const applySorting = (query: { orderBy: (...args: any[]) => any }, sortBy: strin
       return query.orderBy(sql`${projects.updated_at} desc`);
     case "popular":
       return query.orderBy(sql`${projects.total_favorites} desc`);
+    case "alphabetical":
+      return query.orderBy(sql`LOWER(${projects.title}) asc`);
+    case "alphabetical-desc":
+      return query.orderBy(sql`LOWER(${projects.title}) desc`);
+    case "most-tagged":
+      return query.orderBy(sql`(
+        SELECT COUNT(*)
+        FROM project_tags pt
+        WHERE pt.project_id = ${projects.id}
+      ) desc`);
+    case "least-favorited":
+      return query.orderBy(sql`${projects.total_favorites} asc`);
+    case "trending":
+      return query.orderBy(sql`(
+        SELECT COUNT(*)
+        FROM favorites f
+        WHERE f.project_id = ${projects.id}
+          AND f.created_at > NOW() - INTERVAL '7 days'
+      ) desc, ${projects.total_favorites} desc`);
+    case "random":
+      return query.orderBy(sql`RANDOM()`);
     case "newest":
     default:
       return query.orderBy(sql`${projects.created_at} desc`);
@@ -100,20 +120,27 @@ export async function GET(request: NextRequest) {
     headers.set("Content-Type", "application/json");
 
     const { searchParams } = new URL(request.url);
-    const showAll = searchParams.get("showAll") === "true";
-    const userId = searchParams.get("userId");
-    const slug = searchParams.get("slug");
-    const category = searchParams.get("category") as
-      | ProjectCategory
-      | "all"
-      | null;
-    const username = searchParams.get("username");
-    const tags = searchParams.getAll("tags");
-    const showFavorites = searchParams.get("showFavorites") === "true";
-    const showDeleted = searchParams.get("showDeleted") === "true";
-    const sortBy = searchParams.get("sortBy") || "newest";
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
-    const limit = Math.max(1, Number(searchParams.get("limit")) || 0);
+    
+    // Parse and validate query parameters using Zod schema
+    const rawParams = parseSearchParams(searchParams);
+    // Handle tags array specially since getAll returns array
+    rawParams.tags = searchParams.getAll("tags");
+    
+    const validatedParams: ProjectQueryInput = projectQuerySchema.parse(rawParams);
+    
+    const {
+      showAll,
+      userId,
+      slug,
+      category,
+      username,
+      tags = [],
+      showFavorites,
+      showDeleted,
+      sortBy,
+      page,
+      limit,
+    } = validatedParams;
 
     // Log request parameters for debugging
     console.log(
@@ -121,7 +148,7 @@ export async function GET(request: NextRequest) {
        - Category: ${category || "any"}
        - User: ${userId || "anonymous"}
        - Username: ${username || "any"}
-       - Tags: ${tags.length ? tags.join(", ") : "any"}
+       - Tags: ${tags.length > 0 ? tags.join(", ") : "any"}
        - Show All: ${showAll}
        - Show Favorites: ${showFavorites}
        - Show Deleted: ${showDeleted}
@@ -381,6 +408,10 @@ export async function GET(request: NextRequest) {
     // Ensure we always return a response with headers
     return new NextResponse(JSON.stringify(result), { status: 200, headers });
   } catch (error) {
+    // Handle Zod validation errors specifically
+    if (error instanceof ZodError) {
+      return invalidInput(error.errors.map(e => e.message).join(", "));
+    }
     return serverError();
   }
 }

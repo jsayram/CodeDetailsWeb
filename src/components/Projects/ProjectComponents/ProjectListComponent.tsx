@@ -482,6 +482,12 @@ export const ProjectList = React.memo(function ProjectList({
                   <SelectItem value="newest">Newest First</SelectItem>
                   <SelectItem value="oldest">Oldest First</SelectItem>
                   <SelectItem value="popular">Most Popular</SelectItem>
+                  <SelectItem value="alphabetical">A-Z</SelectItem>
+                  <SelectItem value="alphabetical-desc">Z-A</SelectItem>
+                  <SelectItem value="most-tagged">Most Tagged</SelectItem>
+                  <SelectItem value="least-favorited">Least Popular</SelectItem>
+                  <SelectItem value="trending">Trending</SelectItem>
+                  <SelectItem value="random">Random</SelectItem>
                 </SelectContent>
               </Select>
 

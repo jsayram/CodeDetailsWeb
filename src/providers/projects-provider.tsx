@@ -15,9 +15,13 @@ import { ProjectCategory } from "@/constants/project-categories";
 import { revalidateProjectCache } from "@/lib/swr-fetchers";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { projectsFetcher } from "@/lib/swr-fetchers";
+import { type ProjectQueryInput } from "@/types/schemas/project";
+
+// Use the sortBy type from Zod schema for type safety
+type SortByOption = NonNullable<ProjectQueryInput["sortBy"]>;
 
 export interface ProjectFilters {
-  sortBy: string;
+  sortBy: SortByOption;
   category: ProjectCategory | "all";
   showMyProjects: boolean;
   showFavorites: boolean;
@@ -105,7 +109,7 @@ export function ProjectsProvider({
 
   const [filters, setFiltersState] = useState<ProjectFilters>({
     showAll: true,
-    sortBy: "recently-edited",
+    sortBy: "random",
     category: "all",
     showMyProjects: false,
     showFavorites: false,
@@ -267,6 +271,42 @@ export function ProjectsProvider({
           const bFavorites = Number(b.total_favorites || 0);
           return bFavorites - aFavorites;
         });
+      case "alphabetical":
+        return result.sort((a, b) =>
+          a.title.toLowerCase().localeCompare(b.title.toLowerCase())
+        );
+      case "alphabetical-desc":
+        return result.sort((a, b) =>
+          b.title.toLowerCase().localeCompare(a.title.toLowerCase())
+        );
+      case "most-tagged":
+        return result.sort((a, b) => {
+          const aTags = a.tags?.length || 0;
+          const bTags = b.tags?.length || 0;
+          return bTags - aTags;
+        });
+      case "least-favorited":
+        return result.sort((a, b) => {
+          const aFavorites = Number(a.total_favorites || 0);
+          const bFavorites = Number(b.total_favorites || 0);
+          return aFavorites - bFavorites;
+        });
+      case "trending":
+        // Client-side approximation - server does proper 7-day filtering
+        return result.sort((a, b) => {
+          const aFavorites = Number(a.total_favorites || 0);
+          const bFavorites = Number(b.total_favorites || 0);
+          return bFavorites - aFavorites;
+        });
+      case "random": {
+        // Fisher-Yates shuffle for true random
+        const shuffled = [...result];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+      }
       default:
         return result;
     }
