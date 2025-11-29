@@ -245,7 +245,7 @@ export async function approveTagSubmission(
     }
 
     // Check if the project already has this specific tag
-    let existingProjectTag: any[] = [];
+    let existingProjectTag: { project_id: string; tag_id: string }[] = [];
     if (submission.project_id) {
       existingProjectTag = await db
         .select()

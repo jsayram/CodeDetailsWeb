@@ -106,7 +106,7 @@ async function extractClerkUserData(data: ClerkUserData) {
  * Create or update user profile in Supabase
  * This is the main sync function used by both webhooks and middleware
  */
-export async function createOrUpdateUserProfile(data: any) {
+export async function createOrUpdateUserProfile(data: ClerkUserData) {
   const userData = await extractClerkUserData(data);
   const { user_id } = userData;
 
@@ -158,7 +158,19 @@ export async function createOrUpdateUserProfile(data: any) {
         }
       }
       
-      const updateData: any = {
+      interface ProfileUpdateData {
+        email_address: string | null;
+        first_name: string;
+        last_name: string;
+        full_name: string;
+        username: string;
+        profile_image_url: string | undefined;
+        role: string;
+        updated_at: string;
+        tier?: string;
+      }
+
+      const updateData: ProfileUpdateData = {
         email_address: userData.email_address,
         first_name: userData.first_name,
         last_name: userData.last_name,

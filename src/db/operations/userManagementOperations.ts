@@ -1,6 +1,9 @@
 import { executeQuery } from "../server";
-import { eq, sql, or, ilike, desc } from "drizzle-orm";
+import { eq, sql, or, ilike, desc, SQL } from "drizzle-orm";
 import { profiles } from "../schema/profiles";
+
+// Type for profile update payload with SQL timestamp
+type ProfileUpdatePayload = UpdateProfileData & { updated_at: SQL };
 
 export interface UserProfile {
   id: string;
@@ -139,7 +142,7 @@ export async function updateUserProfile(
   updates: UpdateProfileData
 ): Promise<UserProfile> {
   return executeQuery(async (db) => {
-    const updateData: any = {
+    const updateData: ProfileUpdatePayload = {
       ...updates,
       updated_at: sql`now()`,
     };

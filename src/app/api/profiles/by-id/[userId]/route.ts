@@ -120,8 +120,9 @@ export async function GET(
               : null,
           },
         };
-      } catch (statsError: any) {
-        console.error("Error fetching stats:", statsError);
+      } catch (statsError: unknown) {
+        const errorMessage = statsError instanceof Error ? statsError.message : String(statsError);
+        console.error("Error fetching stats:", errorMessage);
         // Return profile with empty stats if stats query fails
         return {
           profile: profileData,

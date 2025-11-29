@@ -39,7 +39,7 @@ export function PageBanner({
   borderColor,
   tierBgColor,
   textGradient,
-  isUserBanner = true, // Default to user banner for backward compatibility
+  isUserBanner = true,
   logo,
 }: PageBannerProps) {
   // Extract first name or fallback to username/email prefix

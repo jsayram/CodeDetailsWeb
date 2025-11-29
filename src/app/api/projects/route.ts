@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and, SQL, inArray, desc, sql } from "drizzle-orm";
-import { executeQuery } from "@/db/server";
+import { executeQuery, DrizzleClient } from "@/db/server";
 import { getProject } from "@/app/actions/projects";
 import { projects } from "@/db/schema/projects";
 import { serverError, notFound, success } from "@/lib/api-errors";
@@ -35,8 +35,9 @@ const buildProjectSelection = () => ({
   },
 });
 
-// Helper function to apply sorting
-const applySorting = (query: any, sortBy: string) => {
+// Helper function to apply sorting - returns void as it mutates the query
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const applySorting = (query: { orderBy: (...args: any[]) => any }, sortBy: string) => {
   switch (sortBy) {
     case "oldest":
       return query.orderBy(sql`${projects.created_at} asc`);
@@ -51,7 +52,7 @@ const applySorting = (query: any, sortBy: string) => {
 };
 
 // Helper function to get project tags
-const getProjectTags = async (db: any, projectIds: string[]) => {
+const getProjectTags = async (db: DrizzleClient, projectIds: string[]) => {
   const allTags = await db
     .select({
       projectId: project_tags.project_id,
@@ -75,7 +76,7 @@ const getProjectTags = async (db: any, projectIds: string[]) => {
 };
 
 // Helper function to get user favorites
-const getUserFavorites = async (db: any, userId: string) => {
+const getUserFavorites = async (db: DrizzleClient, userId: string) => {
   const userProfile = await db
     .select()
     .from(profiles)

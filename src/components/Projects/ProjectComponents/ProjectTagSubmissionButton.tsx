@@ -6,11 +6,17 @@ import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { Tag as TagIcon } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 
+interface TagSubmission {
+  id: string;
+  tag_name: string;
+  status: string;
+}
+
 interface ProjectTagSubmissionButtonProps {
   projectId: string;
   projectTitle: string;
   currentTags: string[];
-  pendingTags?: any[];
+  pendingTags?: TagSubmission[];
   onSubmit?: () => Promise<void>;
   variant?: "default" | "outline" | "secondary" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";

@@ -641,8 +641,8 @@ function EditUserDialog({
           }, 500);
         }
       }, 100);
-    } catch (err: any) {
-      const errorMessage = err.message || "Failed to update user";
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to update user";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -1031,7 +1031,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               />
             </div>
             <div className="flex gap-2">
-              <Select value={tierFilter} onValueChange={(value: any) => setTierFilter(value)}>
+              <Select value={tierFilter} onValueChange={(value) => setTierFilter(value as typeof tierFilter)}>
                 <SelectTrigger className="w-[120px] sm:w-[140px] h-10 sm:h-12 text-sm">
                   <SelectValue placeholder="All Tiers" />
                 </SelectTrigger>
@@ -1042,7 +1042,7 @@ function AllUsersCard({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                   <SelectItem value="diamond">Diamond</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
                 <SelectTrigger className="w-[140px] sm:w-[180px] h-10 sm:h-12 text-sm">
                   <SelectValue />
                 </SelectTrigger>
@@ -1154,8 +1154,9 @@ function DashboardContent() {
       ]);
       setStats(data);
       setIsSuperAdmin(superAdminStatus);
-    } catch (err: any) {
-      setError(err.message || "Failed to load dashboard data");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load dashboard data";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

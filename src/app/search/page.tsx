@@ -25,6 +25,23 @@ import { SearchContentSkeleton } from "./loading";
 import { HighlightText } from "@/components/HighlightText";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 
+// Extended profile type matching the /api/profiles response
+// Note: username is required here because the code filters out profiles without usernames
+interface SearchProfile {
+  id: string;
+  user_id: string;
+  username: string; // Required - profiles without usernames are filtered out
+  full_name: string | null;
+  profile_image_url: string | null;
+  tier: string | null;
+  email_address: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  project_count: number;
+  total_favorites: number;
+  last_activity_date: string | null;
+}
+
 function SearchContent() {
   const router = useRouter();
   const { projects, loading } = useProjects();
@@ -32,7 +49,7 @@ function SearchContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
-  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [allProfiles, setAllProfiles] = useState<SearchProfile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
