@@ -133,7 +133,8 @@ export function ProjectsProvider({
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
-      dedupingInterval: 60000, // 1 minute deduplication
+      revalidateOnMount: true, // Always fetch fresh data when component mounts
+      dedupingInterval: 2000, // 2 second deduplication (allows refetch on navigation)
       keepPreviousData: true,
     }
   );
@@ -309,12 +310,13 @@ export function ProjectsProvider({
 /**
  * Invalidate projects cache from anywhere
  * Call after project mutations (create, update, delete, favorite, unfavorite)
- * This marks all project caches as stale - they will refetch when accessed
+ * This marks all project caches as stale - they will refetch when next accessed
+ * Using revalidate: false prevents immediate refetch, keeping UI smooth
  */
 export function invalidateProjectsCache() {
   mutate(
     (key) => typeof key === "string" && key.includes("/api/projects"),
     undefined,
-    { revalidate: true }
+    { revalidate: false }
   );
 }

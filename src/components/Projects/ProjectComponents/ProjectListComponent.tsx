@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { useProjects, invalidateProjectsCache } from "@/providers/projects-provider";
+import { useProjects } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
 import { GridIcon, TableIcon, Plus, ExternalLink } from "lucide-react";
 import { ProjectCardView } from "./ProjectCardViewComponent";
@@ -268,10 +268,7 @@ export const ProjectList = React.memo(function ProjectList({
             project.id === id ? projectWithUpdatedFavorite : project
           )
         );
-
-        // Invalidate all project caches so other pages (favorites, community, portfolio) get fresh data
-        // The current page keeps its local state, so sort order is preserved
-        invalidateProjectsCache();
+        // No cache invalidation needed - other pages will fetch fresh data on mount
       }
 
       toast.success(
