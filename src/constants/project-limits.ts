@@ -195,7 +195,7 @@ export const URL_VALIDATION_TIMEOUT_MS = TIMING_LIMITS.URL_VALIDATION_TIMEOUT_MS
 
 export const DATABASE_LIMITS = {
   /** Maximum number of tags to return in a single query */
-  MAX_TAGS_QUERY_RESULTS: 100,
+  MAX_TAGS_QUERY_RESULTS: 500,
   
   /** Maximum batch size for tag operations */
   MAX_TAG_BATCH_SIZE: 100,
