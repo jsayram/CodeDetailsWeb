@@ -11,6 +11,7 @@ import { isAdmin } from "@/lib/admin-utils";
 import { redirect } from "next/navigation";
 import { unstable_cache, revalidateTag } from 'next/cache';
 import { CACHE_TAGS } from "@/lib/swr-fetchers";
+import { DEFAULT_TOP_CONTRIBUTORS } from "@/constants/project-limits";
 
 export interface TopContributor {
   user_id: string;
@@ -296,13 +297,13 @@ export async function getTagPipelineAnalytics(forceRefresh = false) {
   return result;
 }
 
-export async function fetchTopContributors(limit: number = 20): Promise<TopContributor[]> {
+export async function fetchTopContributors(limit: number = DEFAULT_TOP_CONTRIBUTORS): Promise<TopContributor[]> {
   await checkAdminAccess();
   return getCachedTopContributors(limit);
 }
 
 // Public version for user list - excludes tag metrics to prevent spam
-export async function fetchTopContributorsPublic(limit: number = 20): Promise<TopContributor[]> {
+export async function fetchTopContributorsPublic(limit: number = DEFAULT_TOP_CONTRIBUTORS): Promise<TopContributor[]> {
   return executeQuery(async (db) => {
     // Get contributor stats without tag submissions (public view)
     const contributors = await db

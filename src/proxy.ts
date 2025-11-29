@@ -21,13 +21,15 @@ const isAdminRoute = createRouteMatcher([
   "/api/toasttest(.*)",
 ]);
 
+import { ADMIN_CACHE_TTL_MS, USER_SYNC_DEBOUNCE_MS } from "@/constants/project-limits";
+
 // Simple in-memory cache for admin checks (expires after 5 minutes)
 const adminCache = new Map<string, { isAdmin: boolean; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = ADMIN_CACHE_TTL_MS;
 
 // Sync deduplication cache - prevents redundant user sync calls
 const syncCache = new Map<string, number>(); // userId -> last sync timestamp
-const SYNC_DEBOUNCE_TIME = 5 * 60 * 1000; // 5 minutes - don't sync same user more than once per 5 minutes
+const SYNC_DEBOUNCE_TIME = USER_SYNC_DEBOUNCE_MS;
 
 function isAdminCached(userId: string, userEmail: string | undefined): boolean {
   const cached = adminCache.get(userId);

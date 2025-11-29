@@ -7,7 +7,7 @@ import { project_tags } from "@/db/schema/project_tags";
 import { eq, and, not } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { sql } from "drizzle-orm/sql";
-import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
+import { MAX_PROJECT_TAGS, MAX_ADMIN_NOTES_LENGTH } from "@/constants/project-limits";
 import { z } from "zod";
 import { tagNameSchema, tagDescriptionSchema } from "@/types/schemas";
 import { CACHE_TAGS } from "@/lib/swr-fetchers";
@@ -174,7 +174,7 @@ export async function getPendingTagSubmissions() {
 // Schema for approveTagSubmission input validation
 const approveTagSubmissionSchema = z.object({
   submissionId: z.string().uuid("Invalid submission ID format"),
-  adminNotes: z.string().max(500, "Admin notes must be at most 500 characters").optional(),
+  adminNotes: z.string().max(MAX_ADMIN_NOTES_LENGTH, `Admin notes must be at most ${MAX_ADMIN_NOTES_LENGTH} characters`).optional(),
   approvalType: z.enum(["system", "project"]).default("project"),
 });
 

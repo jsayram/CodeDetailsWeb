@@ -20,11 +20,13 @@ export interface TagInfo {
   count?: number; // Optional count for tag usage statistics
 }
 
+import { TAG_CACHE_DURATION_MS, MAX_TAGS_QUERY_RESULTS, MAX_TAG_BATCH_SIZE, MAX_TAGS_PER_CONTENT_QUERY } from '@/constants/project-limits';
+
 // Cache structure for tag queries with improved typing
 const tagQueryCache = new Map<string, { tags: TagInfo[]; timestamp: number }>();
 // Promise cache to prevent duplicate queries (cache stampede fix)
 const pendingQueries = new Map<string, Promise<TagInfo[]>>();
-const CACHE_DURATION = 30 * 1000; // 30 seconds instead of 5 minutes
+const CACHE_DURATION = TAG_CACHE_DURATION_MS;
 
 // Helper to get cached tags or fetch from database
 async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
@@ -55,7 +57,7 @@ async function getOrFetchTags(query: string = ''): Promise<TagInfo[]> {
       .leftJoin(projects, eq(project_tags.project_id, projects.id))
       .groupBy(tagsTable.id, tagsTable.name)
       .orderBy(desc(sql<number>`COUNT(DISTINCT CASE WHEN ${project_tags.project_id} IS NOT NULL AND projects.deleted_at IS NULL THEN ${project_tags.project_id} ELSE NULL END)`), desc(tagsTable.name))
-      .limit(100); // Limit results to prevent returning thousands of tags
+      .limit(MAX_TAGS_QUERY_RESULTS);
 
     if (query) {
       return await baseQuery.where(sql`${tagsTable.name} ILIKE ${`%${query}%`}`);
@@ -100,7 +102,7 @@ export async function getTagsForContent(
       .innerJoin(project_tags, eq(project_tags.tag_id, tagsTable.id))
       .where(eq(project_tags.project_id, contentId))
       .orderBy(desc(tagsTable.name))
-      .limit(100); // Limit results per content
+      .limit(MAX_TAGS_PER_CONTENT_QUERY);
   });
 }
 
@@ -118,7 +120,7 @@ export async function findOrCreateTags(tagNames: string[]): Promise<TagInfo[]> {
         })
         .from(tagsTable)
         .where(inArray(tagsTable.name, uniqueNames))
-        .limit(100); // Limit batch size
+        .limit(MAX_TAG_BATCH_SIZE);
 
       const existingTagNames = new Set(existingTags.map(tag => tag.name));
       const newTagNames = uniqueNames.filter(name => !existingTagNames.has(name));

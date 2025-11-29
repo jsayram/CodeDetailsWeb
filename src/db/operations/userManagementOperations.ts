@@ -1,6 +1,7 @@
 import { executeQuery } from "../server";
 import { eq, sql, or, ilike, desc, SQL } from "drizzle-orm";
 import { profiles } from "../schema/profiles";
+import { DEFAULT_PAGE, DEFAULT_USERS_PER_PAGE } from "@/constants/project-limits";
 
 // Type for profile update payload with SQL timestamp
 type ProfileUpdatePayload = UpdateProfileData & { updated_at: SQL };
@@ -45,8 +46,8 @@ export type TierFilter = 'all' | 'free' | 'pro' | 'diamond';
  */
 export async function getAllUsers(
   search?: string,
-  page: number = 1,
-  limit: number = 100,
+  page: number = DEFAULT_PAGE,
+  limit: number = DEFAULT_USERS_PER_PAGE,
   sortBy: SortOption = 'recent-edit',
   tierFilter: TierFilter = 'all'
 ): Promise<PaginatedUsers> {

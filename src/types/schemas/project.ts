@@ -162,8 +162,8 @@ export const projectQuerySchema = z.object({
   showFavorites: z.coerce.boolean().default(false),
   showDeleted: z.coerce.boolean().default(false),
   sortBy: z.enum(["newest", "oldest", "recently-edited", "popular"]).default("newest"),
-  page: z.coerce.number().min(1).default(1),
-  limit: z.coerce.number().min(0).max(100).default(20),
+  page: z.coerce.number().min(DEFAULT_PAGE).default(DEFAULT_PAGE),
+  limit: z.coerce.number().min(0).max(MAX_PROJECTS_PER_PAGE).default(DEFAULT_PROJECTS_PER_PAGE),
 });
 
 export type ProjectQueryInput = z.infer<typeof projectQuerySchema>;

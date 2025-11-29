@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_PROJECT_TAGS } from '@/constants/project-limits';
+import { MAX_PROJECT_TAGS, MIN_TAG_NAME_LENGTH, MAX_TAG_LENGTH, MAX_TAG_DESCRIPTION_LENGTH, MAX_REJECTION_REASON_LENGTH } from '@/constants/project-limits';
 
 // Reserved and profane words that cannot be used as tags
 import { PROFANITY_LIST } from '@/constants/profanity-list';
@@ -13,8 +13,8 @@ import { PROFANITY_LIST } from '@/constants/profanity-list';
  */
 export const tagNameSchema = z
   .string()
-  .min(2, 'Tag must be at least 2 characters')
-  .max(50, 'Tag must be at most 50 characters')
+  .min(MIN_TAG_NAME_LENGTH, `Tag must be at least ${MIN_TAG_NAME_LENGTH} characters`)
+  .max(MAX_TAG_LENGTH, `Tag must be at most ${MAX_TAG_LENGTH} characters`)
   .regex(
     /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/,
     'Tag must be lowercase, alphanumeric with hyphens, and cannot start/end with hyphen'
@@ -33,7 +33,7 @@ export const tagNameSchema = z
  */
 export const tagDescriptionSchema = z
   .string()
-  .max(500, 'Description must be at most 500 characters')
+  .max(MAX_TAG_DESCRIPTION_LENGTH, `Description must be at most ${MAX_TAG_DESCRIPTION_LENGTH} characters`)
   .optional();
 
 /**
@@ -61,7 +61,7 @@ export const approveTagSchema = z.object({
   approved: z.boolean(),
   rejectionReason: z
     .string()
-    .max(500, 'Rejection reason must be at most 500 characters')
+    .max(MAX_REJECTION_REASON_LENGTH, `Rejection reason must be at most ${MAX_REJECTION_REASON_LENGTH} characters`)
     .optional(),
 });
 

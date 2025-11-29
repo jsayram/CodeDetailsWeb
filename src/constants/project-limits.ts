@@ -148,3 +148,144 @@ export function formatFileSize(bytes: number): string {
   
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
+
+// ============================================================================
+// TIMING & CACHE LIMITS
+// ============================================================================
+
+export const TIMING_LIMITS = {
+  /** Debounce time for search input (milliseconds) */
+  SEARCH_DEBOUNCE_MS: 400,
+  
+  /** User sync debounce time (milliseconds) - don't sync same user more than once per 5 minutes */
+  USER_SYNC_DEBOUNCE_MS: 5 * 60 * 1000, // 5 minutes
+  
+  /** Token refresh debounce time (milliseconds) - minimum between refreshes */
+  TOKEN_REFRESH_DEBOUNCE_MS: 5 * 60 * 1000, // 5 minutes
+  
+  /** Token cache duration (milliseconds) */
+  TOKEN_CACHE_DURATION_MS: 30 * 60 * 1000, // 30 minutes
+  
+  /** Admin cache TTL (milliseconds) */
+  ADMIN_CACHE_TTL_MS: 5 * 60 * 1000, // 5 minutes
+  
+  /** Tag query cache duration (milliseconds) */
+  TAG_CACHE_DURATION_MS: 30 * 1000, // 30 seconds
+  
+  /** Text typing animation speed (milliseconds per character) */
+  TEXT_TYPING_SPEED_MS: 100,
+  
+  /** Default URL validation timeout (milliseconds) */
+  URL_VALIDATION_TIMEOUT_MS: 5000, // 5 seconds
+} as const;
+
+// Convenience exports for timing limits
+export const SEARCH_DEBOUNCE_MS = TIMING_LIMITS.SEARCH_DEBOUNCE_MS;
+export const USER_SYNC_DEBOUNCE_MS = TIMING_LIMITS.USER_SYNC_DEBOUNCE_MS;
+export const TOKEN_REFRESH_DEBOUNCE_MS = TIMING_LIMITS.TOKEN_REFRESH_DEBOUNCE_MS;
+export const TOKEN_CACHE_DURATION_MS = TIMING_LIMITS.TOKEN_CACHE_DURATION_MS;
+export const ADMIN_CACHE_TTL_MS = TIMING_LIMITS.ADMIN_CACHE_TTL_MS;
+export const TAG_CACHE_DURATION_MS = TIMING_LIMITS.TAG_CACHE_DURATION_MS;
+export const TEXT_TYPING_SPEED_MS = TIMING_LIMITS.TEXT_TYPING_SPEED_MS;
+export const URL_VALIDATION_TIMEOUT_MS = TIMING_LIMITS.URL_VALIDATION_TIMEOUT_MS;
+
+// ============================================================================
+// DATABASE & QUERY LIMITS
+// ============================================================================
+
+export const DATABASE_LIMITS = {
+  /** Maximum number of tags to return in a single query */
+  MAX_TAGS_QUERY_RESULTS: 100,
+  
+  /** Maximum batch size for tag operations */
+  MAX_TAG_BATCH_SIZE: 100,
+  
+  /** Default limit for user's projects on profile page */
+  USER_PROJECTS_DEFAULT_LIMIT: 10,
+  
+  /** Maximum results per content when fetching tags */
+  MAX_TAGS_PER_CONTENT_QUERY: 100,
+} as const;
+
+// Convenience exports for database limits
+export const MAX_TAGS_QUERY_RESULTS = DATABASE_LIMITS.MAX_TAGS_QUERY_RESULTS;
+export const MAX_TAG_BATCH_SIZE = DATABASE_LIMITS.MAX_TAG_BATCH_SIZE;
+export const USER_PROJECTS_DEFAULT_LIMIT = DATABASE_LIMITS.USER_PROJECTS_DEFAULT_LIMIT;
+export const MAX_TAGS_PER_CONTENT_QUERY = DATABASE_LIMITS.MAX_TAGS_PER_CONTENT_QUERY;
+
+// ============================================================================
+// VALIDATION LIMITS
+// ============================================================================
+
+export const VALIDATION_LIMITS = {
+  /** Minimum tag name length */
+  MIN_TAG_NAME_LENGTH: 2,
+  
+  /** Maximum tag description length */
+  MAX_TAG_DESCRIPTION_LENGTH: 500,
+  
+  /** Maximum URL length */
+  MAX_URL_LENGTH: 2048,
+  
+  /** Minimum URL length */
+  MIN_URL_LENGTH: 1,
+  
+  /** Maximum cache tag length */
+  MAX_CACHE_TAG_LENGTH: 100,
+  
+  /** Maximum cache tags per request */
+  MAX_CACHE_TAGS_PER_REQUEST: 50,
+  
+  /** Maximum admin notes length */
+  MAX_ADMIN_NOTES_LENGTH: 500,
+  
+  /** Maximum rejection reason length */
+  MAX_REJECTION_REASON_LENGTH: 500,
+} as const;
+
+// Convenience exports for validation limits
+export const MIN_TAG_NAME_LENGTH = VALIDATION_LIMITS.MIN_TAG_NAME_LENGTH;
+export const MAX_TAG_DESCRIPTION_LENGTH = VALIDATION_LIMITS.MAX_TAG_DESCRIPTION_LENGTH;
+export const MAX_URL_LENGTH = VALIDATION_LIMITS.MAX_URL_LENGTH;
+export const MIN_URL_LENGTH = VALIDATION_LIMITS.MIN_URL_LENGTH;
+export const MAX_CACHE_TAG_LENGTH = VALIDATION_LIMITS.MAX_CACHE_TAG_LENGTH;
+export const MAX_CACHE_TAGS_PER_REQUEST = VALIDATION_LIMITS.MAX_CACHE_TAGS_PER_REQUEST;
+export const MAX_ADMIN_NOTES_LENGTH = VALIDATION_LIMITS.MAX_ADMIN_NOTES_LENGTH;
+export const MAX_REJECTION_REASON_LENGTH = VALIDATION_LIMITS.MAX_REJECTION_REASON_LENGTH;
+
+// ============================================================================
+// PAGINATION LIMITS
+// ============================================================================
+
+export const PAGINATION_LIMITS = {
+  /** Default page number */
+  DEFAULT_PAGE: 1,
+  
+  /** Maximum projects per page */
+  MAX_PROJECTS_PER_PAGE: 100,
+  
+  /** Default projects per page */
+  DEFAULT_PROJECTS_PER_PAGE: 20,
+  
+  /** Default users per page */
+  DEFAULT_USERS_PER_PAGE: 100,
+  
+  /** Default limit for top contributors */
+  DEFAULT_TOP_CONTRIBUTORS: 20,
+  
+  /** Maximum tags to show on card (desktop) */
+  MAX_TAGS_ON_CARD_DESKTOP: 3,
+  
+  /** Maximum tags to show on card (mobile) */
+  MAX_TAGS_ON_CARD_MOBILE: 2,
+} as const;
+
+// Convenience exports for pagination limits
+export const DEFAULT_PAGE = PAGINATION_LIMITS.DEFAULT_PAGE;
+export const MAX_PROJECTS_PER_PAGE = PAGINATION_LIMITS.MAX_PROJECTS_PER_PAGE;
+export const DEFAULT_PROJECTS_PER_PAGE = PAGINATION_LIMITS.DEFAULT_PROJECTS_PER_PAGE;
+export const DEFAULT_USERS_PER_PAGE = PAGINATION_LIMITS.DEFAULT_USERS_PER_PAGE;
+export const DEFAULT_TOP_CONTRIBUTORS = PAGINATION_LIMITS.DEFAULT_TOP_CONTRIBUTORS;
+export const MAX_TAGS_ON_CARD_DESKTOP = PAGINATION_LIMITS.MAX_TAGS_ON_CARD_DESKTOP;
+export const MAX_TAGS_ON_CARD_MOBILE = PAGINATION_LIMITS.MAX_TAGS_ON_CARD_MOBILE;
+

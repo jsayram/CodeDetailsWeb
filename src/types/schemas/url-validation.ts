@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MIN_URL_LENGTH, MAX_URL_LENGTH } from '@/constants/project-limits';
 
 /**
  * Schema for URL validation endpoint
@@ -7,8 +8,8 @@ import { z } from 'zod';
 export const urlValidationRequestSchema = z.object({
   url: z
     .string()
-    .min(1, 'URL is required')
-    .max(2048, 'URL must be at most 2048 characters')
+    .min(MIN_URL_LENGTH, 'URL is required')
+    .max(MAX_URL_LENGTH, `URL must be at most ${MAX_URL_LENGTH} characters`)
     .url('Invalid URL format')
     .refine(
       (val) => {

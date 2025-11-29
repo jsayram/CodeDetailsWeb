@@ -39,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ProjectLink } from "@/types/project-links";
+import { MAX_TAGS_ON_CARD_DESKTOP, MAX_TAGS_ON_CARD_MOBILE } from "@/constants/project-limits";
 
 interface ProjectCardProps {
   project: Project;
@@ -93,9 +94,9 @@ export const ProjectCard = React.memo(
 
     // This is the number of tags that will be shown on the card
     // If there are more than this number of tags, a "+N" button will be displayed
-    let tagShowLimitOnCard = 3;
+    let tagShowLimitOnCard: number = MAX_TAGS_ON_CARD_DESKTOP;
     if (isMobile) {
-      tagShowLimitOnCard = 2;
+      tagShowLimitOnCard = MAX_TAGS_ON_CARD_MOBILE;
     }
 
     // Handle permanent deletion

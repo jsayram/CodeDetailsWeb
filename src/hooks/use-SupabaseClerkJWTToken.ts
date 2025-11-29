@@ -1,10 +1,11 @@
 "use client";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession } from "@clerk/nextjs";
+import { TOKEN_REFRESH_DEBOUNCE_MS, TOKEN_CACHE_DURATION_MS } from "@/constants/project-limits";
 
 // Token refresh constants
-const TOKEN_REFRESH_DEBOUNCE = 5 * 60 * 1000; // 5 minutes minimum between refreshes
-const TOKEN_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache duration
+const TOKEN_REFRESH_DEBOUNCE = TOKEN_REFRESH_DEBOUNCE_MS;
+const TOKEN_CACHE_DURATION = TOKEN_CACHE_DURATION_MS;
 const STORAGE_KEY = "clerk_token_cache";
 
 // Global cache to prevent multiple components from fetching simultaneously

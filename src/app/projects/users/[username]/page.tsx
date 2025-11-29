@@ -21,6 +21,7 @@ import Image from "next/image";
 import { TerminalWindowSection } from "@/components/layout/TerminalWindowSection";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 import { useRouter } from "next/navigation";
+import { USER_PROJECTS_DEFAULT_LIMIT } from "@/constants/project-limits";
 
 interface PageProps {
   params: Promise<{ username: string }> | { username: string };
@@ -115,7 +116,7 @@ export default function UserProjectsPage({ params }: PageProps) {
             username: decodedUsername,
             showAll: false,
             page: currentPage,
-            limit: 10,
+            limit: USER_PROJECTS_DEFAULT_LIMIT,
           }}
         >
           <SidebarProvider>
