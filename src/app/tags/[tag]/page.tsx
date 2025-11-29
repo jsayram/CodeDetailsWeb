@@ -27,7 +27,9 @@ export default function TagPage({ params }: PageProps) {
 
   useEffect(() => {
     if (resolvedParams.tag) {
-      setDecodedTag(decodeURIComponent(resolvedParams.tag));
+      // Normalize tag name: decode URL and convert to lowercase for case-insensitive matching
+      const normalizedTag = decodeURIComponent(resolvedParams.tag).toLowerCase().trim();
+      setDecodedTag(normalizedTag);
     }
   }, [resolvedParams.tag]);
 
