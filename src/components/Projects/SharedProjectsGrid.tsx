@@ -10,6 +10,7 @@ import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLo
 import { API_ROUTES } from "@/constants/api-routes";
 import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
 import { ProjectCategory } from "@/constants/project-categories";
+import { useUserCategoryCounts } from "@/hooks/use-user-category-counts";
 
 interface SharedProjectsGridProps {
   username: string;
@@ -23,6 +24,7 @@ export function SharedProjectsGrid({
   onPageChange,
 }: SharedProjectsGridProps) {
   const router = useRouter();
+  const { hasCategoryProjects } = useUserCategoryCounts(username);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<
@@ -136,12 +138,6 @@ export function SharedProjectsGrid({
 
   const handleSortChange = (value: SortByValue) => {
     setSortBy(value);
-  };
-  const hasCategoryProjects = (categoryKey: string) => {
-    const hasProjects = projects.some(
-      (project) => project.category === categoryKey
-    );
-    return hasProjects;
   };
 
   if (loading) {
