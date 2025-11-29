@@ -1366,13 +1366,14 @@ function DashboardContent() {
     }
   }, []);
 
+  // Always force refresh on mount to ensure fresh data after navigating back
   React.useEffect(() => {
-    loadData();
+    loadData(true);
   }, [loadData]);
 
-  // Load advanced analytics
+  // Load advanced analytics with force refresh on mount
   React.useEffect(() => {
-    loadAnalytics();
+    loadAnalytics(true);
   }, [loadAnalytics]);
 
   if (loading) {

@@ -1,6 +1,9 @@
 import { getPendingTagSubmissions } from "@/app/actions/tag-submissions";
 import { TagSubmissionManagement } from "@/components/administrator/TagSubmissionManagement";
 
+// Force dynamic rendering to always get fresh data
+export const dynamic = 'force-dynamic';
+
 export default async function TagSubmissionsPage() {
   const submissions = await getPendingTagSubmissions();
 

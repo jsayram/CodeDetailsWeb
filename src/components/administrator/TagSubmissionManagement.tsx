@@ -54,6 +54,11 @@ export function TagSubmissionManagement({
   const [projectSlugs, setProjectSlugs] = useState<Record<string, string>>({});
   const { refreshCache } = useTags();
 
+  // Sync state with props when initialSubmissions changes (e.g., after navigation or refresh)
+  useEffect(() => {
+    setSubmissions(initialSubmissions);
+  }, [initialSubmissions]);
+
   const handleApprove = async (groupedTag: GroupedTagSubmission) => {
     const submissionIds = groupedTag.submissions.map((s) => s.id);
     const someProcessing = submissionIds.some((id) => isProcessing[id]);
