@@ -62,4 +62,4 @@ __pycache__/
 # python virtual environments
 venv/
 .env/
-apps/ai-codex/copilot-instructions.md
+.github/copilot-instructions.md
