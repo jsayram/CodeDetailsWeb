@@ -18,7 +18,7 @@ import { projectsFetcher } from "@/lib/swr-fetchers";
 import { type ProjectQueryInput } from "@/types/schemas/project";
 
 // Use the sortBy type from Zod schema for type safety
-type SortByOption = NonNullable<ProjectQueryInput["sortBy"]>;
+export type SortByOption = NonNullable<ProjectQueryInput["sortBy"]>;
 
 export interface ProjectFilters {
   sortBy: SortByOption;

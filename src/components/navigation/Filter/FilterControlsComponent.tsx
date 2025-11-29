@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useProjects } from "@/providers/projects-provider";
+import { useProjects, SortByOption } from "@/providers/projects-provider";
 import {
   Select,
   SelectContent,
@@ -27,7 +27,7 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
       <div className="filter-dropdown-container cursor-pointer">
         <Select
           value={filters.sortBy}
-          onValueChange={(value) => setFilters({ sortBy: value })}
+          onValueChange={(value) => setFilters({ sortBy: value as SortByOption })}
         >
           <SelectTrigger className="filter-select-trigger cursor-pointer">
             <SelectValue placeholder="Sort by" />
@@ -35,16 +35,16 @@ export function FilterControls({ showControls = true }: FilterControlsProps) {
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Sort by</SelectLabel>
+              <SelectItem value="random" className="cursor-pointer">Random</SelectItem>
               <SelectItem value="newest" className="cursor-pointer">Newest</SelectItem>
               <SelectItem value="oldest" className="cursor-pointer">Oldest</SelectItem>
               <SelectItem value="recently-edited" className="cursor-pointer">Recently Edited</SelectItem>
               <SelectItem value="popular" className="cursor-pointer">Popular</SelectItem>
+              <SelectItem value="trending" className="cursor-pointer">Trending</SelectItem>
               <SelectItem value="alphabetical" className="cursor-pointer">A-Z</SelectItem>
               <SelectItem value="alphabetical-desc" className="cursor-pointer">Z-A</SelectItem>
               <SelectItem value="most-tagged" className="cursor-pointer">Most Tagged</SelectItem>
               <SelectItem value="least-favorited" className="cursor-pointer">Least Popular</SelectItem>
-              <SelectItem value="trending" className="cursor-pointer">Trending</SelectItem>
-              <SelectItem value="random" className="cursor-pointer">Random</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>

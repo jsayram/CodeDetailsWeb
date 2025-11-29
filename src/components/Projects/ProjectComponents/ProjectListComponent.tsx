@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProjectFilters } from "@/providers/projects-provider";
+import { ProjectFilters, SortByOption } from "@/providers/projects-provider";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
@@ -404,7 +404,7 @@ export const ProjectList = React.memo(function ProjectList({
 
   // Sort change handler with proper typing
   const handleSortChange = useCallback(
-    (sortBy: string) => {
+    (sortBy: SortByOption) => {
       const newFilters: Partial<ProjectFilters> = { sortBy, page: 1 };
       setFilters(newFilters);
 
@@ -478,16 +478,16 @@ export const ProjectList = React.memo(function ProjectList({
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="recently-edited">Recently Edited</SelectItem>
+                  <SelectItem value="random">Random</SelectItem>
                   <SelectItem value="newest">Newest First</SelectItem>
                   <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="recently-edited">Recently Edited</SelectItem>
                   <SelectItem value="popular">Most Popular</SelectItem>
+                  <SelectItem value="trending">Trending</SelectItem>
                   <SelectItem value="alphabetical">A-Z</SelectItem>
                   <SelectItem value="alphabetical-desc">Z-A</SelectItem>
                   <SelectItem value="most-tagged">Most Tagged</SelectItem>
                   <SelectItem value="least-favorited">Least Popular</SelectItem>
-                  <SelectItem value="trending">Trending</SelectItem>
-                  <SelectItem value="random">Random</SelectItem>
                 </SelectContent>
               </Select>
 
