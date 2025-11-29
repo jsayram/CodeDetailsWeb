@@ -188,10 +188,12 @@ export function ProjectsProvider({
     setLocalProjects(null);
     
     // Revalidate all project-related cache keys
-    // Note: We don't pass undefined as data - this keeps existing data visible
-    // while revalidation happens in the background
+    // The second argument `undefined` keeps existing data visible during revalidation
+    // The third argument `{ revalidate: true }` forces refetch from server
     mutate(
       (key) => typeof key === "string" && key.includes("/api/projects"),
+      undefined,
+      { revalidate: true }
     );
   }, []);
 
@@ -306,7 +308,8 @@ export function ProjectsProvider({
 
 /**
  * Invalidate projects cache from anywhere
- * Call after project mutations
+ * Call after project mutations (create, update, delete, favorite, unfavorite)
+ * This marks all project caches as stale - they will refetch when accessed
  */
 export function invalidateProjectsCache() {
   mutate(

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { useProjects } from "@/providers/projects-provider";
+import { useProjects, invalidateProjectsCache } from "@/providers/projects-provider";
 import { Button } from "@/components/ui/button";
 import { GridIcon, TableIcon, Plus, ExternalLink } from "lucide-react";
 import { ProjectCardView } from "./ProjectCardViewComponent";
@@ -249,22 +249,30 @@ export const ProjectList = React.memo(function ProjectList({
       }
 
       // For all other cases, update the project in the current state
-      setProjects((prev) =>
-        (prev ?? projects).map((project) => {
-          if (project.id === id) {
-            const currentFavorites = Number(project.total_favorites || 0);
-            const newFavorites = isFavorite
-              ? currentFavorites + 1
-              : Math.max(0, currentFavorites - 1);
-            return {
-              ...project,
-              isFavorite,
-              total_favorites: newFavorites.toString(),
-            };
-          }
-          return project;
-        })
-      );
+      const updatedProject = projects.find((p) => p.id === id);
+      if (updatedProject) {
+        const currentFavorites = Number(updatedProject.total_favorites || 0);
+        const newFavorites = isFavorite
+          ? currentFavorites + 1
+          : Math.max(0, currentFavorites - 1);
+        const projectWithUpdatedFavorite = {
+          ...updatedProject,
+          isFavorite,
+          total_favorites: newFavorites.toString(),
+        };
+
+        // Update local state immediately for optimistic UI
+        // This preserves the current sort order (favorite actions shouldn't change "recently edited" order)
+        setProjects((prev) =>
+          (prev ?? projects).map((project) =>
+            project.id === id ? projectWithUpdatedFavorite : project
+          )
+        );
+
+        // Invalidate all project caches so other pages (favorites, community, portfolio) get fresh data
+        // The current page keeps its local state, so sort order is preserved
+        invalidateProjectsCache();
+      }
 
       toast.success(
         isFavorite ? "Added to favorites" : "Removed from favorites"
