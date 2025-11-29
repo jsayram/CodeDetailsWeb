@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { executeQuery } from "@/db/server";
 import { tag_submissions } from "@/db/schema/tag_submissions";
 import { eq, and } from "drizzle-orm";

@@ -191,11 +191,7 @@ export async function GET(
       };
     });
 
-    // Handle redirect responses specially (need to maintain backward compatibility)
-    if ("redirect" in result && result.redirect) {
-      return NextResponse.json(result);
-    }
-
+    // All responses use RFC 7807 compliant success() helper
     return success(result);
   } catch (error) {
     console.error("Error fetching shared projects:", error);

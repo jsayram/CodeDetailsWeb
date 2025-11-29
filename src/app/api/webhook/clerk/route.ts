@@ -4,7 +4,6 @@
  * Processes Clerk auth events and synchronizes user data with Supabase.
  * Handles: user.created, user.updated, user.deleted, session.created, session.removed
  */
-import { NextResponse } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { ClerkUserData } from "@/types/models/clerkUserData";
@@ -38,7 +37,7 @@ async function handleUserCreated(data: ClerkUserData) {
     // Invalidate user profile cache so fresh data is served immediately
     revalidateTag(CACHE_TAGS.USER_PROFILE, {});
     
-    return NextResponse.json(result);
+    return success(result);
   } catch (error) {
     return serverError(error instanceof Error ? error.message : "Error creating profile");
   }
@@ -54,7 +53,7 @@ async function handleUserUpdated(data: ClerkUserData) {
     // Invalidate user profile cache so fresh data is served immediately
     revalidateTag(CACHE_TAGS.USER_PROFILE, {});
     
-    return NextResponse.json(result);
+    return success(result);
   } catch (error) {
     return serverError(error instanceof Error ? error.message : "Error updating profile");
   }
@@ -96,7 +95,7 @@ async function handleUserDeleted(data: ClerkUserData) {
     // Invalidate user profile cache
     revalidateTag(CACHE_TAGS.USER_PROFILE, {});
     
-    return NextResponse.json({ message: "User deleted successfully" });
+    return success({ message: "User deleted successfully" });
   } catch (error) {
     return serverError(error instanceof Error ? error.message : "Error deleting profile");
   }
@@ -117,7 +116,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
 
   if (cachedTimestamp && now - cachedTimestamp < CACHE_TTL) {
     console.log(`🔍 User ${userId} was recently verified, skipping DB check`);
-    return NextResponse.json({
+    return success({
       message: "User recently verified, profile in sync",
     });
   }
@@ -145,9 +144,8 @@ async function handleSessionCreated(data: ClerkSessionData) {
       if (recentlyVerifiedUsers.size > 100) {
         cleanupCache();
       }
-      return NextResponse.json({
+      return success({
         message: "User profile verified and in sync",
-        status: "ok",
       });
     }
 
@@ -185,9 +183,8 @@ async function handleSessionRemoved(data: ClerkSessionData) {
     console.log(`🧹 Cleaned up cache entry for user: ${userId}`);
   }
 
-  return NextResponse.json({
+  return success({
     message: "Session removal processed",
-    status: "ok"
   });
 }
 

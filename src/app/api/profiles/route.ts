@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { executeQuery } from "@/db/server";
 import { profiles } from "@/db/schema/profiles";
 import { projects } from "@/db/schema/projects";
