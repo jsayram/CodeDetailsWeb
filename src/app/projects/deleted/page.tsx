@@ -10,7 +10,7 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "@/app/auth/ProtectedPage";
 import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
-import { useUserTier } from "@/hooks/use-tierServiceClient";
+import { useUserTier } from "@/hooks/use-user-tier";
 import { useState } from "react";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
@@ -21,7 +21,7 @@ import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement
 export default function DeletedProjects() {
   const { user, isLoaded: userLoaded } = useUser();
   const { token, loading: tokenLoading } = useSupabaseToken();
-  const { userTier } = useUserTier(null, user?.id ?? null, false);
+  const { userTier } = useUserTier(user?.id ?? null);
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
 
   // Determine overall loading state

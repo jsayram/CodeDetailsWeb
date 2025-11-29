@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { Tag as TagIcon } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 

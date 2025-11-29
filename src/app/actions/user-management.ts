@@ -3,7 +3,8 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { requireAdmin } from "@/lib/admin-utils";
 import { getAllUsers, updateUserProfile, type UpdateProfileData, type SortOption, type TierFilter } from "@/db/operations/userManagementOperations";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 /**
  * Fetch paginated users with optional search (Super Admin only)
@@ -67,10 +68,17 @@ export async function updateUserAction(
   // Update the profile
   const updatedProfile = await updateUserProfile(profileId, updates);
 
-  // Revalidate the admin dashboard
+  // Revalidate caches
+  revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
+  revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+  
+  // If tier was updated, also invalidate tier cache
+  if (updates.tier) {
+    revalidateTag(CACHE_TAGS.USER_TIER, {});
+  }
+  
+  // Revalidate the admin dashboard path
   revalidatePath('/dashboard/admin');
-  updateTag('admin-dashboard');
-  updateTag('user-tier'); // If tier was updated
 
   return updatedProfile;
 }

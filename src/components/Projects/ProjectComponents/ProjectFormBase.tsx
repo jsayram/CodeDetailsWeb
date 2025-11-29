@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnnoyedIcon, RefreshCcwIcon, ChevronDown } from "lucide-react";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface ProjectFormBaseProps {

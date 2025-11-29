@@ -8,8 +8,8 @@ import { submitNewTag } from "@/app/actions/tag-submissions";
 import { toast } from "sonner";
 import { useUser } from "@clerk/nextjs";
 import { Badge } from "@/components/ui/badge";
-import { useTagCache } from "@/hooks/use-tag-cache";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { useTags } from "@/hooks/use-tags";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { Tag as TagIcon, Info, AlertCircle, CheckCircle2, X, ArrowLeft } from "lucide-react";
 import {
   Tooltip,
@@ -89,7 +89,7 @@ export default function SuggestTagsPage() {
   const projectSlug = params.slug as string;
   
   const { user, isLoaded } = useUser();
-  const { refreshCache } = useTagCache();
+  const { refreshCache } = useTags();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [email, setEmail] = useState("");
@@ -420,7 +420,7 @@ export default function SuggestTagsPage() {
 
       // If any tags were auto-approved, refresh the tag cache
       if (autoApproved.length > 0) {
-        await refreshCache(true);
+        await refreshCache();
       }
 
       if (errors.length > 0) {

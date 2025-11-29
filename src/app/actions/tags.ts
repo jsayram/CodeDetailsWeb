@@ -12,7 +12,8 @@ import {
 import { executeQuery } from "@/db/server";
 import { tags } from "@/db/schema";
 import { searchTags as dbSearchTags } from "@/db/operations/tag-operations";
-import { unstable_cache } from 'next/cache';
+import { unstable_cache, revalidateTag } from 'next/cache';
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 // Fixed content type for this file
 const PROJECT_CONTENT_TYPE = "project" as const;
@@ -53,6 +54,11 @@ export async function addTagToProjectAction(
     // Connect the tag to the project
     await addTagToContent("project", projectId, tag.id);
 
+    // Invalidate relevant caches
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
     return { success: true };
   } catch (error) {
     console.error("Error adding tag to project:", error);
@@ -72,6 +78,12 @@ export async function removeTagFromProjectAction(
 ) {
   try {
     await removeTagFromContent(PROJECT_CONTENT_TYPE, projectId, tagId);
+
+    // Invalidate relevant caches
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
     return { success: true };
   } catch (error) {
     console.error("Error removing tag from project:", error);
@@ -91,6 +103,12 @@ export async function replaceProjectTagsAction(
 ) {
   try {
     await replaceContentTags(PROJECT_CONTENT_TYPE, projectId, tagIds);
+
+    // Invalidate relevant caches
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
     return { success: true };
   } catch (error) {
     console.error("Error replacing project tags:", error);
@@ -148,6 +166,9 @@ export async function createTagAction(name: string) {
     if (!newTag) {
       throw new Error("Failed to create tag");
     }
+
+    // Invalidate tags cache
+    revalidateTag(CACHE_TAGS.TAGS, {});
 
     return {
       success: true,

@@ -16,7 +16,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { getTagInfo } from "@/constants/tag-descriptions";
-import { useTagCache } from "@/hooks/use-tag-cache";
+import { useTags } from "@/hooks/use-tags";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -28,7 +28,7 @@ import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement
 function SearchContent() {
   const router = useRouter();
   const { projects, loading } = useProjects();
-  const { tags: allTags, isLoading: tagsLoading } = useTagCache();
+  const { tags: allTags, isLoading: tagsLoading } = useTags();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [loadingItem, setLoadingItem] = useState<string | null>(null);

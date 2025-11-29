@@ -237,7 +237,7 @@ export const ProjectList = React.memo(function ProjectList({
       // If we're unfavoriting and on the favorites page, remove from UI immediately
       if (!isFavorite && showFavoritesOnly) {
         // Remove from current state immediately
-        setProjects((prev) => prev.filter((p) => p.id !== id));
+        setProjects((prev) => (prev ?? projects).filter((p) => p.id !== id));
 
         // Force a refresh of the projects list
         if (handleProjectDeleted) {
@@ -250,7 +250,7 @@ export const ProjectList = React.memo(function ProjectList({
 
       // For all other cases, update the project in the current state
       setProjects((prev) =>
-        prev.map((project) => {
+        (prev ?? projects).map((project) => {
           if (project.id === id) {
             const currentFavorites = Number(project.total_favorites || 0);
             const newFavorites = isFavorite
@@ -324,7 +324,7 @@ export const ProjectList = React.memo(function ProjectList({
       }
 
       // Remove from current state immediately
-      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
+      setProjects((prev) => (prev ?? projects).filter((p) => p.id !== projectToDelete.id));
 
       // Call the context handler to ensure global state is updated
       if (handleProjectDeleted) {

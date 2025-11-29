@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { isValidTier, getAccessibleTiers } from "@/services/tierServiceServer";
-import { useUserTier } from "@/hooks/use-tierServiceClient";
+import { useUserTier } from "@/hooks/use-user-tier";
 import Link from "next/link";
 import { LockIcon, ArrowUpCircle, HomeIcon } from "lucide-react";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
@@ -57,7 +57,6 @@ export default function ProtectedPage({
 
   // Use the tierService hook directly
   const { userTier, loading: loadingTier } = useUserTier(
-    null,
     user?.id || null
   );
 

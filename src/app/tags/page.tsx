@@ -11,7 +11,7 @@ import { PageBanner } from "@/components/ui/page-banner";
 import { Hash, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useTagCache } from "@/hooks/use-tag-cache";
+import { useTags } from "@/hooks/use-tags";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
@@ -21,7 +21,7 @@ export default function TagsIndexPage() {
   const { user, isLoaded: userLoaded } = useUser();
   const { token, loading: tokenLoading } = useSupabaseToken();
   const router = useRouter();
-  const { tags: allTags, isLoading: tagsLoading } = useTagCache();
+  const { tags: allTags, isLoading: tagsLoading } = useTags();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [clickedTag, setClickedTag] = useState<string | null>(null);

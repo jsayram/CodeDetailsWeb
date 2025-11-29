@@ -212,9 +212,9 @@
   - Dashboard loads user's projects
   - Stats reflect real-time changes
   - Deleted projects excluded from count
-  - Dashboard cache (localStorage) works with 5min TTL
-  - SWR background refresh updates stale data
-  - Manual refresh clears cache and refetches
+  - SWR cache with keepPreviousData works
+  - SWR background revalidation updates stale data
+  - mutate() clears cache and refetches
 
 - [ ] **E2E: Dashboard Interaction**
   - User sees their dashboard on login
@@ -402,18 +402,34 @@
   - `POST /api/projects` < 800ms
   - Search queries < 400ms
 
-### 7.3 Caching
-- [ ] **Unit: Cache Utils**
-  - Memory cache stores data
-  - Cache hits return immediately
-  - Cache invalidation works
-  - TTL respected
+### 7.3 Client-Side Caching (SWR)
+- [x] **Implementation: SWR Migration** *(Completed)*
+  - SWR provider configured globally
+  - Tags hook using SWR (useTags)
+  - User tier hook using SWR (useUserTier)
+  - Dashboard stats hook using SWR (useDashboardStats)
+  - Projects provider using SWR internally
 
-- [ ] **Integration: Next.js Cache**
-  - Static pages cached
-  - ISR revalidation works
-  - API routes tagged correctly
-  - Cache purged on mutations
+- [ ] **Unit: SWR Hooks**
+  - useTags returns tags array
+  - useTags.refreshTags triggers revalidation
+  - useTags.addTagToCache performs optimistic update
+  - useUserTier returns null when userId is null
+  - useUserTier.isReady reflects loading state
+  - ProjectsProvider filters generate correct cache keys
+
+- [ ] **Integration: SWR Cache Behavior**
+  - Deduplication prevents duplicate requests
+  - Cache invalidation via mutate() works
+  - keepPreviousData shows stale data during revalidation
+  - Error retry with exponential backoff
+  - revalidateOnFocus disabled per config
+
+- [ ] **Integration: Server-Side Cache (Next.js)**
+  - unstable_cache functions work correctly
+  - revalidateTag invalidates correct entries
+  - Cache tags match documentation
+  - TTL values appropriate for data volatility
 
 ---
 

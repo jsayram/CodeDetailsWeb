@@ -13,12 +13,14 @@ import { fetchClerkUser } from "@/services/clerkServerFetchUserService";
 import { ClerkSessionData } from "@/types/models/clerkSessionData";
 import { Webhook } from "svix";
 import { headers } from "next/headers";
+import { revalidateTag } from "next/cache";
 import {
   createOrUpdateUserProfile,
   recentlyVerifiedUsers,
   CACHE_TTL,
   cleanupCache,
 } from "@/lib/user-sync-utils";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 // Create a Supabase client (not public) for server-side operations
 const supabaseServer = createClient(
@@ -32,6 +34,10 @@ async function handleUserCreated(data: ClerkUserData) {
   
   try {
     const result = await createOrUpdateUserProfile(data);
+    
+    // Invalidate user profile cache so fresh data is served immediately
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+    
     return NextResponse.json(result);
   } catch (error) {
     return serverError(error instanceof Error ? error.message : "Error creating profile");
@@ -44,6 +50,10 @@ async function handleUserUpdated(data: ClerkUserData) {
   
   try {
     const result = await createOrUpdateUserProfile(data);
+    
+    // Invalidate user profile cache so fresh data is served immediately
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+    
     return NextResponse.json(result);
   } catch (error) {
     return serverError(error instanceof Error ? error.message : "Error updating profile");
@@ -82,6 +92,10 @@ async function handleUserDeleted(data: ClerkUserData) {
     }
 
     console.log(`✅ User ${user_id} successfully deleted from profiles`);
+    
+    // Invalidate user profile cache
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+    
     return NextResponse.json({ message: "User deleted successfully" });
   } catch (error) {
     return serverError(error instanceof Error ? error.message : "Error deleting profile");

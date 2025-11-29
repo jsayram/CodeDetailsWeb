@@ -3,13 +3,13 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { TagInput } from "@/components/ui/tag-input";
 import { TagInfo } from "@/db/operations/tag-operations";
-import { useTagCache } from "@/hooks/use-tag-cache";
+import { useTags } from "@/hooks/use-tags";
 import { TagSubmissionModal } from "./TagSubmissionModal";
 import { useUser } from "@clerk/nextjs";
 import { useProjects } from "@/providers/projects-provider";
 import { SelectTagSubmission } from "@/db/schema/tag_submissions";
 import { toast } from "sonner";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 
 interface TagSelectorProps {
   projectId?: string;
@@ -33,7 +33,7 @@ export function TagSelector({
     tags: cachedTags,
     isLoading: isTagCacheLoading,
     refreshCache,
-  } = useTagCache();
+  } = useTags();
   const isMounted = useRef(false);
   const { user } = useUser();
   const { projects } = useProjects();
