@@ -239,7 +239,7 @@ export default function UserProfilePage({ params }: PageProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex flex-col items-center">
-                    <Avatar className="h-24 w-24">
+                    <Avatar className="h-24 w-24 flex-shrink-0">
                       {profileData?.profile_image_url ? (
                         <AvatarImage
                           src={profileData.profile_image_url}
@@ -251,11 +251,13 @@ export default function UserProfilePage({ params }: PageProps) {
                         </AvatarFallback>
                       )}
                     </Avatar>
-                    <div className="text-center mt-4">
-                      <h2 className="text-xl font-semibold">
-                        {profileData?.username || "Loading..."}
-                      </h2>
-                      <p className="text-muted-foreground text-sm">
+                    <div className="text-center mt-4 w-full">
+                      <div className="overflow-x-auto px-2 pb-1">
+                        <h2 className="text-xl font-semibold whitespace-nowrap">
+                          {profileData?.username || "Loading..."}
+                        </h2>
+                      </div>
+                      <p className="text-muted-foreground text-sm truncate px-2">
                         {profileData?.email_address}
                       </p>
                     </div>
