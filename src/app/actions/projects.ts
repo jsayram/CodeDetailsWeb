@@ -95,7 +95,7 @@ export async function createProject(project: InsertProject, userId: string) {
       description: project.description,
       category: project.category,
       url_links: project.url_links,
-      tags: [], // Tags are handled separately
+      tags: project.tags || [],
     });
 
     if (!validationResult.success) {
@@ -121,6 +121,7 @@ export async function createProject(project: InsertProject, userId: string) {
       category: validatedData.category,
       user_id: userId,
       url_links: validatedData.url_links,
+      tags: validatedData.tags,
     };
 
     console.log('Creating project with data:', JSON.stringify(trimmedProject, null, 2));
@@ -283,11 +284,22 @@ export async function updateProject(
     if (validatedData.url_links !== undefined) {
       trimmedProject.url_links = validatedData.url_links;
     }
+    if (validatedData.tags !== undefined) {
+      trimmedProject.tags = validatedData.tags;
+    }
 
     console.log('Updating project with data:', JSON.stringify(trimmedProject, null, 2));
     const updatedProject = await updateProjectServer(id, trimmedProject);
+    
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
+    
+    // Revalidate the specific project page (using the new slug if changed, otherwise the original)
+    const projectSlug = updatedProject.slug || validatedData.slug;
+    if (projectSlug) {
+      revalidatePath(`/projects/${projectSlug}`);
+    }
+    
     updateTag('projects');
     updateTag('user-projects');
     updateTag('user-own-projects');

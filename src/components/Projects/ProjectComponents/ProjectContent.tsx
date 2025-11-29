@@ -566,9 +566,9 @@ export function ProjectContent({
             setIsNavigatingAfterSave(true);
             router.push(`/projects/${result.data.slug}`);
           } else {
-            // If slug didn't change, just remove the edit parameter
-            router.replace(url.pathname + url.search, { scroll: false });
+            // If slug didn't change, refresh first to get new data, then update URL
             router.refresh();
+            router.replace(url.pathname + url.search, { scroll: false });
           }
         }
       }
