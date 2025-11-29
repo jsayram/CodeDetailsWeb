@@ -8,6 +8,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { ClerkUserData } from "@/types/models/clerkUserData";
+import { MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH } from "@/constants/project-limits";
 
 // Create a Supabase client with service role (bypasses RLS)
 const supabaseServer = createClient(
@@ -109,6 +110,18 @@ async function extractClerkUserData(data: ClerkUserData) {
 export async function createOrUpdateUserProfile(data: ClerkUserData) {
   const userData = await extractClerkUserData(data);
   const { user_id } = userData;
+
+  // Validate username length matches Clerk's requirements (5-64 characters)
+  if (userData.username) {
+    if (userData.username.length < MIN_USERNAME_LENGTH) {
+      console.error(`Username too short: ${userData.username.length} characters`);
+      throw new Error(`Username must be at least ${MIN_USERNAME_LENGTH} characters`);
+    }
+    if (userData.username.length > MAX_USERNAME_LENGTH) {
+      console.error(`Username too long: ${userData.username.length} characters`);
+      throw new Error(`Username must be at most ${MAX_USERNAME_LENGTH} characters`);
+    }
+  }
 
   console.log(`🔄 Syncing user ${user_id} to Supabase profiles`);
 

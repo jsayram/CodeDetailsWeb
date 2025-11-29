@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin-utils";
 import { getAllUsers, updateUserProfile, type UpdateProfileData, type SortOption, type TierFilter } from "@/db/operations/userManagementOperations";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { CACHE_TAGS } from "@/lib/swr-fetchers";
+import { MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH } from "@/constants/project-limits";
 
 /**
  * Fetch paginated users with optional search (Super Admin only)
@@ -57,8 +58,14 @@ export async function updateUserAction(
   requireAdmin(userEmail);
 
   // Validate updates
-  if (updates.username && updates.username.trim().length < 3) {
-    throw new Error("Username must be at least 3 characters");
+  if (updates.username) {
+    const trimmedUsername = updates.username.trim();
+    if (trimmedUsername.length < MIN_USERNAME_LENGTH) {
+      throw new Error(`Username must be at least ${MIN_USERNAME_LENGTH} characters`);
+    }
+    if (trimmedUsername.length > MAX_USERNAME_LENGTH) {
+      throw new Error(`Username must be at most ${MAX_USERNAME_LENGTH} characters`);
+    }
   }
 
   if (updates.tier && !['free', 'pro', 'diamond'].includes(updates.tier)) {

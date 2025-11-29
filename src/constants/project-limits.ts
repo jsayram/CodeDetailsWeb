@@ -45,6 +45,38 @@ export const MAX_TAG_LENGTH = TAG_LIMITS.MAX_TAG_LENGTH;
 export const MIN_TAG_LENGTH = TAG_LIMITS.MIN_TAG_LENGTH;
 
 // ============================================================================
+// USER PROFILE LIMITS
+// ============================================================================
+
+export const USER_PROFILE_LIMITS = {
+  /** Minimum username length (matches Clerk's requirement) */
+  MIN_USERNAME_LENGTH: 5,
+  
+  /** Maximum username length (matches Clerk's requirement) */
+  MAX_USERNAME_LENGTH: 64,
+  
+  /** Maximum length for full name */
+  MAX_FULL_NAME_LENGTH: 100,
+  
+  /** Maximum length for first name */
+  MAX_FIRST_NAME_LENGTH: 50,
+  
+  /** Maximum length for last name */
+  MAX_LAST_NAME_LENGTH: 50,
+  
+  /** Maximum length for bio */
+  MAX_BIO_LENGTH: 500,
+} as const;
+
+// Convenience exports for username limits
+export const MIN_USERNAME_LENGTH = USER_PROFILE_LIMITS.MIN_USERNAME_LENGTH;
+export const MAX_USERNAME_LENGTH = USER_PROFILE_LIMITS.MAX_USERNAME_LENGTH;
+export const MAX_FULL_NAME_LENGTH = USER_PROFILE_LIMITS.MAX_FULL_NAME_LENGTH;
+export const MAX_FIRST_NAME_LENGTH = USER_PROFILE_LIMITS.MAX_FIRST_NAME_LENGTH;
+export const MAX_LAST_NAME_LENGTH = USER_PROFILE_LIMITS.MAX_LAST_NAME_LENGTH;
+export const MAX_BIO_LENGTH = USER_PROFILE_LIMITS.MAX_BIO_LENGTH;
+
+// ============================================================================
 // IMAGE LIMITS
 // ============================================================================
 

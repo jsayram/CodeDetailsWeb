@@ -6,6 +6,14 @@
  */
 
 import { z } from "zod";
+import { 
+  MIN_USERNAME_LENGTH, 
+  MAX_USERNAME_LENGTH,
+  MAX_FULL_NAME_LENGTH,
+  MAX_FIRST_NAME_LENGTH,
+  MAX_LAST_NAME_LENGTH,
+  MAX_BIO_LENGTH,
+} from "@/constants/project-limits";
 
 /**
  * Schema for updating a user profile
@@ -13,8 +21,8 @@ import { z } from "zod";
 export const updateProfileSchema = z.object({
   username: z
     .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be at most 30 characters")
+    .min(MIN_USERNAME_LENGTH, `Username must be at least ${MIN_USERNAME_LENGTH} characters`)
+    .max(MAX_USERNAME_LENGTH, `Username must be at most ${MAX_USERNAME_LENGTH} characters`)
     .regex(
       /^[a-zA-Z0-9_-]+$/,
       "Username can only contain letters, numbers, underscores, and hyphens"
@@ -34,25 +42,25 @@ export const updateProfileSchema = z.object({
   
   full_name: z
     .string()
-    .max(100, "Full name must be at most 100 characters")
+    .max(MAX_FULL_NAME_LENGTH, `Full name must be at most ${MAX_FULL_NAME_LENGTH} characters`)
     .optional()
     .nullable(),
   
   first_name: z
     .string()
-    .max(50, "First name must be at most 50 characters")
+    .max(MAX_FIRST_NAME_LENGTH, `First name must be at most ${MAX_FIRST_NAME_LENGTH} characters`)
     .optional()
     .nullable(),
   
   last_name: z
     .string()
-    .max(50, "Last name must be at most 50 characters")
+    .max(MAX_LAST_NAME_LENGTH, `Last name must be at most ${MAX_LAST_NAME_LENGTH} characters`)
     .optional()
     .nullable(),
   
   bio: z
     .string()
-    .max(500, "Bio must be at most 500 characters")
+    .max(MAX_BIO_LENGTH, `Bio must be at most ${MAX_BIO_LENGTH} characters`)
     .optional()
     .nullable(),
 });
@@ -69,8 +77,8 @@ export const createProfileSchema = z.object({
   
   username: z
     .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be at most 30 characters")
+    .min(MIN_USERNAME_LENGTH, `Username must be at least ${MIN_USERNAME_LENGTH} characters`)
+    .max(MAX_USERNAME_LENGTH, `Username must be at most ${MAX_USERNAME_LENGTH} characters`)
     .regex(
       /^[a-zA-Z0-9_-]+$/,
       "Username can only contain letters, numbers, underscores, and hyphens"
@@ -88,19 +96,19 @@ export const createProfileSchema = z.object({
   
   full_name: z
     .string()
-    .max(100, "Full name must be at most 100 characters")
+    .max(MAX_FULL_NAME_LENGTH, `Full name must be at most ${MAX_FULL_NAME_LENGTH} characters`)
     .optional()
     .nullable(),
   
   first_name: z
     .string()
-    .max(50, "First name must be at most 50 characters")
+    .max(MAX_FIRST_NAME_LENGTH, `First name must be at most ${MAX_FIRST_NAME_LENGTH} characters`)
     .optional()
     .nullable(),
   
   last_name: z
     .string()
-    .max(50, "Last name must be at most 50 characters")
+    .max(MAX_LAST_NAME_LENGTH, `Last name must be at most ${MAX_LAST_NAME_LENGTH} characters`)
     .optional()
     .nullable(),
 });
