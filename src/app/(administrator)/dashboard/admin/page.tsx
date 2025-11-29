@@ -1191,12 +1191,15 @@ function DashboardContent() {
         body: JSON.stringify({ tags: cacheTags }),
       });
 
-      if (response.ok) {
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         toast.success('Cache cleared successfully! Data will be refreshed.');
         // Reload data after cache clear
         await Promise.all([loadData(), loadAnalytics()]);
       } else {
-        toast.error('Failed to clear cache. Please try again.');
+        const errorMessage = data.error?.detail || data.error?.title || 'Failed to clear cache. Please try again.';
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error clearing cache:', error);

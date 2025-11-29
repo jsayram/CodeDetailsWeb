@@ -99,11 +99,11 @@ export async function setProjectTags(
   });
 }
 
-/* @returns Array of all tags in the system
+/**
+ * Get all tags from the database
+ * @returns Array of all tags in the system
  */
 export async function getAllTags(): Promise<SelectTag[]> {
   return executeQuery(async (db) => db.select().from(tags).orderBy(tags.name));
 }
-
-/**
 

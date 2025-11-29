@@ -1021,12 +1021,20 @@ function ProfileEditorCard() {
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error("Failed to update profile");
+      const data = await response.json();
 
-      toast.success("Profile updated successfully");
-      setIsEditing(false);
+      if (!response.ok) {
+        const errorMessage = data.error?.detail || data.error?.title || "Failed to update profile";
+        throw new Error(errorMessage);
+      }
+
+      if (data.success) {
+        toast.success("Profile updated successfully");
+        setIsEditing(false);
+      }
     } catch (error) {
-      toast.error("Failed to update profile");
+      const errorMessage = error instanceof Error ? error.message : "Failed to update profile";
+      toast.error(errorMessage);
       console.error("Error updating profile:", error);
     } finally {
       setIsSaving(false);

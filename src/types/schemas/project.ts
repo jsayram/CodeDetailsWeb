@@ -9,7 +9,10 @@ import { z } from "zod";
 import { 
   PROJECT_TEXT_LIMITS, 
   TAG_LIMITS, 
-  PROJECT_LINK_LIMITS 
+  PROJECT_LINK_LIMITS,
+  DEFAULT_PAGE,
+  MAX_PROJECTS_PER_PAGE,
+  DEFAULT_PROJECTS_PER_PAGE
 } from "@/constants/project-limits";
 
 /**

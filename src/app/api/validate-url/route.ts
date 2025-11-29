@@ -3,9 +3,9 @@
  * Bypasses CORS restrictions by checking URLs from the server
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { urlValidationRequestSchema } from '@/types/schemas';
-import { serverError } from '@/lib/api-errors';
+import { serverError, validationError, success } from '@/lib/api-errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +16,13 @@ export async function POST(request: NextRequest) {
 
     if (!validationResult.success) {
       const firstError = validationResult.error.issues[0];
-      return NextResponse.json({
-        reachable: false,
-        error: firstError.message,
-      });
+      return validationError(
+        [{
+          field: firstError.path.join('.'),
+          message: firstError.message,
+        }],
+        "Invalid URL validation request"
+      );
     }
 
     const { url } = validationResult.data;
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
         (response.status >= 300 && response.status < 400) ||
         response.status === 405;
 
-      return NextResponse.json({
+      return success({
         reachable: isReachable,
         statusCode: response.status,
         responseTime,
@@ -74,27 +77,27 @@ export async function POST(request: NextRequest) {
 
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          return NextResponse.json({
+          return success({
             reachable: false,
             error: `Request timed out after ${timeoutMs}ms`,
             responseTime,
           });
         }
 
-        return NextResponse.json({
+        return success({
           reachable: false,
           error: error.message,
           responseTime,
         });
       }
 
-      return NextResponse.json({
+      return success({
         reachable: false,
         error: 'Unknown error occurred',
         responseTime,
       });
     }
   } catch (error) {
-    return serverError("URL validation service failed");
+    return serverError(error, "URL validation service failed");
   }
 }

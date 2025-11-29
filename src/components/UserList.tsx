@@ -11,6 +11,7 @@ import type { TopContributor } from "@/app/actions/advanced-analytics";
 import { Trophy, Star, FileCode, Tag, Heart, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { HighlightText } from "@/components/HighlightText";
+import { SEARCH_DEBOUNCE_MS } from "@/constants/project-limits";
 
 type UserWithProjectCount = SelectProfile & {
   project_count: number;

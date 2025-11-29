@@ -3,8 +3,6 @@
 import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useUser } from "@clerk/nextjs";
-import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import { ProjectsProvider, useProjects } from "@/providers/projects-provider";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { PageBanner } from "@/components/ui/page-banner";
@@ -15,28 +13,43 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo, useState } from "react";
-import { Project } from "@/types/models/project";
+import { useEffect, useState } from "react";
 
-// Separate component that uses the context
+// Component that fetches and displays category counts
 function CategoriesContent() {
   const router = useRouter();
-  const { projects, loading } = useProjects();
-  const [loadingCategories, setLoadingCategories] = useState<
-    Record<string, boolean>
-  >({});
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [loadingCategories, setLoadingCategories] = useState<Record<string, boolean>>({});
 
-  // Count projects per category
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    projects.forEach((project: Project) => {
-      if (!project.deleted_at) {
-        // Don't count deleted projects
-        counts[project.category] = (counts[project.category] || 0) + 1;
+  // Fetch category counts from API
+  useEffect(() => {
+    async function fetchCategoryCounts() {
+      try {
+        const response = await fetch("/api/categories/counts");
+        if (response.ok) {
+          const data = await response.json();
+          // Handle RFC 7807 success response format
+          if (data.success && data.data) {
+            setCategoryCounts(data.data);
+          } else {
+            // Fallback for unexpected response format
+            setCategoryCounts(data);
+          }
+        } else {
+          // Handle RFC 7807 error response
+          const errorData = await response.json();
+          console.error("Failed to fetch category counts:", errorData.error?.detail || "Unknown error");
+        }
+      } catch (error) {
+        console.error("Failed to fetch category counts:", error);
+      } finally {
+        setLoading(false);
       }
-    });
-    return counts;
-  }, [projects]);
+    }
+
+    fetchCategoryCounts();
+  }, []);
 
   const handleCategoryClick = (key: string, hasProjects: boolean) => {
     if (!hasProjects) return;
@@ -127,21 +140,16 @@ function CategoriesContent() {
   );
 }
 
-// Main page component that provides the context
+// Main page component
 export default function CategoriesIndexPage() {
-  const { user, isLoaded: userLoaded } = useUser();
-  const { token, loading: tokenLoading } = useSupabaseToken();
-
   return (
-    <ProjectsProvider token={token} userId={user?.id ?? null}>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <HeaderSection />
-          <CategoriesContent />
-          <FooterSection />
-        </SidebarInset>
-      </SidebarProvider>
-    </ProjectsProvider>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <HeaderSection />
+        <CategoriesContent />
+        <FooterSection />
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

@@ -278,16 +278,19 @@ export async function checkUrlReachability(
 
     clearTimeout(timeout);
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const data = await response.json();
+      // Handle RFC 7807 error response
       return {
         reachable: false,
-        error: data.error || 'Validation failed',
+        error: data.error?.detail || data.error?.title || 'Validation failed',
         responseTime: Date.now() - startTime,
       };
     }
 
-    const result = await response.json();
+    // Handle RFC 7807 success response
+    const result = data.success ? data.data : data;
     return {
       reachable: result.reachable,
       statusCode: result.statusCode,
