@@ -4,7 +4,7 @@ import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useUser } from "@clerk/nextjs";
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
-import { ProjectsProvider, useProjects } from "@/providers/projects-provider";
+import { ProjectsProvider } from "@/providers/projects-provider";
 import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import { PageBanner } from "@/components/ui/page-banner";
@@ -12,11 +12,13 @@ import { Search, Hash, Folder, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { getTagInfo } from "@/constants/tag-descriptions";
 import { useTags } from "@/hooks/use-tags";
+import { useCategoryCounts } from "@/hooks/use-category-counts";
+import { useProfiles } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -25,34 +27,15 @@ import { SearchContentSkeleton } from "./loading";
 import { HighlightText } from "@/components/HighlightText";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 
-// Extended profile type matching the /api/profiles response
-// Note: username is required here because the code filters out profiles without usernames
-interface SearchProfile {
-  id: string;
-  user_id: string;
-  username: string; // Required - profiles without usernames are filtered out
-  full_name: string | null;
-  profile_image_url: string | null;
-  tier: string | null;
-  email_address: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  project_count: number;
-  total_favorites: number;
-  last_activity_date: string | null;
-}
-
 function SearchContent() {
   const router = useRouter();
-  const { projects, loading } = useProjects();
   const { tags: allTags, isLoading: tagsLoading } = useTags();
+  const { categoryCounts, isLoading: categoryCountsLoading } = useCategoryCounts();
+  const { profiles, isLoading: profilesLoading } = useProfiles();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
-  const [allProfiles, setAllProfiles] = useState<SearchProfile[]>([]);
-  const [profilesLoading, setProfilesLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-
 
   // Debounce search query
   useEffect(() => {
@@ -68,43 +51,6 @@ function SearchContent() {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // Fetch profiles only when user searches or switches to Users tab
-  const fetchProfiles = useCallback(async () => {
-    if (profilesLoading || allProfiles.length > 0) return; // Don't fetch if already loading or loaded
-    
-    try {
-      setProfilesLoading(true);
-      const response = await fetch("/api/profiles");
-      if (!response.ok) throw new Error("Failed to fetch profiles");
-      const result = await response.json();
-      if (result.success) {
-        setAllProfiles(result.data);
-      }
-    } catch (error) {
-      console.error("Error fetching profiles:", error);
-    } finally {
-      setProfilesLoading(false);
-    }
-  }, [profilesLoading, allProfiles.length]);
-
-  // Trigger profile fetch when user searches or switches to users tab
-  useEffect(() => {
-    if (debouncedSearchQuery.trim() || hasSearched) {
-      fetchProfiles();
-    }
-  }, [debouncedSearchQuery, hasSearched, fetchProfiles]);
-
-  // Filter categories
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    projects.forEach((project) => {
-      if (!project.deleted_at) {
-        counts[project.category] = (counts[project.category] || 0) + 1;
-      }
-    });
-    return counts;
-  }, [projects]);
 
   const filteredCategories = useMemo(() => {
     const searchLower = debouncedSearchQuery.toLowerCase().trim();
@@ -163,82 +109,34 @@ function SearchContent() {
     return [...top30Active, ...additionalTags];
   }, [allTags, debouncedSearchQuery]);
 
-  // Filter users (get ALL users from profiles API and enhance with project data)
+  // Filter users using API-provided stats directly
   const { activeUsers, inactiveUsers, totalInactiveCount } = useMemo(() => {
-    if (!allProfiles.length) {
+    // Filter out profiles without usernames
+    const validProfiles = profiles.filter((p) => p.username);
+    
+    if (!validProfiles.length) {
       return { activeUsers: [], inactiveUsers: [], totalInactiveCount: 0 };
     }
 
     const searchLower = debouncedSearchQuery.toLowerCase().trim();
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    // Build a map of username -> project tags for tag-based search
-    const userTagsMap = new Map<string, Set<string>>();
-    projects.forEach((project) => {
-      if (!project.deleted_at && project.profile?.username && project.tags) {
-        const username = project.profile.username;
-        if (!userTagsMap.has(username)) {
-          userTagsMap.set(username, new Set());
-        }
-        const tagSet = userTagsMap.get(username)!;
-        project.tags.forEach((tag) => {
-          tagSet.add(tag.toLowerCase());
-        });
-      }
-    });
 
-    // Build user data from profiles and enhance with project stats
-    const projectStatsMap = new Map<string, {
-      projectCount: number;
-      totalFavorites: number;
-      lastActivityDate: Date | null;
-    }>();
-
-    projects.forEach((project) => {
-      if (!project.deleted_at && project.profile?.username) {
-        const username = project.profile.username;
-        const existing = projectStatsMap.get(username);
-        const projectDate = new Date(project.updated_at || project.created_at || Date.now());
-        const favorites = Number(project.total_favorites) || 0;
-        
-        if (existing) {
-          existing.projectCount++;
-          existing.totalFavorites += favorites;
-          if (!existing.lastActivityDate || projectDate > existing.lastActivityDate) {
-            existing.lastActivityDate = projectDate;
-          }
-        } else {
-          projectStatsMap.set(username, {
-            projectCount: 1,
-            totalFavorites: favorites,
-            lastActivityDate: projectDate,
-          });
-        }
-      }
-    });
-
-    // Map all profiles to user objects
-    const allUsers = allProfiles.map(profile => {
-      const stats = projectStatsMap.get(profile.username) || {
-        projectCount: 0,
-        totalFavorites: 0,
-        lastActivityDate: null,
-      };
-      
-      const lastActivity = stats.lastActivityDate || (profile.last_activity_date ? new Date(profile.last_activity_date) : null);
+    // Map profiles to user objects using API-provided stats
+    const allUsers = validProfiles.map(profile => {
+      const lastActivity = profile.last_activity_date ? new Date(profile.last_activity_date) : null;
       const isActive = lastActivity ? lastActivity >= sevenDaysAgo : false;
       // Heavy weight on projects and favorites, minimal weight on recent activity
       // Projects: 100 points each, Favorites: 50 points each, Active: 5 points
-      const score = (stats.projectCount * 100) + (stats.totalFavorites * 50) + (isActive ? 5 : 0);
+      const score = (profile.project_count * 100) + (profile.total_favorites * 50) + (isActive ? 5 : 0);
 
       return {
-        username: profile.username,
+        username: profile.username!,
         email: profile.email_address || null,
         profileImage: profile.profile_image_url || null,
         fullName: profile.full_name || null,
-        projectCount: stats.projectCount,
-        totalFavorites: stats.totalFavorites,
+        projectCount: profile.project_count,
+        totalFavorites: profile.total_favorites,
         lastActivityDate: lastActivity,
         isActive,
         score,
@@ -277,10 +175,10 @@ function SearchContent() {
     
     return {
       activeUsers: filteredActive.slice(0, 30),
-      inactiveUsers: filteredInactive, // Show ALL inactive users (no limit)
+      inactiveUsers: filteredInactive,
       totalInactiveCount: filteredInactive.length
     };
-  }, [allProfiles, projects, debouncedSearchQuery]);
+  }, [profiles, debouncedSearchQuery]);
 
   const handleCategoryClick = (key: string, count: number) => {
     if (count === 0) return;
@@ -302,7 +200,7 @@ function SearchContent() {
   const totalResults = filteredCategories.length + filteredTags.length + activeUsers.length + inactiveUsers.length;
 
   const isSearching = debouncedSearchQuery !== searchQuery;
-  const isLoadingData = (debouncedSearchQuery.trim() && profilesLoading);
+  const isLoadingData = tagsLoading || categoryCountsLoading || profilesLoading;
   const showEmptyState = !hasSearched && !debouncedSearchQuery.trim();
 
   return (

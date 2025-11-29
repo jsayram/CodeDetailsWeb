@@ -74,6 +74,8 @@ export function getProjectsCacheKey(params: {
  */
 export const SWR_KEYS = {
   TAGS: "tags",
+  CATEGORY_COUNTS: "category-counts",
+  PROFILES: "profiles",
   USER_TIER: (userId: string) => `/api/tiers/user-tier?userId=${userId}`,
   PROJECTS: (filters: Record<string, unknown>) => 
     `projects:${JSON.stringify(filters)}`,
