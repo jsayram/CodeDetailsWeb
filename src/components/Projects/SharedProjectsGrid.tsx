@@ -68,7 +68,10 @@ export function SharedProjectsGrid({
         return;
       }
 
-      if (!result.data || !Array.isArray(result.data)) {
+      // Handle RFC 7807 success response format: { success: true, data: { data: [...], pagination: {...} } }
+      const responseData = result.success ? result.data : result;
+      
+      if (!responseData.data || !Array.isArray(responseData.data)) {
         throw new Error("Invalid response format");
       }
 
@@ -95,7 +98,7 @@ export function SharedProjectsGrid({
       }
 
       setProjects(
-        result.data.map((projectData: SharedProjectData) => {
+        responseData.data.map((projectData: SharedProjectData) => {
           const category = projectData.project.category || "other";
           return {
             ...projectData.project,
@@ -107,9 +110,9 @@ export function SharedProjectsGrid({
         })
       );
       setPagination({
-        total: result.pagination?.total ?? 0,
-        totalPages: result.pagination?.totalPages ?? 1,
-        currentPage: result.pagination?.page ?? currentPage,
+        total: responseData.pagination?.total ?? 0,
+        totalPages: responseData.pagination?.totalPages ?? 1,
+        currentPage: responseData.pagination?.page ?? currentPage,
       });
     } catch (error) {
       console.error("❌ Error in fetchSharedProjects:", error);
