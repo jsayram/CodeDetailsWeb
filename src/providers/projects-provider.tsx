@@ -15,13 +15,10 @@ import { ProjectCategory } from "@/constants/project-categories";
 import { revalidateProjectCache } from "@/lib/swr-fetchers";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { projectsFetcher } from "@/lib/swr-fetchers";
-import { type ProjectQueryInput } from "@/types/schemas/project";
-
-// Use the sortBy type from Zod schema for type safety
-export type SortByOption = NonNullable<ProjectQueryInput["sortBy"]>;
+import { SortByValue, DEFAULT_SORT_BY } from "@/constants/sort-options";
 
 export interface ProjectFilters {
-  sortBy: SortByOption;
+  sortBy: SortByValue;
   category: ProjectCategory | "all";
   showMyProjects: boolean;
   showFavorites: boolean;
@@ -109,7 +106,7 @@ export function ProjectsProvider({
 
   const [filters, setFiltersState] = useState<ProjectFilters>({
     showAll: true,
-    sortBy: "random",
+    sortBy: DEFAULT_SORT_BY,
     category: "all",
     showMyProjects: false,
     showFavorites: false,

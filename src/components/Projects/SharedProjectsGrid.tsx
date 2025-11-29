@@ -8,18 +8,8 @@ import { PaginationControls } from "@/components/navigation/Pagination/Paginatio
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { API_ROUTES } from "@/constants/api-routes";
-import { type ProjectQueryInput } from "@/types/schemas/project";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  PROJECT_CATEGORIES,
-  ProjectCategory,
-} from "@/constants/project-categories";
+import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
+import { ProjectCategory } from "@/constants/project-categories";
 
 interface SharedProjectsGridProps {
   username: string;
@@ -38,7 +28,7 @@ export function SharedProjectsGrid({
   const [selectedCategory, setSelectedCategory] = useState<
     ProjectCategory | "all"
   >("all");
-  const [sortBy, setSortBy] = useState<NonNullable<ProjectQueryInput["sortBy"]>>("random");
+  const [sortBy, setSortBy] = useState<SortByValue>("random");
   const [pagination, setPagination] = useState({
     total: 0,
     totalPages: 1,
@@ -137,12 +127,12 @@ export function SharedProjectsGrid({
     onPageChange?.(page);
   };
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category as ProjectCategory | "all");
+  const handleCategoryChange = (category: ProjectCategory | "all") => {
+    setSelectedCategory(category);
   };
 
-  const handleSortChange = (value: string) => {
-    setSortBy(value as NonNullable<ProjectQueryInput["sortBy"]>);
+  const handleSortChange = (value: SortByValue) => {
+    setSortBy(value);
   };
   const hasCategoryProjects = (categoryKey: string) => {
     const hasProjects = projects.some(
@@ -163,53 +153,19 @@ export function SharedProjectsGrid({
           {/* Left side filters */}
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Category Filter */}
-            <Select
+            <CategorySelect
               value={selectedCategory}
               onValueChange={handleCategoryChange}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {Object.entries(PROJECT_CATEGORIES).map(([key, { label }]) => {
-                  const hasProjects = hasCategoryProjects(key);
-                  return (
-                    <SelectItem
-                      key={key}
-                      value={key}
-                      disabled={!hasProjects}
-                      className={
-                        !hasProjects
-                          ? "text-muted-foreground cursor-not-allowed"
-                          : ""
-                      }
-                    >
-                      {label}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+              triggerClassName="w-[180px]"
+              hasCategoryProjects={hasCategoryProjects}
+            />
 
             {/* Sort Filter */}
-            <Select value={sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="random">Random</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="recently-edited">Recently Edited</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="trending">Trending</SelectItem>
-                <SelectItem value="alphabetical">A-Z</SelectItem>
-                <SelectItem value="alphabetical-desc">Z-A</SelectItem>
-                <SelectItem value="most-tagged">Most Tagged</SelectItem>
-                <SelectItem value="least-favorited">Least Popular</SelectItem>
-              </SelectContent>
-            </Select>
+            <SortBySelect
+              value={sortBy}
+              onValueChange={handleSortChange}
+              triggerClassName="w-[180px]"
+            />
           </div>
         </div>
       </div>
