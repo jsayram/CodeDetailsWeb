@@ -107,12 +107,3 @@ export async function getAllTags(): Promise<SelectTag[]> {
 
 /**
 
-/**
- * Get tag names for a project - convenient utility for backward compatibility
- * @param projectId Project ID to get tag names for 
- * @returns Array of tag names
- */
-export async function getProjectTagNames(projectId: string): Promise<string[]> {
-  const projectTags = await getProjectTags(projectId);
-  return projectTags.map((tag) => tag.name);
-}

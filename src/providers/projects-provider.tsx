@@ -5,21 +5,16 @@ import React, {
   useContext,
   useState,
   useMemo,
-  useEffect,
   useCallback,
-  useRef,
 } from "react";
+import useSWR, { mutate } from "swr";
 import { Project } from "@/types/models/project";
-import { getAnonymousClient } from "@/services/supabase";
-import { useIsBrowser } from "@/lib/ClientSideUtils";
 import { useAuthState } from "@/hooks/use-auth-state";
 import { API_ROUTES } from "@/constants/api-routes";
 import { ProjectCategory } from "@/constants/project-categories";
-import {
-  revalidateUserCache,
-  revalidateProjectsCache,
-} from "@/lib/ProjectsCacheUtils";
+import { revalidateProjectCache } from "@/lib/swr-fetchers";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
+import { projectsFetcher } from "@/lib/swr-fetchers";
 
 export interface ProjectFilters {
   sortBy: string;
@@ -31,19 +26,7 @@ export interface ProjectFilters {
   page: number;
   limit: number;
   tags?: string[];
-  username?: string; // Add username filter support
-}
-
-interface PageCache {
-  [key: string]: {
-    data: Project[];
-    pagination: {
-      total: number;
-      totalPages: number;
-      currentPage: number;
-    };
-    timestamp: number;
-  };
+  username?: string;
 }
 
 interface ProjectsContextType {
@@ -56,7 +39,7 @@ interface ProjectsContextType {
   isAuthenticated: boolean;
   filters: ProjectFilters;
   setFilters: (filters: Partial<ProjectFilters>) => void;
-  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
+  setProjects: React.Dispatch<React.SetStateAction<Project[] | null>>;
   pagination: {
     total: number;
     totalPages: number;
@@ -84,8 +67,31 @@ interface ProjectsProviderProps {
   initialFilters?: Partial<ProjectFilters>;
 }
 
-// Persistent cache outside component - survives remounts
-const globalPageCache: PageCache = {};
+/**
+ * Generate SWR cache key for projects based on filters
+ */
+function getProjectsCacheKey(
+  filters: ProjectFilters,
+  userId: string | null,
+  shouldFetch: boolean
+): string | null {
+  if (!shouldFetch) return null;
+
+  const params = {
+    showAll: !filters.showMyProjects,
+    userId: userId ?? undefined,
+    username: filters.username,
+    category: filters.category === "all" ? undefined : filters.category,
+    showFavorites: filters.showFavorites,
+    showDeleted: filters.showDeleted,
+    sortBy: filters.sortBy,
+    page: filters.page,
+    limit: filters.limit,
+    tags: filters.tags,
+  };
+
+  return API_ROUTES.PROJECTS.WITH_FILTERS(params);
+}
 
 export function ProjectsProvider({
   children,
@@ -94,10 +100,11 @@ export function ProjectsProvider({
   isLoading,
   initialFilters = {},
 }: ProjectsProviderProps) {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState<ProjectFilters>({
-    showAll: true, // Set showAll to true by default
+  // Local state for optimistic updates
+  const [localProjects, setLocalProjects] = useState<Project[] | null>(null);
+
+  const [filters, setFiltersState] = useState<ProjectFilters>({
+    showAll: true,
     sortBy: "recently-edited",
     category: "all",
     showMyProjects: false,
@@ -108,146 +115,47 @@ export function ProjectsProvider({
     ...initialFilters,
   });
 
-  const [pagination, setPagination] = useState({
-    total: 0,
-    totalPages: 1,
-    currentPage: 1,
-  });
-
-  const lastFetchRef = useRef<{ timestamp: number; inProgress: boolean }>({
-    timestamp: 0,
-    inProgress: false,
-  });
-
-  const anonymousClient = useMemo(() => getAnonymousClient(), []);
-  const isBrowser = useIsBrowser();
-
   const {
     isAuthenticated,
-    isAuthenticating,
     isReady: authReady,
   } = useAuthState(userId, token);
 
-  const fetchProjects = useCallback(async () => {
-    const now = Date.now();
-    
-    // Prevent duplicate fetches
-    if (lastFetchRef.current.inProgress) {
-      console.log("⏭️ Skipping duplicate project fetch - already in progress");
-      return;
+  // Determine if we should fetch
+  const shouldFetch = authReady && !isLoading && (isAuthenticated || !!filters.username);
+
+  // Generate cache key for SWR
+  const cacheKey = getProjectsCacheKey(filters, userId, shouldFetch);
+
+  // Use SWR for data fetching with built-in caching
+  const { data, isLoading: swrLoading } = useSWR(
+    cacheKey,
+    projectsFetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      revalidateOnMount: true, // Always fetch fresh data when component mounts
+      dedupingInterval: 2000, // 2 second deduplication (allows refetch on navigation)
+      keepPreviousData: true,
     }
+  );
 
-    // If this is a username filter and we're not logged in, we still want to fetch
-    const isAnonymousUsernameView = !userId && filters.username;
+  // Extract projects and pagination from SWR data
+  const swrProjects: Project[] = data?.data ?? [];
+  const swrPagination = {
+    total: data?.pagination?.total ?? 0,
+    totalPages: data?.pagination?.totalPages ?? 1,
+    currentPage: filters.page,
+  };
 
-    const cacheKey = JSON.stringify({
-      showAll: !filters.showMyProjects,
-      userId: filters.showMyProjects || filters.showFavorites || filters.showDeleted
-        ? userId
-        : undefined,
-      username: filters.username,
-      category: filters.category === "all" ? undefined : filters.category,
-      showFavorites: filters.showFavorites,
-      showDeleted: filters.showDeleted,
-      sortBy: filters.sortBy,
-      page: filters.page,
-      limit: filters.limit,
-      tags: filters.tags,
-    });
+  // Use local projects if set (for optimistic updates), otherwise use SWR data
+  const projects = localProjects ?? swrProjects;
+  const loading = !cacheKey ? false : swrLoading;
+  const pagination = swrPagination;
 
-    const cached = globalPageCache[cacheKey];
-    if (cached && now - cached.timestamp < 300000) {
-      console.log("🎯 Using cached page data for page", filters.page);
-      setProjects(cached.data);
-      setLoading(false); // Ensure loading is false when using cache
-      setPagination(cached.pagination); // Restore full pagination state from cache
-      return;
-    }
-
-    console.log("🔄 Fetching fresh projects for page", filters.page);
-    lastFetchRef.current.inProgress = true;
-    setLoading(true);
-
-    try {
-      const params = {
-        showAll: !filters.showMyProjects,
-        userId: userId ?? undefined,
-        username: filters.username,
-        category: filters.category === "all" ? undefined : filters.category,
-        showFavorites: filters.showFavorites,
-        showDeleted: filters.showDeleted,
-        sortBy: filters.sortBy,
-        page: filters.page,
-        limit: filters.limit,
-        tags: filters.tags,
-      };
-
-      const url = API_ROUTES.PROJECTS.WITH_FILTERS(params);
-      console.log("🌐 Fetching from URL:", url);
-
-      const response = await fetch(url);
-      
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error("Server responded with non-JSON content");
-      }
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.error || "Failed to fetch projects");
-      }
-
-      const paginationState = {
-        total: result.pagination?.total || 0,
-        totalPages: result.pagination?.totalPages || 1,
-        currentPage: filters.page,
-      };
-
-      setPagination(paginationState);
-
-      globalPageCache[cacheKey] = {
-        data: result.data || [],
-        pagination: paginationState,
-        timestamp: now,
-      };
-
-      setProjects(result.data || []);
-      lastFetchRef.current.timestamp = now;
-    } catch (error) {
-      console.error("❌ Error fetching projects:", error);
-      setProjects([]);
-      setPagination({
-        total: 0,
-        totalPages: 1,
-        currentPage: 1,
-      });
-    } finally {
-      setLoading(false);
-      lastFetchRef.current.inProgress = false;
-    }
-  }, [filters, userId]);
-
+  // Update filters with page bounds checking
   const updateFilters = useCallback((newFilters: Partial<ProjectFilters>) => {
-    setFilters((prev) => {
-      const updatedFilters = {
-        ...prev,
-        ...newFilters,
-      };
-
-      // Reset cache if category changes
-      if ('category' in newFilters) {
-        Object.keys(globalPageCache).forEach(key => {
-          if (JSON.parse(key).category !== newFilters.category) {
-            delete globalPageCache[key];
-          }
-        });
-        lastFetchRef.current.timestamp = 0;
-      }
+    setFiltersState((prev) => {
+      const updatedFilters = { ...prev, ...newFilters };
 
       if ("page" in newFilters) {
         updatedFilters.page = Math.max(
@@ -255,96 +163,84 @@ export function ProjectsProvider({
           Math.min(newFilters.page!, pagination.totalPages || 1)
         );
       } else if (Object.keys(newFilters).length > 0) {
+        // Reset to page 1 when filters change (except for page changes)
         updatedFilters.page = 1;
       }
 
       return updatedFilters;
     });
+
+    // Clear local projects to use fresh SWR data
+    setLocalProjects(null);
   }, [pagination.totalPages]);
 
-  useEffect(() => {
-    let mounted = true;
-    
-    if (!authReady || isLoading) return;
-    
-    // Allow fetching if authenticated or if there's a username filter
-    if (mounted && (isAuthenticated || filters.username)) {
-      fetchProjects();
+  // Refresh projects by revalidating SWR cache
+  const refreshProjects = useCallback(async () => {
+    console.log("🔄 Refreshing projects via SWR mutate");
+    setLocalProjects(null);
+    if (cacheKey) {
+      await mutate(cacheKey);
     }
+  }, [cacheKey]);
+
+  // Invalidate all projects cache (used after mutations)
+  const invalidateAllProjectsCache = useCallback(() => {
+    // Clear local state so we use fresh SWR data after revalidation
+    setLocalProjects(null);
     
-    return () => {
-      mounted = false;
-    };
-  }, [isAuthenticated, authReady, isLoading, fetchProjects, filters]);
+    // Revalidate all project-related cache keys
+    // The second argument `undefined` keeps existing data visible during revalidation
+    // The third argument `{ revalidate: true }` forces refetch from server
+    mutate(
+      (key) => typeof key === "string" && key.includes("/api/projects"),
+      undefined,
+      { revalidate: true }
+    );
+  }, []);
 
-  const handleProjectAdded = async (newProject: Project) => {
+  // Handle project added - invalidate cache to get fresh data
+  const handleProjectAdded = useCallback(async (newProject: Project) => {
     console.log("➕ Adding new project:", newProject.title);
-    setProjects((prev) => [newProject, ...prev]);
-    await refreshProjects();
-  };
+    
+    // Invalidate cache to get fresh data (this clears localProjects and refetches)
+    invalidateAllProjectsCache();
+  }, [invalidateAllProjectsCache]);
 
-  const handleProjectDeleted = async (projectId: string) => {
+  // Handle project deleted - invalidate cache to get fresh data
+  const handleProjectDeleted = useCallback(async (projectId: string) => {
     console.log("🗑️ Deleting project:", projectId);
     
-    // Remove from current state immediately
-    setProjects((prev) => prev.filter((p) => p.id !== projectId));
+    // Invalidate cache (this clears localProjects and refetches)
+    invalidateAllProjectsCache();
     
-    // Clear the page cache to force a fresh fetch
-    Object.keys(globalPageCache).forEach(key => delete globalPageCache[key]);
-    
-    // Reset fetch timestamp and refresh projects
-    lastFetchRef.current.timestamp = 0;
-    lastFetchRef.current.inProgress = false;
-    
+    // Also revalidate server cache
     try {
-      // Single revalidation call that handles both user and projects cache
-      await revalidateUserCache(userId || '');
-      // If we're showing favorites, force a refresh
-      if (filters.showFavorites) {
-        await fetchProjects();
-      }
+      await revalidateProjectCache();
     } catch (error) {
-      console.error("Error refreshing data after deletion:", error);
+      console.error("Error revalidating after deletion:", error);
     }
-  };
+  }, [invalidateAllProjectsCache]);
 
-  const handleProjectUpdated = async (updatedProject: Project) => {
+  // Handle project updated - invalidate cache to get fresh data
+  const handleProjectUpdated = useCallback(async (updatedProject: Project) => {
     console.log("✏️ Updating project:", updatedProject.title);
     
-    // If we're on favorites page and the project was unfavorited, remove it from the UI
+    // Invalidate cache (this clears localProjects and refetches)
+    invalidateAllProjectsCache();
+    
+    // If unfavoriting on favorites page, also revalidate server cache
     if (filters.showFavorites && !updatedProject.isFavorite) {
-      // Remove from current state immediately
-      setProjects((prev) => prev.filter((p) => p.id !== updatedProject.id));
-      
-      // Clear the page cache to force fresh data on next fetch
-      Object.keys(globalPageCache).forEach(key => delete globalPageCache[key]);
-      lastFetchRef.current.timestamp = 0;
-      lastFetchRef.current.inProgress = false;
-      
       try {
-        // Revalidate the cache and fetch fresh data
-        await revalidateUserCache(userId || '');
-        await fetchProjects();
+        await revalidateProjectCache();
       } catch (error) {
-        console.error("Error refreshing data after unfavorite:", error);
+        console.error("Error revalidating after unfavorite:", error);
       }
-    } else {
-      // Normal update behavior for non-favorites page
-      setProjects((prev) =>
-        prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
-      );
     }
-  };
+  }, [filters.showFavorites, invalidateAllProjectsCache]);
 
-  const refreshProjects = async () => {
-    console.log("🔄 Manually refreshing projects");
-    lastFetchRef.current.timestamp = 0;
-    lastFetchRef.current.inProgress = false;
-    await fetchProjects();
-  };
-
+  // Sort projects client-side
   const sortedProjects = useMemo(() => {
-    let result = [...projects];
+    const result = [...projects];
 
     switch (filters.sortBy) {
       case "recently-edited":
@@ -387,16 +283,19 @@ export function ProjectsProvider({
       isAuthenticated,
       filters,
       setFilters: updateFilters,
-      setProjects,
+      setProjects: setLocalProjects,
       pagination,
     }),
     [
       sortedProjects,
       loading,
+      handleProjectAdded,
+      handleProjectDeleted,
+      handleProjectUpdated,
+      refreshProjects,
       isAuthenticated,
       filters,
       updateFilters,
-      setProjects,
       pagination,
     ]
   );
@@ -405,5 +304,19 @@ export function ProjectsProvider({
     <ProjectsContext.Provider value={value}>
       {children}
     </ProjectsContext.Provider>
+  );
+}
+
+/**
+ * Invalidate projects cache from anywhere
+ * Call after project mutations (create, update, delete, favorite, unfavorite)
+ * This marks all project caches as stale - they will refetch when next accessed
+ * Using revalidate: false prevents immediate refetch, keeping UI smooth
+ */
+export function invalidateProjectsCache() {
+  mutate(
+    (key) => typeof key === "string" && key.includes("/api/projects"),
+    undefined,
+    { revalidate: false }
   );
 }

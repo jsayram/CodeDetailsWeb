@@ -6,9 +6,11 @@
  */
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createOrUpdateUserProfile, recentlyVerifiedUsers, CACHE_TTL, cleanupCache } from "@/lib/user-sync-utils";
 import { ClerkUserData } from "@/types/models/clerkUserData";
 import { unauthorized, serverError, success } from "@/lib/api-errors";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 export async function POST(request: Request) {
   try {
@@ -63,6 +65,9 @@ export async function POST(request: Request) {
 
     // Use shared utility to create/update user
     const result = await createOrUpdateUserProfile(clerkUserData);
+
+    // Invalidate user profile cache after sync
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
 
     console.log(`✅ User ${targetUserId} synced successfully (client-side): ${result.status}`);
     

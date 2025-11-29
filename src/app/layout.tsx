@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ToasterProvider } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SWRProvider } from "@/providers/swr-provider";
 
 export const metadata = {
   title: "Code Details",
@@ -25,11 +26,13 @@ export default function RootLayout({
       <body className="overflow-x-hidden">
         <ClerkProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            {/* Main content with centered container and responsive padding */}
-            <ErrorBoundary>
-              <div className="max-w-[100vw] overflow-x-hidden">{children}</div>
-            </ErrorBoundary>
-            <ToasterProvider />
+            <SWRProvider>
+              {/* Main content with centered container and responsive padding */}
+              <ErrorBoundary>
+                <div className="max-w-[100vw] overflow-x-hidden">{children}</div>
+              </ErrorBoundary>
+              <ToasterProvider />
+            </SWRProvider>
           </ThemeProvider>
         </ClerkProvider>
       </body>

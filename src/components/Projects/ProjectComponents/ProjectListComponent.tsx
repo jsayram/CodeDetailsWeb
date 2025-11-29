@@ -237,7 +237,7 @@ export const ProjectList = React.memo(function ProjectList({
       // If we're unfavoriting and on the favorites page, remove from UI immediately
       if (!isFavorite && showFavoritesOnly) {
         // Remove from current state immediately
-        setProjects((prev) => prev.filter((p) => p.id !== id));
+        setProjects((prev) => (prev ?? projects).filter((p) => p.id !== id));
 
         // Force a refresh of the projects list
         if (handleProjectDeleted) {
@@ -249,22 +249,27 @@ export const ProjectList = React.memo(function ProjectList({
       }
 
       // For all other cases, update the project in the current state
-      setProjects((prev) =>
-        prev.map((project) => {
-          if (project.id === id) {
-            const currentFavorites = Number(project.total_favorites || 0);
-            const newFavorites = isFavorite
-              ? currentFavorites + 1
-              : Math.max(0, currentFavorites - 1);
-            return {
-              ...project,
-              isFavorite,
-              total_favorites: newFavorites.toString(),
-            };
-          }
-          return project;
-        })
-      );
+      const updatedProject = projects.find((p) => p.id === id);
+      if (updatedProject) {
+        const currentFavorites = Number(updatedProject.total_favorites || 0);
+        const newFavorites = isFavorite
+          ? currentFavorites + 1
+          : Math.max(0, currentFavorites - 1);
+        const projectWithUpdatedFavorite = {
+          ...updatedProject,
+          isFavorite,
+          total_favorites: newFavorites.toString(),
+        };
+
+        // Update local state immediately for optimistic UI
+        // This preserves the current sort order (favorite actions shouldn't change "recently edited" order)
+        setProjects((prev) =>
+          (prev ?? projects).map((project) =>
+            project.id === id ? projectWithUpdatedFavorite : project
+          )
+        );
+        // No cache invalidation needed - other pages will fetch fresh data on mount
+      }
 
       toast.success(
         isFavorite ? "Added to favorites" : "Removed from favorites"
@@ -324,7 +329,7 @@ export const ProjectList = React.memo(function ProjectList({
       }
 
       // Remove from current state immediately
-      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
+      setProjects((prev) => (prev ?? projects).filter((p) => p.id !== projectToDelete.id));
 
       // Call the context handler to ensure global state is updated
       if (handleProjectDeleted) {

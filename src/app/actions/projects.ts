@@ -13,12 +13,13 @@ import {
 import { InsertProject } from "@/db/schema/projects";
 import { projects } from "@/db/schema/projects";
 import { project_tags } from "@/db/schema/project_tags";
-import { revalidatePath, unstable_cache, updateTag } from "next/cache";
+import { revalidatePath, unstable_cache, revalidateTag } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
 import { favorites } from "@/db/schema/favorites";
 import { getProfileByUserId } from "@/db/operations";
 import { createProjectSchema, updateProjectSchema } from "@/types/schemas";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 const pathToRevalidate = "/projects";
 
@@ -129,9 +130,9 @@ export async function createProject(project: InsertProject, userId: string) {
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    updateTag('projects');
-    updateTag('user-projects');
-    updateTag('user-own-projects');
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
     return {
       success: true,
       data: mapDrizzleProjectToProject(newProject),
@@ -199,10 +200,10 @@ export async function removeProject(id: string, userId: string) {
 
     const deletedProject = await deleteProjectServer(id);
     revalidatePath(pathToRevalidate);
-    updateTag('projects');
-    updateTag('user-projects');
-    updateTag('user-own-projects');
-    updateTag('project-detail');
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
     return {
       success: true,
       data: mapDrizzleProjectToProject(deletedProject),
@@ -300,16 +301,16 @@ export async function updateProject(
       revalidatePath(`/projects/${projectSlug}`);
     }
     
-    updateTag('projects');
-    updateTag('user-projects');
-    updateTag('user-own-projects');
-    updateTag('project-detail');
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
     return {
       success: true,
       data: mapDrizzleProjectToProject(updatedProject),
     };
   } catch (error) {
-    console.error("Failed to update project:", error);
+    console.error("Failed to update project:");
     // Return specific error messages for duplicate titles/slugs
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
@@ -460,16 +461,16 @@ export async function permanentlyDeleteProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    updateTag('projects');
-    updateTag('user-projects');
-    updateTag('user-own-projects');
-    updateTag('project-detail');
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
     return {
       success: true,
       data: null,
     };
   } catch (error) {
-    console.error("Failed to permanently delete project:", error);
+    console.error("Failed to permanently delete project:");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -517,16 +518,16 @@ export async function restoreProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    updateTag('projects');
-    updateTag('user-projects');
-    updateTag('user-own-projects');
-    updateTag('project-detail');
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
     return {
       success: true,
       data: mapDrizzleProjectToProject(restoredProject),
     };
   } catch (error) {
-    console.error("Failed to restore project:", error);
+    console.error("Failed to restore project:");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -593,10 +594,12 @@ export async function addProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    updateTag('project-detail');
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
     return { success: true };
   } catch (error) {
-    console.error("Failed to add favorite:", error);
+    console.error("Failed to add favorite:");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",
@@ -651,10 +654,12 @@ export async function removeProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    updateTag('project-detail');
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
     return { success: true };
   } catch (error) {
-    console.error("Failed to remove favorite:", error);
+    console.error("Failed to remove favorite:");
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error occurred",

@@ -26,8 +26,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useTagCache } from "@/hooks/use-tag-cache";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { useTags } from "@/hooks/use-tags";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import Link from "next/link";
 import { getProjectTagCounts } from "@/app/actions/projects";
 
@@ -50,7 +50,7 @@ export function TagSubmissionManagement({
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
   const [projectTagCounts, setProjectTagCounts] = useState<Record<string, number>>({});
   const [projectSlugs, setProjectSlugs] = useState<Record<string, string>>({});
-  const { refreshCache } = useTagCache();
+  const { refreshCache } = useTags();
 
   const handleApprove = async (groupedTag: GroupedTagSubmission) => {
     const submissionIds = groupedTag.submissions.map((s) => s.id);
@@ -104,7 +104,7 @@ export function TagSubmissionManagement({
         );
       }
 
-      await refreshCache(true);
+      await refreshCache();
 
       // Remove all submissions that were handled (either approved or rejected)
       setSubmissions((prevSubmissions) =>
@@ -139,7 +139,7 @@ export function TagSubmissionManagement({
       toast.success(approvalMessage);
       
       // Refresh the tag cache
-      await refreshCache(true);
+      await refreshCache();
       
       // Update state to remove the approved submission
       setSubmissions((prevSubmissions) => {

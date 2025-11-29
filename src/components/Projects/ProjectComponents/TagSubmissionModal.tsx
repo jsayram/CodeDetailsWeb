@@ -20,8 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/providers/projects-provider";
 import { ClientOnly } from "@/components/ClientOnly";
 import { searchTagsAction } from "@/app/actions/tags";
-import { useTagCache } from "@/hooks/use-tag-cache";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { useTags } from "@/hooks/use-tags";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 
 interface TagSubmissionModalProps {
   projectId: string;
@@ -70,7 +70,7 @@ export function TagSubmissionModal({
 }: TagSubmissionModalProps) {
   const { user, isLoaded } = useUser();
   const { projects } = useProjects();
-  const { refreshCache } = useTagCache();
+  const { refreshCache } = useTags();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tagInput, setTagInput] = useState("");
@@ -243,7 +243,7 @@ export function TagSubmissionModal({
 
       // If any tags were auto-approved, refresh the tag cache
       if (autoApproved.length > 0) {
-        await refreshCache(true);
+        await refreshCache();
       }
 
       if (errors.length > 0) {

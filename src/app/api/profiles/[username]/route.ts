@@ -4,6 +4,8 @@ import { executeQuery } from "@/db/server";
 import { profiles } from "@/db/schema/profiles";
 import { usernameHistory } from "@/db/schema/username-history";
 import { eq } from "drizzle-orm";
+import { revalidateTag } from "next/cache";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 import { 
   notFound, 
   unauthorized, 
@@ -146,12 +148,15 @@ export async function PUT(
         .where(eq(profiles.username, username))
         .returning();
 
-      return result;
+return result;
     });
+
+    // Invalidate user profile cache after update
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
 
     return success({ profile: updatedProfile });
   } catch (error) {
-    console.error("Error updating profile:", error);
+    console.error("Error updating profile:");
     return serverError(error, "Failed to update profile");
   }
 }

@@ -82,9 +82,9 @@ Located at: `src/app/search/page.tsx`
 ### How It Works
 
 ```typescript
-// 1. Fetch all data once (cached)
+// 1. Fetch all data once (cached via SWR)
 const { data: allProjects } = useProjects();
-const { tags: allTags } = useTagCache();
+const { tags: allTags } = useTags();
 const { data: allProfiles } = useQuery({
   queryKey: ["profiles"],
   queryFn: getProfiles,

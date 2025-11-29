@@ -359,7 +359,7 @@ export async function getUserDashboardStats(userId: string): Promise<UserDashboa
     const approvedTagNames = new Set(approvedTags.map(t => t.name));
 
     // Get tag counts for each project to check capacity
-    const projectIds = [...new Set(allSubmissions.map(s => s.project_id))];
+    const projectIds = [...new Set(allSubmissions.map(s => s.project_id).filter((id): id is string => id !== null))];
     let tagCountMap = new Map<string, number>();
     
     if (projectIds.length > 0) {

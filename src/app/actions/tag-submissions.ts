@@ -5,11 +5,12 @@ import { tag_submissions } from "@/db/schema/tag_submissions";
 import { tags } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
 import { eq, and, not } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { sql } from "drizzle-orm/sql";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { z } from "zod";
 import { tagNameSchema, tagDescriptionSchema } from "@/types/schemas";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 // Schema for submitNewTag input validation
 const submitNewTagSchema = z.object({
@@ -75,6 +76,11 @@ export async function submitNewTag(
         project_id: projectId,
         tag_id: existingTag[0].id,
       });
+
+      // Invalidate caches after auto-approving tag addition
+      revalidateTag(CACHE_TAGS.TAGS, {});
+      revalidateTag(CACHE_TAGS.PROJECTS, {});
+      revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
 
       return {
         status: "auto_approved",
@@ -239,7 +245,7 @@ export async function approveTagSubmission(
     }
 
     // Check if the project already has this specific tag
-    let existingProjectTag: any[] = [];
+    let existingProjectTag: { project_id: string; tag_id: string }[] = [];
     if (submission.project_id) {
       existingProjectTag = await db
         .select()
@@ -369,7 +375,14 @@ export async function approveTagSubmission(
     // Execute all updates
     await Promise.all(updates);
 
-    // Force clear ALL tag-related caches with wildcards to ensure complete invalidation
+    // Force clear ALL tag-related caches with revalidateTag
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
+    revalidateTag(CACHE_TAGS.TAG_SUBMISSIONS, {});
+    
+    // Also revalidate paths for immediate page updates
     revalidatePath("/projects", "layout");
     revalidatePath("/administrator/dashboard", "layout");
     revalidatePath("/api/tags", "layout");
@@ -392,6 +405,8 @@ export async function rejectTagSubmission(submissionId: string, adminNotes: stri
       })
       .where(eq(tag_submissions.id, submissionId));
 
+    revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
+    revalidateTag(CACHE_TAGS.TAG_SUBMISSIONS, {});
     revalidatePath("/administrator/dashboard");
   });
 }
@@ -421,7 +436,10 @@ export async function approveRejectedTagSubmission(
         )
       );
 
-    // Revalidate relevant paths
+    // Revalidate relevant caches and paths
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
     revalidatePath("/administrator/dashboard");
     revalidatePath("/dashboard");
     revalidatePath(`/projects/${projectId}`);

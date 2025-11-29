@@ -16,7 +16,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 import { getTagInfo } from "@/constants/tag-descriptions";
-import { useTagCache } from "@/hooks/use-tag-cache";
+import { useTags } from "@/hooks/use-tags";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -25,14 +25,31 @@ import { SearchContentSkeleton } from "./loading";
 import { HighlightText } from "@/components/HighlightText";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 
+// Extended profile type matching the /api/profiles response
+// Note: username is required here because the code filters out profiles without usernames
+interface SearchProfile {
+  id: string;
+  user_id: string;
+  username: string; // Required - profiles without usernames are filtered out
+  full_name: string | null;
+  profile_image_url: string | null;
+  tier: string | null;
+  email_address: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  project_count: number;
+  total_favorites: number;
+  last_activity_date: string | null;
+}
+
 function SearchContent() {
   const router = useRouter();
   const { projects, loading } = useProjects();
-  const { tags: allTags, isLoading: tagsLoading } = useTagCache();
+  const { tags: allTags, isLoading: tagsLoading } = useTags();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [loadingItem, setLoadingItem] = useState<string | null>(null);
-  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [allProfiles, setAllProfiles] = useState<SearchProfile[]>([]);
   const [profilesLoading, setProfilesLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 

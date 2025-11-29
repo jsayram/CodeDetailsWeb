@@ -81,8 +81,30 @@ export function SharedProjectsGrid({
         throw new Error("Invalid response format");
       }
 
+      interface SharedProjectData {
+        project: {
+          id: string;
+          title: string;
+          slug: string;
+          description: string | null;
+          category: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          user_id: string;
+          deleted_at: string | null;
+          total_favorites: number;
+          isFavorite?: boolean;
+        };
+        profile: {
+          username: string | null;
+          profile_image_url: string | null;
+          full_name: string | null;
+        };
+        tags: string[] | null;
+      }
+
       setProjects(
-        result.data.map((projectData: any) => {
+        result.data.map((projectData: SharedProjectData) => {
           const category = projectData.project.category || "other";
           return {
             ...projectData.project,

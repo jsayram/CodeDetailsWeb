@@ -35,7 +35,7 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "../auth/ProtectedPage";
 import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
-import { useUserTier } from "@/hooks/use-tierServiceClient";
+import { useUserTier } from "@/hooks/use-user-tier";
 import Image from "next/image";
 import { Code2 } from "lucide-react";
 import { PageBanner } from "@/components/ui/page-banner";
@@ -43,7 +43,7 @@ import { PageBanner } from "@/components/ui/page-banner";
 export default function DashBoard() {
   const { user, isLoaded: userLoaded } = useUser(); // auth from clerk
   const { token, loading: tokenLoading } = useSupabaseToken();
-  const { userTier } = useUserTier(null, user?.id ?? null, false); // Fetch user tier
+  const { userTier } = useUserTier(user?.id ?? null); // Fetch user tier
 
   // At the top of your component
   const [allProjectsPage, setAllProjectsPage] = useState(CURRENT_PAGE);

@@ -39,6 +39,11 @@ export const TAG_LIMITS = {
   MAX_TAGS_PER_PROJECT: 15,
 } as const;
 
+// Convenience exports for common tag limits
+export const MAX_PROJECT_TAGS = TAG_LIMITS.MAX_TAGS_PER_PROJECT;
+export const MAX_TAG_LENGTH = TAG_LIMITS.MAX_TAG_LENGTH;
+export const MIN_TAG_LENGTH = TAG_LIMITS.MIN_TAG_LENGTH;
+
 // ============================================================================
 // IMAGE LIMITS
 // ============================================================================

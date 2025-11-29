@@ -53,13 +53,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { fetchUserDashboardData } from "@/app/actions/user-dashboard";
-import { useDashboardCache } from "@/hooks/use-dashboard-cache";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { PageBanner } from "@/components/ui/page-banner";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
 import { UserDashboardStats } from "@/db/operations/userDashboardOperations";
 import { toast } from "sonner";
@@ -1189,8 +1188,7 @@ function DashboardContent() {
     loading,
     error,
     refresh,
-    clearCache,
-  } = useDashboardCache("user-dashboard", fetchUserDashboardData, []);
+  } = useDashboardStats();
 
   if (loading) {
     return <UserDashboardLoading />;
@@ -1206,18 +1204,16 @@ function DashboardContent() {
 
   const { stats } = dashboardData;
 
-  return <DashboardMain stats={stats} refresh={refresh} clearCache={clearCache} />;
+  return <DashboardMain stats={stats} refresh={refresh} />;
 }
 
 // Dashboard main content with stats
 function DashboardMain({
   stats,
   refresh,
-  clearCache,
 }: {
   stats: UserDashboardStats;
   refresh: () => Promise<void>;
-  clearCache: () => void;
 }) {
   const { user } = useUser();
   const [refreshingTagSubmissions, setRefreshingTagSubmissions] = React.useState(false);
@@ -1232,7 +1228,6 @@ function DashboardMain({
   const refreshTagSubmissions = React.useCallback(async () => {
     setRefreshingTagSubmissions(true);
     try {
-      clearCache();
       await refresh();
       toast.success('Tag submissions refreshed');
     } catch (error) {
@@ -1241,12 +1236,11 @@ function DashboardMain({
     } finally {
       setRefreshingTagSubmissions(false);
     }
-  }, [refresh, clearCache]);
+  }, [refresh]);
 
   const refreshMyProjects = React.useCallback(async () => {
     setRefreshingMyProjects(true);
     try {
-      clearCache();
       await refresh();
       toast.success('My projects refreshed');
     } catch (error) {
@@ -1255,12 +1249,11 @@ function DashboardMain({
     } finally {
       setRefreshingMyProjects(false);
     }
-  }, [refresh, clearCache]);
+  }, [refresh]);
 
   const refreshFavorites = React.useCallback(async () => {
     setRefreshingFavorites(true);
     try {
-      clearCache();
       await refresh();
       toast.success('Favorites refreshed');
     } catch (error) {
@@ -1269,12 +1262,11 @@ function DashboardMain({
     } finally {
       setRefreshingFavorites(false);
     }
-  }, [refresh, clearCache]);
+  }, [refresh]);
 
   const refreshAppreciation = React.useCallback(async () => {
     setRefreshingAppreciation(true);
     try {
-      clearCache();
       await refresh();
       toast.success('Recent appreciation refreshed');
     } catch (error) {
@@ -1283,12 +1275,11 @@ function DashboardMain({
     } finally {
       setRefreshingAppreciation(false);
     }
-  }, [refresh, clearCache]);
+  }, [refresh]);
 
   const refreshActivity = React.useCallback(async () => {
     setRefreshingActivity(true);
     try {
-      clearCache();
       await refresh();
       toast.success('Recent activity refreshed');
     } catch (error) {
@@ -1297,12 +1288,11 @@ function DashboardMain({
     } finally {
       setRefreshingActivity(false);
     }
-  }, [refresh, clearCache]);
+  }, [refresh]);
 
   const refreshPopularTags = React.useCallback(async () => {
     setRefreshingPopularTags(true);
     try {
-      clearCache();
       await refresh();
       toast.success('Popular tags refreshed');
     } catch (error) {
@@ -1311,7 +1301,7 @@ function DashboardMain({
     } finally {
       setRefreshingPopularTags(false);
     }
-  }, [refresh, clearCache]);
+  }, [refresh]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -1323,7 +1313,6 @@ function DashboardMain({
     setRefreshingPopularTags(true);
     setRefreshingTagSubmissions(true);
     try {
-      clearCache();
       await refresh();
       toast.success('Dashboard refreshed');
     } catch (error) {

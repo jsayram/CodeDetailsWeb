@@ -21,7 +21,7 @@ export const projects = pgTable("projects", {
   userIdIdx: index("projects_user_id_idx").on(table.user_id),
 }));
 
-// Type definitions that include tags for backwards compatibility
+// Extended type definitions that include tags from the relation
 export type InsertProject = typeof projects.$inferInsert & {
   tags?: string[];
 };

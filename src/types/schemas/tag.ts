@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_PROJECT_TAGS } from '@/constants/tag-constants';
+import { MAX_PROJECT_TAGS } from '@/constants/project-limits';
 
 // Reserved and profane words that cannot be used as tags
 import { PROFANITY_LIST } from '@/constants/profanity-list';
