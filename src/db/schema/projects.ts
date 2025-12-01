@@ -2,6 +2,9 @@ import { pgTable, text, varchar, timestamp, uuid, numeric, jsonb, index } from "
 import { ProjectCategory } from "@/constants/project-categories";
 import { ProjectLink } from "@/types/project-links";
 
+// Type for storing category-specific field values (flexible key-value storage)
+export type CategoryData = Record<string, unknown>;
+
 // Define the projects table schema
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -14,6 +17,8 @@ export const projects = pgTable("projects", {
     .default("web"),
   total_favorites: numeric("total_favorites").notNull().default("0"), // Track total favorites for popularity sorting
   url_links: jsonb("url_links").$type<ProjectLink[]>(), // Flexible array of project links
+  category_data: jsonb("category_data").$type<CategoryData>(), // Stores all category field values (visible + hidden)
+  field_order: jsonb("field_order").$type<string[]>(), // Stores visible field IDs in display order
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"), // For soft delete functionality
@@ -24,10 +29,14 @@ export const projects = pgTable("projects", {
 // Extended type definitions that include tags from the relation
 export type InsertProject = typeof projects.$inferInsert & {
   tags?: string[];
+  category_data?: CategoryData;
+  field_order?: string[];
 };
 
 export type SelectProject = typeof projects.$inferSelect & {
   tags?: string[];
+  category_data?: CategoryData | null;
+  field_order?: string[] | null;
 };
 
 //relationship is project to user profile image
@@ -41,6 +50,8 @@ export type SelectProjectWithOwner = SelectProject & {
   owner_email_address?: string | null;
   owner_created_at?: Date | null;
   owner_updated_at?: Date | null;
+  category_data?: CategoryData | null;
+  field_order?: string[] | null;
 };
 
 //user information from gathering project

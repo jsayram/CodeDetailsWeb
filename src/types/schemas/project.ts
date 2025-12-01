@@ -14,6 +14,41 @@ import {
   MAX_PROJECTS_PER_PAGE,
   DEFAULT_PROJECTS_PER_PAGE
 } from "@/constants/project-limits";
+import { PROFANITY_LIST } from "@/constants/profanity-list";
+
+/**
+ * Helper function to check if text contains profanity
+ */
+function containsProfanity(text: string): boolean {
+  if (!text || typeof text !== "string") return false;
+  const normalized = text.toLowerCase().trim();
+  return PROFANITY_LIST.some((word) => {
+    const wordRegex = new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    return wordRegex.test(normalized);
+  });
+}
+
+/**
+ * Helper function to check category data for profanity
+ */
+function checkCategoryDataForProfanity(data: Record<string, unknown> | null | undefined): boolean {
+  if (!data) return false;
+  
+  for (const value of Object.values(data)) {
+    if (typeof value === "string" && containsProfanity(value)) {
+      return true;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "string" && containsProfanity(item)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+}
 
 /**
  * Valid project categories
@@ -65,6 +100,26 @@ export const projectLinkSchema = z.object({
 });
 
 /**
+ * Schema for category-specific field data
+ * Stores dynamic fields as key-value pairs
+ * Validates for profanity
+ */
+export const categoryDataSchema = z
+  .record(z.string(), z.unknown())
+  .optional()
+  .nullable()
+  .refine(
+    (data) => !checkCategoryDataForProfanity(data),
+    "Project details contain inappropriate content"
+  );
+
+/**
+ * Schema for field ordering
+ * Array of field IDs in display order
+ */
+export const fieldOrderSchema = z.array(z.string()).optional().nullable();
+
+/**
  * Schema for creating a new project
  */
 export const createProjectSchema = z.object({
@@ -72,7 +127,11 @@ export const createProjectSchema = z.object({
     .string()
     .min(PROJECT_TEXT_LIMITS.MIN_TITLE_LENGTH, "Title is required")
     .max(PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH, `Title must be at most ${PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH} characters`)
-    .transform((val) => val.trim()),
+    .transform((val) => val.trim())
+    .refine(
+      (val) => !containsProfanity(val),
+      "Title contains inappropriate content"
+    ),
   
   slug: z
     .string()
@@ -82,14 +141,22 @@ export const createProjectSchema = z.object({
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       "Slug must be lowercase alphanumeric with hyphens (e.g., 'my-project')"
     )
-    .transform((val) => val.trim().toLowerCase()),
+    .transform((val) => val.trim().toLowerCase())
+    .refine(
+      (val) => !containsProfanity(val.replace(/-/g, " ")),
+      "Slug contains inappropriate content"
+    ),
   
   description: z
     .string()
     .max(PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH, `Description must be at most ${PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH} characters`)
     .optional()
     .nullable()
-    .transform((val) => val?.trim()),
+    .transform((val) => val?.trim())
+    .refine(
+      (val) => !val || !containsProfanity(val),
+      "Description contains inappropriate content"
+    ),
   
   category: projectCategoryEnum.default("other"),
   
@@ -100,10 +167,22 @@ export const createProjectSchema = z.object({
     .default([]),
   
   tags: z
-    .array(z.string().min(TAG_LIMITS.MIN_TAG_LENGTH).max(TAG_LIMITS.MAX_TAG_LENGTH))
+    .array(
+      z.string()
+        .min(TAG_LIMITS.MIN_TAG_LENGTH)
+        .max(TAG_LIMITS.MAX_TAG_LENGTH)
+        .refine(
+          (val) => !containsProfanity(val),
+          "Tag contains inappropriate content"
+        )
+    )
     .max(TAG_LIMITS.MAX_TAGS_PER_PROJECT, `Maximum ${TAG_LIMITS.MAX_TAGS_PER_PROJECT} tags allowed`)
     .optional()
     .default([]),
+
+  category_data: categoryDataSchema,
+  
+  field_order: fieldOrderSchema,
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
@@ -117,6 +196,10 @@ export const updateProjectSchema = z.object({
     .min(PROJECT_TEXT_LIMITS.MIN_TITLE_LENGTH, "Title cannot be empty")
     .max(PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH, `Title must be at most ${PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH} characters`)
     .transform((val) => val.trim())
+    .refine(
+      (val) => !containsProfanity(val),
+      "Title contains inappropriate content"
+    )
     .optional(),
   
   slug: z
@@ -135,7 +218,11 @@ export const updateProjectSchema = z.object({
     .max(PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH, `Description must be at most ${PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH} characters`)
     .optional()
     .nullable()
-    .transform((val) => val?.trim()),
+    .transform((val) => val?.trim())
+    .refine(
+      (val) => !val || !containsProfanity(val),
+      "Description contains inappropriate content"
+    ),
   
   category: projectCategoryEnum.optional(),
   
@@ -145,9 +232,21 @@ export const updateProjectSchema = z.object({
     .optional(),
   
   tags: z
-    .array(z.string().min(TAG_LIMITS.MIN_TAG_LENGTH).max(TAG_LIMITS.MAX_TAG_LENGTH))
+    .array(
+      z.string()
+        .min(TAG_LIMITS.MIN_TAG_LENGTH)
+        .max(TAG_LIMITS.MAX_TAG_LENGTH)
+        .refine(
+          (val) => !containsProfanity(val),
+          "Tag contains inappropriate content"
+        )
+    )
     .max(TAG_LIMITS.MAX_TAGS_PER_PROJECT, `Maximum ${TAG_LIMITS.MAX_TAGS_PER_PROJECT} tags allowed`)
     .optional(),
+
+  category_data: categoryDataSchema,
+  
+  field_order: fieldOrderSchema,
 });
 
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;

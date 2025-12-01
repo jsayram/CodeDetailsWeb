@@ -56,6 +56,15 @@ import { ProjectLinksDisplay } from "./ProjectLinksDisplay";
 import { ProjectLink } from "@/types/project-links";
 import { UnsavedChangesConfirmationModal } from "./UnsavedChangesConfirmationModal";
 import { SelectProjectWithOwner } from "@/db/schema/projects";
+import { ProjectImagesManager } from "@/components/Projects/ProjectImages";
+import {
+  CategoryFieldsEditor,
+  CategoryFieldsDisplay,
+  useCategoryChange,
+  CategoryChangeConfirmationModal,
+  validateCategoryData,
+  type CategoryChangeConfirmationModalProps,
+} from "@/components/Projects/CategoryFields";
 
 interface UserProfile extends SelectProject {
   user_id: string;
@@ -98,6 +107,10 @@ export function ProjectContent({
     url_links: [] as ProjectLink[],
   });
   const [selectedTags, setSelectedTags] = useState<TagInfo[]>([]);
+  
+  // Category fields state (dynamic, category-aware fields)
+  const [categoryData, setCategoryData] = useState<Record<string, unknown>>({});
+  const [fieldOrder, setFieldOrder] = useState<string[]>([]);
   const [formErrors, setFormErrors] = useState<{
     title?: string;
     description?: string;
@@ -114,6 +127,8 @@ export function ProjectContent({
     url_links: [] as ProjectLink[],
   });
   const [originalTags, setOriginalTags] = useState<TagInfo[]>([]);
+  const [originalCategoryData, setOriginalCategoryData] = useState<Record<string, unknown>>({});
+  const [originalFieldOrder, setOriginalFieldOrder] = useState<string[]>([]);
   const [showUnsavedChangesModal, setShowUnsavedChangesModal] = useState(false);
 
   // Tag submissions for the project
@@ -158,11 +173,39 @@ export function ProjectContent({
     [formErrors]
   );
 
-  const handleCategoryChange = useCallback(
-    (value: string) => {
-      handleFieldChange("category", value as ProjectCategory);
+  // Category change hook for handling field migration
+  const handleCategoryChangeConfirmed = useCallback(
+    (newCategory: ProjectCategory, newFieldOrder: string[]) => {
+      handleFieldChange("category", newCategory);
+      setFieldOrder(newFieldOrder);
     },
     [handleFieldChange]
+  );
+
+  const { requestCategoryChange, modalProps: categoryChangeModalProps } =
+    useCategoryChange({
+      onCategoryChange: handleCategoryChangeConfirmed,
+    });
+
+  const handleCategoryChange = useCallback(
+    (value: string) => {
+      const newCategory = value as ProjectCategory;
+      const currentCategory = formData.category;
+
+      // If there's category data or field order, use the modal for confirmation
+      if (fieldOrder.length > 0 && currentCategory !== newCategory) {
+        requestCategoryChange(
+          currentCategory,
+          newCategory,
+          fieldOrder,
+          categoryData
+        );
+      } else {
+        // No fields to migrate, just change category
+        handleFieldChange("category", newCategory);
+      }
+    },
+    [formData.category, fieldOrder, categoryData, requestCategoryChange, handleFieldChange]
   );
 
   // Handle tag changes with useCallback to maintain stable reference
@@ -205,6 +248,14 @@ export function ProjectContent({
         : [];
       setSelectedTags(initialTags);
       setOriginalTags(initialTags);
+
+      // Set category data and field order
+      const initialCategoryData = (project.category_data as Record<string, unknown>) || {};
+      const initialFieldOrder = (project.field_order as string[]) || [];
+      setCategoryData(initialCategoryData);
+      setFieldOrder(initialFieldOrder);
+      setOriginalCategoryData(initialCategoryData);
+      setOriginalFieldOrder(initialFieldOrder);
 
       // Reset form errors
       setFormErrors({});
@@ -278,8 +329,16 @@ export function ProjectContent({
                link.label !== originalLink.label;
       });
 
-    return formChanged || tagsChanged || linksChanged;
-  }, [formData, originalFormData, selectedTags, originalTags]);
+    // Check if category data changed
+    const categoryDataChanged = 
+      JSON.stringify(categoryData) !== JSON.stringify(originalCategoryData);
+
+    // Check if field order changed
+    const fieldOrderChanged = 
+      JSON.stringify(fieldOrder) !== JSON.stringify(originalFieldOrder);
+
+    return formChanged || tagsChanged || linksChanged || categoryDataChanged || fieldOrderChanged;
+  }, [formData, originalFormData, selectedTags, originalTags, categoryData, originalCategoryData, fieldOrder, originalFieldOrder]);
 
   // Handler for confirming discard of unsaved changes
   const handleConfirmDiscardChanges = useCallback(() => {
@@ -306,6 +365,12 @@ export function ProjectContent({
       } else {
         setSelectedTags([]);
       }
+
+      // Reset category data and field order
+      setCategoryData((project.category_data as Record<string, unknown>) || {});
+      setFieldOrder((project.field_order as string[]) || []);
+      setOriginalCategoryData((project.category_data as Record<string, unknown>) || {});
+      setOriginalFieldOrder((project.field_order as string[]) || []);
 
       // Reset form errors
       setFormErrors({});
@@ -486,6 +551,17 @@ export function ProjectContent({
         return;
       }
 
+      // Validate category data for profanity
+      const categoryDataValidation = validateCategoryData(categoryData, fieldOrder);
+      if (!categoryDataValidation.isValid) {
+        toast.error("Cannot save: Project details contain inappropriate content", {
+          description: "Please review and remove any inappropriate language from your project fields",
+          duration: 5000,
+        });
+        setIsUpdating(false);
+        return;
+      }
+
       // Filter out unreachable links and invalid formats - only save verified reachable links with valid formats
       const validLinks = formData.url_links.filter(link => {
         // Must be reachable (not explicitly marked as unreachable)
@@ -503,6 +579,8 @@ export function ProjectContent({
         category: formData.category,
         tags: selectedTags.map((tag) => tag.name),
         url_links: validLinks,
+        category_data: categoryData,
+        field_order: fieldOrder,
       };
 
       console.log('ProjectContent sending data:', JSON.stringify(projectData, null, 2));
@@ -880,6 +958,24 @@ export function ProjectContent({
                   onChange={handleLinksChange}
                 />
 
+                {/* Category Fields Editor */}
+                <CategoryFieldsEditor
+                  category={formData.category}
+                  categoryData={categoryData}
+                  fieldOrder={fieldOrder}
+                  onCategoryDataChange={setCategoryData}
+                  onFieldOrderChange={setFieldOrder}
+                />
+
+                {/* Project Images Manager - only show for existing projects */}
+                {!create && project?.id && userId && (
+                  <ProjectImagesManager
+                    projectId={project.id}
+                    userId={userId}
+                    isEditing={true}
+                  />
+                )}
+
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
@@ -923,6 +1019,25 @@ export function ProjectContent({
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Category-specific Fields Display */}
+              {project.category_data && Object.keys(project.category_data as Record<string, unknown>).length > 0 && (
+                <CategoryFieldsDisplay
+                  category={project.category as ProjectCategory}
+                  categoryData={project.category_data as Record<string, unknown>}
+                  fieldOrder={(project.field_order as string[]) || []}
+                  variant="default"
+                />
+              )}
+
+              {/* Project Images Display */}
+              {project.id && userId && (
+                <ProjectImagesManager
+                  projectId={project.id}
+                  userId={userId}
+                  isEditing={false}
+                />
+              )}
 
               <Card>
                 <CardHeader>
@@ -1068,6 +1183,11 @@ export function ProjectContent({
         onClose={() => setShowUnsavedChangesModal(false)}
         onConfirm={handleConfirmDiscardChanges}
       />
+
+      {/* Category Change Confirmation Modal */}
+      {categoryChangeModalProps && (
+        <CategoryChangeConfirmationModal {...categoryChangeModalProps} />
+      )}
     </div>
   );
 
