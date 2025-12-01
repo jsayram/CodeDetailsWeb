@@ -3,11 +3,11 @@
  * Type definitions for project image management
  */
 
-import { SelectProjectImage, ImageType } from "@/db/schema/project_images";
+import { SelectProjectImage, ImageType, AspectRatio } from "@/db/schema/project_images";
 
 // Re-export schema types
-export type { SelectProjectImage, ImageType };
-export { IMAGE_TYPES } from "@/db/schema/project_images";
+export type { SelectProjectImage, ImageType, AspectRatio };
+export { IMAGE_TYPES, ASPECT_RATIOS } from "@/db/schema/project_images";
 
 /**
  * Image with UI state for upload tracking
@@ -90,7 +90,40 @@ export const IMAGE_TYPE_INFO: Record<
 /**
  * Gallery display mode
  */
-export type GalleryDisplayMode = "grid" | "carousel";
+export type GalleryDisplayMode = "grid" | "carousel" | "blog";
+
+/**
+ * Aspect ratio display info
+ */
+export const ASPECT_RATIO_INFO: Record<
+  AspectRatio,
+  {
+    label: string;
+    description: string;
+    cssClass: string;
+  }
+> = {
+  auto: {
+    label: "Auto",
+    description: "Use original image dimensions",
+    cssClass: "aspect-auto",
+  },
+  "16:9": {
+    label: "16:9",
+    description: "Widescreen (landscape)",
+    cssClass: "aspect-video",
+  },
+  "4:3": {
+    label: "4:3",
+    description: "Standard (classic)",
+    cssClass: "aspect-[4/3]",
+  },
+  "1:1": {
+    label: "1:1",
+    description: "Square",
+    cssClass: "aspect-square",
+  },
+};
 
 /**
  * Image gallery props

@@ -23,6 +23,7 @@ import {
   SelectProjectImage,
   ImageType,
   IMAGE_TYPES,
+  AspectRatio,
 } from "@/db/schema/project_images";
 import {
   type ActionResult,
@@ -33,6 +34,7 @@ import {
   serverError,
   forbiddenError,
 } from "@/lib/action-errors";
+import { deleteProjectImage as deleteFromStorage } from "@/lib/supabase-storage";
 
 // =============================================================================
 // Types
@@ -48,6 +50,7 @@ export interface ImageUploadInput {
   width?: number;
   height?: number;
   imageType: ImageType;
+  aspectRatio?: AspectRatio;
   altText?: string;
   caption?: string;
 }
@@ -130,7 +133,17 @@ export async function createProjectImageAction(
     const currentCount = await countProjectImagesByType(input.projectId, input.imageType);
     const limit = IMAGE_LIMITS[input.imageType];
 
-    if (currentCount >= limit) {
+    // For cover and logo, auto-replace existing image instead of blocking
+    if ((input.imageType === "cover" || input.imageType === "logo") && currentCount >= limit) {
+      // Get existing image and delete it
+      const existingImage = await getProjectCoverImage(input.projectId);
+      if (existingImage) {
+        // Delete from storage first
+        await deleteFromStorage(existingImage.storage_path);
+        // Then delete from database
+        await permanentlyDeleteProjectImage(existingImage.id);
+      }
+    } else if (currentCount >= limit) {
       return validationError(
         `Maximum ${limit} ${input.imageType} image(s) allowed. Please delete an existing image first.`
       );
@@ -147,6 +160,7 @@ export async function createProjectImageAction(
       width: input.width ?? null,
       height: input.height ?? null,
       image_type: input.imageType,
+      aspect_ratio: input.aspectRatio ?? "auto",
       alt_text: input.altText ?? null,
       caption: input.caption ?? null,
       uploaded_by: userId,

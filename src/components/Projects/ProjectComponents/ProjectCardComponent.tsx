@@ -40,6 +40,8 @@ import {
 } from "@/components/ui/tooltip";
 import { ProjectLink } from "@/types/project-links";
 import { MAX_TAGS_ON_CARD_DESKTOP, MAX_TAGS_ON_CARD_MOBILE } from "@/constants/project-limits";
+import { getProjectCoverImageAction } from "@/app/actions/project-images";
+import { SelectProjectImage } from "@/db/schema/project_images";
 
 interface ProjectCardProps {
   project: Project;
@@ -77,10 +79,28 @@ export const ProjectCard = React.memo(
     const [isNavigatingUser, setIsNavigatingUser] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isNavigatingUserProjects, setIsNavigatingUserProjects] = useState(false);
+    const [coverImage, setCoverImage] = useState<SelectProjectImage | null>(null);
     
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
+
+    // Fetch cover image for the project
+    useEffect(() => {
+      const fetchCoverImage = async () => {
+        if (!project.id) return;
+        try {
+          const result = await getProjectCoverImageAction(project.id);
+          if (result.success && result.data) {
+            setCoverImage(result.data);
+          }
+        } catch (error) {
+          // Silently fail - will show emoji fallback
+          console.error("Error fetching cover image:", error);
+        }
+      };
+      fetchCoverImage();
+    }, [project.id]);
 
     useEffect(() => {
       const checkScreenSize = () => {
@@ -714,13 +734,23 @@ export const ProjectCard = React.memo(
 
           {/* Content area with fixed heights */}
           <div className="card-content mx-2 flex flex-col flex-1 min-h-0">
-            {/* Image placeholder section */}
-            <div className="h-[120px] mb-3 rounded-lg bg-muted/30 border border-muted flex items-center justify-center overflow-hidden flex-shrink-0">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <div className="text-7xl">
-                  {projectEmoji}
+            {/* Image/Emoji section */}
+            <div className="h-[120px] mb-3 rounded-lg bg-muted/30 border border-muted flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+              {coverImage?.storage_url ? (
+                <Image
+                  src={coverImage.storage_url}
+                  alt={coverImage.alt_text || project.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 300px"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="text-7xl">
+                    {projectEmoji}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Project title - fixed height */}

@@ -5,14 +5,13 @@
  * Drag-and-drop image upload with preview and progress
  */
 
-import React, { useCallback, useState, useRef } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
   Upload, 
   X, 
-  Image as ImageIcon, 
   AlertCircle,
   Loader2,
   CheckCircle,
@@ -20,12 +19,15 @@ import {
 import { toast } from "sonner";
 import {
   ImageType,
+  AspectRatio,
   ImageUploaderProps,
   validateImageFile,
   getImageDimensions,
   formatFileSize,
   DEFAULT_IMAGE_UPLOAD_CONFIG,
   IMAGE_TYPE_INFO,
+  ASPECT_RATIOS,
+  ASPECT_RATIO_INFO,
 } from "@/types/project-images";
 import {
   uploadProjectImage,
@@ -37,10 +39,20 @@ import Image from "next/image";
 interface PendingUpload {
   id: string;
   file: File;
+  fileHash: string; // For duplicate detection
   previewUrl: string;
   progress: number;
-  status: "pending" | "uploading" | "success" | "error";
+  status: "pending" | "uploading" | "success" | "error" | "cancelled";
   error?: string;
+  aspectRatio: AspectRatio;
+  abortController?: AbortController;
+}
+
+/**
+ * Generate a hash for duplicate file detection (name + size + lastModified)
+ */
+function generateFileHash(file: File): string {
+  return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
 export function ImageUploader({
@@ -55,6 +67,22 @@ export function ImageUploader({
   const [isDragOver, setIsDragOver] = useState(false);
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Track uploaded file hashes to prevent duplicates
+  const uploadedHashesRef = useRef<Set<string>>(new Set());
+  // Track pending file hashes (use ref to avoid stale closure issues)
+  const pendingHashesRef = useRef<Set<string>>(new Set());
+  // Track cancelled upload IDs
+  const cancelledIdsRef = useRef<Set<string>>(new Set());
+
+  // Cleanup on unmount - revoke all preview URLs
+  useEffect(() => {
+    return () => {
+      pendingUploads.forEach((pending) => {
+        URL.revokeObjectURL(pending.previewUrl);
+      });
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on unmount
 
   const typeInfo = IMAGE_TYPE_INFO[imageType];
 
@@ -63,15 +91,29 @@ export function ImageUploader({
     async (files: FileList | File[]) => {
       const fileArray = Array.from(files);
       
-      // Validate each file
-      const validFiles: File[] = [];
+      // Validate each file and check for duplicates
+      const validFiles: { file: File; hash: string }[] = [];
       for (const file of fileArray) {
         const validation = validateImageFile(file);
         if (!validation.valid) {
           toast.error(`${file.name}: ${validation.error}`);
           continue;
         }
-        validFiles.push(file);
+        
+        // Check for duplicate in already uploaded
+        const hash = generateFileHash(file);
+        if (uploadedHashesRef.current.has(hash)) {
+          toast.warning(`"${file.name}" has already been uploaded`);
+          continue;
+        }
+        
+        // Check if already in pending uploads using ref
+        if (pendingHashesRef.current.has(hash)) {
+          toast.warning(`"${file.name}" is already being uploaded`);
+          continue;
+        }
+        
+        validFiles.push({ file, hash });
       }
 
       if (validFiles.length === 0) return;
@@ -84,19 +126,29 @@ export function ImageUploader({
         }
       }
 
-      // Create pending upload entries
-      const newPendingUploads: PendingUpload[] = validFiles.map((file) => ({
-        id: crypto.randomUUID(),
-        file,
-        previewUrl: URL.createObjectURL(file),
-        progress: 0,
-        status: "pending" as const,
-      }));
+      // Create pending upload entries with default aspect ratio
+      const newPendingUploads: PendingUpload[] = validFiles.map(({ file, hash }) => {
+        // Add to pending hashes ref immediately
+        pendingHashesRef.current.add(hash);
+        
+        return {
+          id: crypto.randomUUID(),
+          file,
+          fileHash: hash,
+          previewUrl: URL.createObjectURL(file),
+          progress: 0,
+          status: "pending" as const,
+          aspectRatio: "auto" as AspectRatio,
+          abortController: new AbortController(),
+        };
+      });
 
       setPendingUploads((prev) => [...prev, ...newPendingUploads]);
 
       // Upload each file
       for (const pending of newPendingUploads) {
+        // Check if cancelled before starting
+        if (cancelledIdsRef.current.has(pending.id)) continue;
         await uploadFile(pending);
       }
     },
@@ -105,6 +157,12 @@ export function ImageUploader({
 
   // Upload a single file
   const uploadFile = async (pending: PendingUpload) => {
+    // Check if already cancelled
+    if (cancelledIdsRef.current.has(pending.id)) {
+      pendingHashesRef.current.delete(pending.fileHash);
+      return;
+    }
+
     try {
       // Update status to uploading
       setPendingUploads((prev) =>
@@ -121,6 +179,12 @@ export function ImageUploader({
         // Continue without dimensions
       }
 
+      // Check if cancelled
+      if (cancelledIdsRef.current.has(pending.id)) {
+        pendingHashesRef.current.delete(pending.fileHash);
+        return;
+      }
+
       setPendingUploads((prev) =>
         prev.map((p) => (p.id === pending.id ? { ...p, progress: 30 } : p))
       );
@@ -132,9 +196,26 @@ export function ImageUploader({
         throw new Error(uploadResult.error || "Upload failed");
       }
 
+      // Check if cancelled after upload
+      if (cancelledIdsRef.current.has(pending.id)) {
+        // TODO: Could delete from storage here if needed
+        pendingHashesRef.current.delete(pending.fileHash);
+        return;
+      }
+
       setPendingUploads((prev) =>
         prev.map((p) => (p.id === pending.id ? { ...p, progress: 70 } : p))
       );
+
+      // Get the current aspect ratio from state (user may have changed it during upload)
+      let aspectRatio = pending.aspectRatio;
+      setPendingUploads((prev) => {
+        const current = prev.find((p) => p.id === pending.id);
+        if (current) {
+          aspectRatio = current.aspectRatio;
+        }
+        return prev;
+      });
 
       // Create database record
       const result = await createProjectImageAction({
@@ -147,11 +228,16 @@ export function ImageUploader({
         width: dimensions.width || undefined,
         height: dimensions.height || undefined,
         imageType,
+        aspectRatio,
       });
 
       if (!result.success) {
         throw new Error(result.error || "Failed to save image");
       }
+
+      // Mark as uploaded to prevent re-upload and remove from pending hashes
+      uploadedHashesRef.current.add(pending.fileHash);
+      pendingHashesRef.current.delete(pending.fileHash);
 
       // Success
       setPendingUploads((prev) =>
@@ -171,11 +257,22 @@ export function ImageUploader({
       // Remove from pending after delay
       setTimeout(() => {
         setPendingUploads((prev) => prev.filter((p) => p.id !== pending.id));
+        // Clean up cancelled ref
+        cancelledIdsRef.current.delete(pending.id);
       }, 1500);
 
       toast.success(`${pending.file.name} uploaded successfully`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Upload failed";
+      
+      // Clean up pending hash on error
+      pendingHashesRef.current.delete(pending.fileHash);
+      
+      if (errorMessage === "Upload cancelled") {
+        // Silently remove cancelled uploads
+        setPendingUploads((prev) => prev.filter((p) => p.id !== pending.id));
+        return;
+      }
       
       setPendingUploads((prev) =>
         prev.map((p) =>
@@ -190,16 +287,32 @@ export function ImageUploader({
     }
   };
 
-  // Remove a pending upload
-  const removePendingUpload = (id: string) => {
+  // Remove/cancel a pending upload
+  const removePendingUpload = useCallback((id: string) => {
     setPendingUploads((prev) => {
       const upload = prev.find((p) => p.id === id);
       if (upload) {
+        // Mark as cancelled in ref so upload loop knows to skip
+        cancelledIdsRef.current.add(id);
+        // Remove from pending hashes
+        pendingHashesRef.current.delete(upload.fileHash);
+        // Abort if still uploading
+        upload.abortController?.abort();
+        // Clean up preview URL
         URL.revokeObjectURL(upload.previewUrl);
       }
       return prev.filter((p) => p.id !== id);
     });
-  };
+  }, []);
+
+  // Update aspect ratio for a specific pending upload
+  const updateAspectRatio = useCallback((id: string, ratio: AspectRatio) => {
+    setPendingUploads((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, aspectRatio: ratio } : p
+      )
+    );
+  }, []);
 
   // Drag and drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -250,6 +363,11 @@ export function ImageUploader({
 
   const isUploading = pendingUploads.some((p) => p.status === "uploading");
 
+  // Get aspect ratio CSS class for preview
+  const getPreviewAspectClass = (ratio: AspectRatio) => {
+    return ASPECT_RATIO_INFO[ratio]?.cssClass || "aspect-video";
+  };
+
   return (
     <div className={cn("space-y-4", className)}>
       {/* Drop Zone */}
@@ -263,8 +381,7 @@ export function ImageUploader({
           isDragOver
             ? "border-primary bg-primary/5"
             : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
-          disabled && "opacity-50 cursor-not-allowed",
-          isUploading && "pointer-events-none"
+          disabled && "opacity-50 cursor-not-allowed"
         )}
       >
         <input
@@ -278,11 +395,7 @@ export function ImageUploader({
         />
 
         <div className="flex flex-col items-center gap-2 text-center">
-          {isUploading ? (
-            <Loader2 className="h-10 w-10 text-muted-foreground animate-spin" />
-          ) : (
-            <Upload className="h-10 w-10 text-muted-foreground" />
-          )}
+          <Upload className="h-10 w-10 text-muted-foreground" />
           <div className="space-y-1">
             <p className="text-sm font-medium">
               {isDragOver
@@ -299,65 +412,128 @@ export function ImageUploader({
         </div>
       </div>
 
-      {/* Pending Uploads */}
+      {/* Pending Uploads with Per-Image Aspect Ratio */}
       {pendingUploads.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-muted-foreground">
+            {pendingUploads.some((p) => p.status === "uploading") ? "Uploading Images" : "Pending Images"}
+          </p>
           {pendingUploads.map((pending) => (
             <div
               key={pending.id}
               className={cn(
-                "flex items-center gap-3 rounded-lg border p-3",
-                pending.status === "error" && "border-destructive bg-destructive/5"
+                "rounded-lg border p-4 space-y-3",
+                pending.status === "error" && "border-destructive bg-destructive/5",
+                pending.status === "success" && "border-green-500/50 bg-green-50/50 dark:bg-green-950/20"
               )}
             >
-              {/* Preview */}
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
-                <Image
-                  src={pending.previewUrl}
-                  alt={pending.file.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-sm font-medium truncate">{pending.file.name}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{formatFileSize(pending.file.size)}</span>
-                  {pending.status === "uploading" && (
-                    <span>Uploading...</span>
-                  )}
-                  {pending.status === "success" && (
-                    <span className="text-green-600 flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Complete
-                    </span>
-                  )}
-                  {pending.status === "error" && (
-                    <span className="text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {pending.error || "Failed"}
-                    </span>
-                  )}
+              {/* Image Preview and Info Row */}
+              <div className="flex items-start gap-4">
+                {/* Preview with Aspect Ratio Applied */}
+                <div className={cn(
+                  "relative shrink-0 overflow-hidden rounded-lg bg-muted transition-all duration-300",
+                  pending.status === "success" ? "w-20" : "w-32",
+                  getPreviewAspectClass(pending.aspectRatio)
+                )}>
+                  <Image
+                    src={pending.previewUrl}
+                    alt={pending.file.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
 
-                {/* Progress bar */}
-                {pending.status === "uploading" && (
-                  <Progress value={pending.progress} className="h-1" />
-                )}
+                {/* Info and Controls */}
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{pending.file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatFileSize(pending.file.size)}
+                      </p>
+                    </div>
+                    
+                    {/* Remove/Cancel button - always visible */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        removePendingUpload(pending.id);
+                      }}
+                      title={pending.status === "uploading" ? "Cancel upload" : "Remove"}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex items-center gap-2 text-xs">
+                    {pending.status === "pending" && (
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Waiting...
+                      </span>
+                    )}
+                    {pending.status === "uploading" && (
+                      <span className="text-blue-600 flex items-center gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Uploading... {pending.progress}%
+                      </span>
+                    )}
+                    {pending.status === "success" && (
+                      <span className="text-green-600 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Uploaded successfully
+                      </span>
+                    )}
+                    {pending.status === "error" && (
+                      <span className="text-destructive flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        {pending.error || "Failed"}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Progress bar */}
+                  {pending.status === "uploading" && (
+                    <Progress value={pending.progress} className="h-1.5" />
+                  )}
+                </div>
               </div>
 
-              {/* Remove button */}
-              {pending.status !== "uploading" && pending.status !== "success" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => removePendingUpload(pending.id)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              {/* Per-Image Aspect Ratio Selector - only show when not completed */}
+              {pending.status !== "success" && (
+                <div className="pt-2 border-t">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-xs font-medium text-muted-foreground">Aspect Ratio:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ASPECT_RATIOS.map((ratio) => (
+                        <button
+                          key={ratio}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            updateAspectRatio(pending.id, ratio);
+                          }}
+                          disabled={pending.status === "uploading"}
+                          className={cn(
+                            "px-2.5 py-1 text-xs rounded-md border transition-all",
+                            pending.aspectRatio === ratio
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-background hover:bg-muted border-muted-foreground/20 hover:border-primary/50",
+                            pending.status === "uploading" && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          {ASPECT_RATIO_INFO[ratio].label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           ))}

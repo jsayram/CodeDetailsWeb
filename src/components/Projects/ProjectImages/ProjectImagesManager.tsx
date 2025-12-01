@@ -46,6 +46,12 @@ interface ProjectImagesManagerProps {
   projectId: string;
   userId: string;
   isEditing?: boolean;
+  isOwner?: boolean;
+  onEditClick?: () => void;
+  /** Called when images change during edit session - passes count of new images */
+  onImagesChange?: (newImageCount: number) => void;
+  /** Reference to get the discard function */
+  discardRef?: React.MutableRefObject<(() => Promise<void>) | null>;
   className?: string;
 }
 
@@ -53,11 +59,19 @@ export function ProjectImagesManager({
   projectId,
   userId,
   isEditing = false,
+  isOwner = false,
+  onEditClick,
+  onImagesChange,
+  discardRef,
   className,
 }: ProjectImagesManagerProps) {
   const [images, setImages] = useState<SelectProjectImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Track images uploaded during this edit session (for discard on cancel)
+  // This stores the full image objects so we can delete them from storage
+  const [pendingImages, setPendingImages] = useState<SelectProjectImage[]>([]);
   
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -67,6 +81,11 @@ export function ProjectImagesManager({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [imageToDelete, setImageToDelete] = useState<SelectProjectImage | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Notify parent when pending images change
+  useEffect(() => {
+    onImagesChange?.(pendingImages.length);
+  }, [pendingImages.length, onImagesChange]);
 
   // Fetch images
   const fetchImages = useCallback(async () => {
@@ -88,21 +107,83 @@ export function ProjectImagesManager({
     }
   }, [projectId]);
 
+  // Discard function - called by parent when user cancels
+  const discardPendingImages = useCallback(async () => {
+    if (pendingImages.length === 0) return;
+    
+    console.log("Discarding pending images:", pendingImages.map(img => img.id));
+    
+    // Delete all pending images from storage and database
+    for (const image of pendingImages) {
+      try {
+        const result = await permanentlyDeleteProjectImageAction(image.id);
+        if (result.success) {
+          await deleteFromStorage(result.data.storagePath);
+          console.log("Deleted pending image:", image.id);
+        }
+      } catch (err) {
+        console.error("Error discarding image:", err);
+      }
+    }
+    
+    // Clear pending images and refresh from server
+    setPendingImages([]);
+    await fetchImages();
+  }, [pendingImages, fetchImages]);
+
+  // Expose discard function to parent via ref
+  useEffect(() => {
+    if (discardRef) {
+      discardRef.current = discardPendingImages;
+    }
+    return () => {
+      if (discardRef) {
+        discardRef.current = null;
+      }
+    };
+  }, [discardRef, discardPendingImages]);
+
+  // Clear pending images when exiting edit mode (but don't delete - they're saved)
+  useEffect(() => {
+    if (!isEditing) {
+      setPendingImages([]);
+    }
+  }, [isEditing]);
+
   // Load images on mount
+  useEffect(() => {
+    fetchImages();
+  }, [fetchImages]);
   useEffect(() => {
     fetchImages();
   }, [fetchImages]);
 
   // Handle image click (open modal)
-  const handleImageClick = (image: SelectProjectImage, index: number) => {
-    setModalInitialIndex(index);
+  const handleImageClick = (image: SelectProjectImage, _index: number) => {
+    // Find the actual index of this image in the images array
+    const actualIndex = images.findIndex((img) => img.id === image.id);
+    setModalInitialIndex(actualIndex >= 0 ? actualIndex : 0);
     setModalOpen(true);
   };
 
   // Handle image upload complete
-  const handleUploadComplete = (newImage: SelectProjectImage) => {
-    setImages((prev) => [...prev, newImage]);
-  };
+  const handleUploadComplete = useCallback((newImage: SelectProjectImage) => {
+    console.log("Image uploaded:", newImage.id, newImage.image_type);
+    
+    // Track this image as pending (uploaded during this edit session)
+    setPendingImages((prev) => [...prev, newImage]);
+    
+    // For cover/logo, replace existing instead of adding
+    if (newImage.image_type === "cover" || newImage.image_type === "logo") {
+      setImages((prev) => {
+        // Remove existing cover/logo and add new one
+        const filtered = prev.filter((img) => img.image_type !== newImage.image_type);
+        return [...filtered, newImage];
+      });
+    } else {
+      setImages((prev) => [...prev, newImage]);
+    }
+  }, []);
 
   // Handle set as cover
   const handleSetCover = async (imageId: string) => {
@@ -204,21 +285,33 @@ export function ProjectImagesManager({
 
     return (
       <>
-        <Card className={className}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5" />
+        {/* Blog-style image section without Card wrapper */}
+        <div className={cn("space-y-4", className)}>
+          {/* Header with Edit button for owners */}
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <ImageIcon className="h-6 w-6" />
               Project Images
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ImageGallery
-              images={images}
-              isEditing={false}
-              onImageClick={handleImageClick}
-            />
-          </CardContent>
-        </Card>
+            </h2>
+            {isOwner && onEditClick && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEditClick}
+                className="gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                Edit Images
+              </Button>
+            )}
+          </div>
+
+          {/* Image Gallery - Instagram grid style */}
+          <ImageGalleryGrid
+            images={images}
+            onImageClick={handleImageClick}
+          />
+        </div>
 
         {/* Image Modal */}
         <ImageModal
@@ -226,6 +319,7 @@ export function ProjectImagesManager({
           initialIndex={modalInitialIndex}
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
+          allowDownload={isOwner}
         />
       </>
     );
@@ -321,10 +415,19 @@ export function ProjectImagesManager({
         initialIndex={modalInitialIndex}
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
+        allowDownload={isOwner}
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={(open) => {
+        // Only allow closing if not currently deleting
+        if (!isDeleting) {
+          setDeleteConfirmOpen(open);
+          if (!open) {
+            setImageToDelete(null);
+          }
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Image</AlertDialogTitle>
@@ -339,10 +442,10 @@ export function ProjectImagesManager({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
+            <Button
+              variant="destructive"
               onClick={handleDeleteConfirm}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? (
                 <>
@@ -355,7 +458,7 @@ export function ProjectImagesManager({
                   Delete
                 </>
               )}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

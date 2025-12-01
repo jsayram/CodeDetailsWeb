@@ -34,6 +34,8 @@ interface ImageModalProps {
   initialIndex: number;
   isOpen: boolean;
   onClose: () => void;
+  /** Allow download button (only for project owner) */
+  allowDownload?: boolean;
 }
 
 export function ImageModal({
@@ -41,6 +43,7 @@ export function ImageModal({
   initialIndex,
   isOpen,
   onClose,
+  allowDownload = false,
 }: ImageModalProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
@@ -268,14 +271,18 @@ export function ImageModal({
                 </Button>
               </div>
               
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-white/20 hover:text-white"
-                onClick={handleDownload}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              {/* Download button - only visible to project owner */}
+              {allowDownload && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-black/50 text-white hover:bg-white/20 hover:text-white"
+                  onClick={handleDownload}
+                  title="Download image"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Image counter */}

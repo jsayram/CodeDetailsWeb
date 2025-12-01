@@ -516,14 +516,14 @@ export default function SuggestTagsPage() {
         </SignedIn>
 
         {/* Page Banner */}
-        <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 mb-0 py-3">
+        <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-3 sm:px-4 2xl:px-8 3xl:px-12 mb-0 py-2 sm:py-3">
           <PageBanner
-            icon={<TagIcon className="h-8 w-8 text-primary" />}
+            icon={<TagIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />}
             bannerTitle="Suggest Tags for Your Project"
             description={
               <div>
-                  <p className="mt-2 text-xs">
-                  <span className="font-semibold">Project:</span> <Badge className="bg-transparent outline-1 text-fuchsia-600/60">{projectData?.title || "Loading..."}</Badge>
+                  <p className="mt-1 sm:mt-2 text-xs">
+                  <span className="font-semibold">Project:</span> <Badge className="bg-transparent outline-1 text-fuchsia-600/60 text-xs">{projectData?.title || "Loading..."}</Badge>
                 </p>
               </div>
             }
@@ -537,35 +537,36 @@ export default function SuggestTagsPage() {
         </div>
 
         {/* Main Content */}
-        <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-8">
+        <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-3 sm:px-4 2xl:px-8 3xl:px-12 py-4 sm:py-6 md:py-8">
           <div className="container max-w-6xl mx-auto">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               {/* Centered Tag Input at Top with Back Button */}
               <div className="max-w-4xl mx-auto">
                 <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between mb-2">
+                  <CardHeader className="p-4 sm:p-6">
+                    {/* Mobile: Stacked layout, Desktop: Side by side */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
                       <Button
                         type="button"
                         variant="default"
-                        size="lg"
+                        size="default"
                         onClick={handleBack}
-                        className="flex items-center gap-2 cursor-pointer font-semibold"
+                        className="flex items-center gap-2 cursor-pointer font-semibold text-sm sm:text-base w-full sm:w-auto"
                       >
-                        <ArrowLeft className="h-5 w-5" />
+                        <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                         Back to Project
                       </Button>
-                      <CardTitle className="flex items-center gap-2">
-                        <TagIcon className="h-5 w-5" />
+                      <CardTitle className="flex items-center justify-center sm:justify-start gap-2 text-base sm:text-lg">
+                        <TagIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                         Enter Tag Names
                       </CardTitle>
-                      <div className="w-[180px]"></div> {/* Spacer for centering */}
+                      <div className="hidden sm:block w-[140px] lg:w-[180px]"></div> {/* Spacer for centering on desktop */}
                     </div>
-                    <CardDescription className="text-center">
+                    <CardDescription className="text-center text-xs sm:text-sm">
                       Separate multiple tags with commas (e.g., react, next-js, typescript)
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
                     <Input
                       id="tag-name"
                       placeholder="e.g. react, next-js, typescript"
@@ -584,7 +585,7 @@ export default function SuggestTagsPage() {
                       onBlur={() => processTagInput(tagInput)}
                       required
                       autoFocus
-                      className="text-base h-16 focus:ring-2 focus:ring-primary focus:border-primary"
+                      className="text-sm sm:text-base h-12 sm:h-16 focus:ring-2 focus:ring-primary focus:border-primary"
                     />
 
                     {/* Badge Preview - Shows typed tags */}
@@ -623,15 +624,15 @@ export default function SuggestTagsPage() {
               {/* Two Cards Side-by-Side Below */}
               <div className="flex flex-col lg:flex-row gap-6">
                 {/* Left - Requirements Card */}
-                <div className="lg:w-1/3">
+                <div className="w-full lg:w-1/3">
                   <Card className="h-full">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Info className="h-5 w-5 text-warning flex-shrink-0" />
+                    <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+                      <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+                        <Info className="h-4 w-4 sm:h-5 sm:w-5 text-warning flex-shrink-0" />
                         Requirements & Tags
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
                       {/* Tag Requirements */}
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-foreground">Tag Rules:</p>
@@ -720,32 +721,32 @@ export default function SuggestTagsPage() {
                 </div>
 
                 {/* Right - Tag Validation Card */}
-                <div className="lg:w-2/3">
+                <div className="w-full lg:w-2/3">
                   <Card className="h-full border-2">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-4">
-                        <CardTitle className="text-xs font-bold flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4" />
+                    <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-4">
+                        <CardTitle className="text-xs sm:text-sm font-bold flex items-center gap-2">
+                          <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                           Tag Validation
                         </CardTitle>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge variant="outline" className="text-xs font-bold px-2 py-0.5">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <Badge variant="outline" className="text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5">
                             <span className={remainingTagSlots > 0 ? 'text-success' : 'text-destructive'}>
-                              Current Project Has ({currentTagCount}/{MAX_PROJECT_TAGS}) Tags
+                              Tags: {currentTagCount}/{MAX_PROJECT_TAGS}
                             </span>
                           </Badge>
                           {pendingTags.length > 0 && (
-                            <Badge variant="outline" className="text-xs font-bold px-2 py-0.5 border-warning text-warning">
-                             ({pendingTags.length}) Pending Approval
+                            <Badge variant="outline" className="text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 border-warning text-warning">
+                             {pendingTags.length} Pending
                             </Badge>
                           )}
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                       <div 
                         data-tag-validation-scroll
-                        className="h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
+                        className="h-[300px] sm:h-[350px] md:h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/50"
                       >
                           {/* Validation Results */}
                           {processedTags.length > 0 ? (
@@ -758,7 +759,7 @@ export default function SuggestTagsPage() {
                                 return (
                                   <div key={index} className="space-y-2">
                                     <div
-                                      className={`flex items-center justify-between gap-3 p-3 rounded-md border-2 ${
+                                      className={`flex flex-col xs:flex-row xs:items-center justify-between gap-2 xs:gap-3 p-2 sm:p-3 rounded-md border-2 ${
                                         isReadyToSubmit
                                           ? "bg-success/20 border-success"
                                           : needsReason
@@ -770,11 +771,11 @@ export default function SuggestTagsPage() {
                                     >
                                       <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
                                         {isReadyToSubmit ? (
-                                          <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                                          <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-success flex-shrink-0" />
                                         ) : (
-                                          <AlertCircle className={`h-5 w-5 flex-shrink-0 ${!tag.isValid ? 'text-destructive' : 'text-warning'}`} />
+                                          <AlertCircle className={`h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 ${!tag.isValid ? 'text-destructive' : 'text-warning'}`} />
                                         )}
-                                        <p className={`font-mono font-bold text-sm truncate ${
+                                        <p className={`font-mono font-bold text-xs sm:text-sm truncate ${
                                           isReadyToSubmit
                                             ? "text-success"
                                             : needsReason
@@ -786,10 +787,10 @@ export default function SuggestTagsPage() {
                                           #{tag.name}
                                         </p>
                                         {isReadyToSubmit && (
-                                          <span className="text-xs text-success ml-2 flex-shrink-0">✓ Ready to submit</span>
+                                          <span className="text-[10px] sm:text-xs text-success ml-1 sm:ml-2 flex-shrink-0 hidden xs:inline">✓ Ready</span>
                                         )}
                                         {needsReason && (
-                                          <span className="text-xs text-warning ml-2 flex-shrink-0">Reason required</span>
+                                          <span className="text-[10px] sm:text-xs text-warning ml-1 sm:ml-2 flex-shrink-0">Reason required</span>
                                         )}
                                       </div>
                                       {(!tag.isValid || !tag.willBeSubmitted) && (
@@ -798,10 +799,10 @@ export default function SuggestTagsPage() {
                                           variant="outline"
                                           size="sm"
                                           onClick={() => removeInvalidTag(tag.name)}
-                                          className="flex-shrink-0 h-auto py-1 px-3 text-destructive hover:text-destructive hover:bg-destructive/20 border-destructive cursor-pointer"
+                                          className="flex-shrink-0 h-auto py-1 px-2 sm:px-3 text-xs text-destructive hover:text-destructive hover:bg-destructive/20 border-destructive cursor-pointer w-full xs:w-auto justify-center"
                                         >
-                                          <X className="h-4 w-4 mr-1" />
-                                          REMOVE
+                                          <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                                          Remove
                                         </Button>
                                       )}
                                     </div>
@@ -822,8 +823,8 @@ export default function SuggestTagsPage() {
                                     
                                     {/* Reason input for valid tags that will be submitted */}
                                     {tag.isValid && tag.willBeSubmitted && (
-                                      <div className="ml-10 space-y-1">
-                                        <label htmlFor={`reason-${tag.name}`} className="text-xs font-medium text-muted-foreground">
+                                      <div className="ml-6 sm:ml-10 space-y-1">
+                                        <label htmlFor={`reason-${tag.name}`} className="text-[10px] sm:text-xs font-medium text-muted-foreground">
                                           Reason for approval: <span className="text-destructive">*</span>
                                         </label>
                                         <Textarea
@@ -836,8 +837,8 @@ export default function SuggestTagsPage() {
                                               [tag.name]: e.target.value
                                             }));
                                           }}
-                                          className="text-sm min-h-[80px] resize-none"
-                                          rows={3}
+                                          className="text-xs sm:text-sm min-h-[60px] sm:min-h-[80px] resize-none"
+                                          rows={2}
                                         />
                                       </div>
                                     )}

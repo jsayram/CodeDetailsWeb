@@ -258,6 +258,8 @@ export async function getProjectsByTag(
           user_id: projects.user_id,
           total_favorites: projects.total_favorites,
           url_links: projects.url_links,
+          category_data: projects.category_data,
+          field_order: projects.field_order,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
           deleted_at: projects.deleted_at

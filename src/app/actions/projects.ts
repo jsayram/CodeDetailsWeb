@@ -127,8 +127,8 @@ export async function createProject(project: InsertProject, userId: string) {
       user_id: userId,
       url_links: validatedData.url_links,
       tags: validatedData.tags,
-      category_data: validatedData.category_data,
-      field_order: validatedData.field_order,
+      category_data: validatedData.category_data ?? undefined,
+      field_order: validatedData.field_order ?? undefined,
     };
 
     console.log('Creating project with data:', JSON.stringify(trimmedProject, null, 2));
@@ -256,10 +256,10 @@ export async function updateProject(
       trimmedProject.tags = validatedData.tags;
     }
     if (validatedData.category_data !== undefined) {
-      trimmedProject.category_data = validatedData.category_data;
+      trimmedProject.category_data = validatedData.category_data ?? undefined;
     }
     if (validatedData.field_order !== undefined) {
-      trimmedProject.field_order = validatedData.field_order;
+      trimmedProject.field_order = validatedData.field_order ?? undefined;
     }
 
     console.log('Updating project with data:', JSON.stringify(trimmedProject, null, 2));
