@@ -37,6 +37,10 @@ export interface ProjectMeta {
   llmModel: string;
   totalTokensUsed?: number;
   totalCost?: number;
+  // Linked CodeDetails project fields
+  linkedProjectId?: string;
+  linkedProjectSlug?: string;
+  linkedProjectTitle?: string;
 }
 
 // ============================================================================
@@ -320,5 +324,47 @@ export async function getProjectChapters(projectSlug: string): Promise<Array<{
     return chapters;
   } catch {
     return [];
+  }
+}
+
+/**
+ * Update project metadata (partial update)
+ */
+export async function updateProjectMeta(
+  projectSlug: string,
+  updates: Partial<ProjectMeta>
+): Promise<ProjectMeta | null> {
+  try {
+    const currentMeta = await getProjectMeta(projectSlug);
+    if (!currentMeta) {
+      return null;
+    }
+    
+    const updatedMeta: ProjectMeta = {
+      ...currentMeta,
+      ...updates,
+      projectSlug, // Ensure slug is not changed
+    };
+    
+    const metaPath = path.join(OUTPUT_DIR, projectSlug, '_meta.json');
+    await fs.writeFile(metaPath, JSON.stringify(updatedMeta, null, 2), 'utf-8');
+    
+    return updatedMeta;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Find a doc linked to a specific project
+ */
+export async function findDocLinkedToProject(
+  projectSlug: string
+): Promise<ProjectMeta | null> {
+  try {
+    const allProjects = await listProjects();
+    return allProjects.find(p => p.linkedProjectSlug === projectSlug) || null;
+  } catch {
+    return null;
   }
 }

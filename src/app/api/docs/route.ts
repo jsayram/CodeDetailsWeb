@@ -4,47 +4,54 @@
  * GET /api/docs
  * 
  * Returns a list of all generated documentation projects for the current user.
+ * RFC 7807 compliant error responses.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { listProjects } from '@/lib/output-utils';
+import { unauthorized, serverError, success } from '@/lib/api-errors';
 
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
     const { userId } = await auth();
+    console.log('[docs-list] userId:', userId);
+    
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return unauthorized('Authentication required to view your generated documentation');
     }
 
     // Get all projects
     const allProjects = await listProjects();
+    console.log('[docs-list] All projects found:', allProjects.length);
+    console.log('[docs-list] Project userIds:', allProjects.map(p => ({ slug: p.projectSlug, userId: p.userId })));
     
     // Filter to only show user's projects
     const userProjects = allProjects.filter((p) => p.userId === userId);
+    console.log('[docs-list] User projects after filter:', userProjects.length);
     
-    // Format response
+    // Format response with linked project info
     const projects = userProjects.map((p) => ({
       slug: p.projectSlug,
       projectName: p.repoName,
       repoUrl: p.repoUrl,
       createdAt: p.createdAt,
       chapterCount: p.chapters.length,
+      linkedProjectId: p.linkedProjectId || null,
+      linkedProjectSlug: p.linkedProjectSlug || null,
+      linkedProjectTitle: p.linkedProjectTitle || null,
     }));
     
     // Sort by creation date (newest first)
     projects.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json({ projects });
+    return success(
+      { projects },
+      { total: projects.length }
+    );
   } catch (error) {
     console.error('[docs-list] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to list projects' },
-      { status: 500 }
-    );
+    return serverError(error, 'Failed to list generated documentation');
   }
 }

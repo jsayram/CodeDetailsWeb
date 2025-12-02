@@ -44,12 +44,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
     
-    const filePath = path.join(OUTPUT_DIR, safeSlug, safeFilename);
+    let filePath = path.join(OUTPUT_DIR, safeSlug, safeFilename);
     
-    // Check if file exists
+    // Check if file exists - fall back to index.md for overview
+    let fileExists = false;
     try {
       await fs.access(filePath);
+      fileExists = true;
     } catch {
+      // If requesting overview and it doesn't exist, try index.md
+      if (safeFilename === '-1_overview.md') {
+        const indexPath = path.join(OUTPUT_DIR, safeSlug, 'index.md');
+        try {
+          await fs.access(indexPath);
+          filePath = indexPath;
+          fileExists = true;
+        } catch {
+          // index.md also doesn't exist
+        }
+      }
+    }
+    
+    if (!fileExists) {
       return NextResponse.json(
         { error: 'Chapter not found' },
         { status: 404 }

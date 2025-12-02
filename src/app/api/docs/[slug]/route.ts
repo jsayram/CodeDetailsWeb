@@ -4,11 +4,21 @@
  * DELETE /api/docs/[slug]
  * 
  * Deletes a generated documentation project.
+ * RFC 7807 compliant error responses.
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { getProjectMeta, deleteProject } from '@/lib/output-utils';
+import { 
+  unauthorized, 
+  notFound, 
+  notOwner, 
+  serverError, 
+  invalidInput,
+  success 
+} from '@/lib/api-errors';
+import { docSlugParamSchema } from '@/lib/validations/docs';
 
 interface RouteParams {
   params: Promise<{
@@ -21,55 +31,39 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Authenticate user
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+      return unauthorized('Authentication required to delete documentation');
     }
 
     const { slug } = await params;
     
-    if (!slug) {
-      return NextResponse.json(
-        { error: 'Project slug is required' },
-        { status: 400 }
-      );
+    // Validate slug parameter
+    const validation = docSlugParamSchema.safeParse({ slug });
+    if (!validation.success) {
+      return invalidInput('Invalid documentation slug provided');
     }
 
     // Get project metadata to verify ownership
     const meta = await getProjectMeta(slug);
     
     if (!meta) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      );
+      return notFound('documentation', { identifier: slug });
     }
 
     // Verify ownership
     if (meta.userId !== userId) {
-      return NextResponse.json(
-        { error: 'You do not have permission to delete this project' },
-        { status: 403 }
-      );
+      return notOwner('documentation');
     }
 
     // Delete the project
     const deleted = await deleteProject(slug);
     
     if (!deleted) {
-      return NextResponse.json(
-        { error: 'Failed to delete project' },
-        { status: 500 }
-      );
+      return serverError(undefined, 'Failed to delete documentation');
     }
 
-    return NextResponse.json({ success: true });
+    return success({ deleted: true, slug });
   } catch (error) {
     console.error('[docs-delete] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete project' },
-      { status: 500 }
-    );
+    return serverError(error, 'Failed to delete documentation');
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth, SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -14,6 +14,9 @@ import {
   Download,
   Calendar,
   Folder,
+  Link2,
+  Unlink,
+  CheckCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +41,13 @@ import { FooterSection } from '@/components/layout/FooterSection';
 import { PageBanner } from '@/components/ui/page-banner';
 import { useSupabaseToken } from '@/hooks/use-SupabaseClerkJWTToken';
 import { ProjectsProvider } from '@/providers/projects-provider';
+import { AssignToProjectDialog } from '@/components/docs/AssignToProjectDialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface ProjectInfo {
   slug: string;
@@ -45,6 +55,9 @@ interface ProjectInfo {
   repoUrl: string;
   createdAt: string;
   chapterCount: number;
+  linkedProjectId?: string | null;
+  linkedProjectSlug?: string | null;
+  linkedProjectTitle?: string | null;
 }
 
 function MyDocsContent() {
@@ -54,31 +67,35 @@ function MyDocsContent() {
   const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  const [unlinkingSlug, setUnlinkingSlug] = useState<string | null>(null);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedDocForAssign, setSelectedDocForAssign] = useState<ProjectInfo | null>(null);
 
   // Load projects
-  useEffect(() => {
-    const loadProjects = async () => {
-      if (!isSignedIn) {
-        setLoading(false);
-        return;
-      }
-      
-      try {
-        const response = await fetch('/api/docs');
-        if (!response.ok) {
-          throw new Error('Failed to load projects');
-        }
-        const data = await response.json();
-        setProjects(data.projects || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load projects');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loadProjects = useCallback(async () => {
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
     
-    loadProjects();
+    try {
+      const response = await fetch('/api/docs');
+      if (!response.ok) {
+        throw new Error('Failed to load projects');
+      }
+      const result = await response.json();
+      // API returns { success: true, data: { projects: [...] } }
+      setProjects(result.data?.projects || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
   }, [isSignedIn]);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   // Delete project
   const handleDelete = async (slug: string) => {
@@ -99,6 +116,54 @@ function MyDocsContent() {
     } finally {
       setDeletingSlug(null);
     }
+  };
+
+  // Unlink doc from project
+  const handleUnlink = async (slug: string) => {
+    setUnlinkingSlug(slug);
+    try {
+      const response = await fetch(`/api/docs/${slug}/link-project`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to unlink documentation');
+      }
+      
+      // Update local state to remove linked info
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.slug === slug
+            ? { ...p, linkedProjectId: null, linkedProjectSlug: null, linkedProjectTitle: null }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error('Unlink error:', err);
+    } finally {
+      setUnlinkingSlug(null);
+    }
+  };
+
+  // Handle opening assign dialog
+  const handleOpenAssignDialog = (doc: ProjectInfo) => {
+    setSelectedDocForAssign(doc);
+    setAssignDialogOpen(true);
+  };
+
+  // Handle assignment completion
+  const handleAssigned = (projectSlug: string, projectTitle: string) => {
+    // Update local state with the new linked project
+    if (selectedDocForAssign) {
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.slug === selectedDocForAssign.slug
+            ? { ...p, linkedProjectSlug: projectSlug, linkedProjectTitle: projectTitle }
+            : p
+        )
+      );
+    }
+    setSelectedDocForAssign(null);
   };
 
   return (
@@ -239,6 +304,24 @@ function MyDocsContent() {
                                 <FileText className="h-3 w-3 mr-1" />
                                 {project.chapterCount} chapters
                               </Badge>
+                              {project.linkedProjectSlug && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge 
+                                        variant="outline" 
+                                        className="bg-gradient-to-r from-purple-500/10 to-fuchsia-500/10 border-purple-500/30 text-purple-400"
+                                      >
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Linked
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Linked to: {project.linkedProjectTitle || project.linkedProjectSlug}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </div>
                           </div>
                         </CardHeader>
@@ -249,8 +332,69 @@ function MyDocsContent() {
                                 <Calendar className="h-4 w-4" />
                                 {new Date(project.createdAt).toLocaleDateString()}
                               </span>
+                              {project.linkedProjectSlug && (
+                                <Link 
+                                  href={`/projects/${project.linkedProjectSlug}`}
+                                  className="flex items-center gap-1 text-purple-400 hover:text-purple-300 transition-colors"
+                                >
+                                  <Link2 className="h-4 w-4" />
+                                  {project.linkedProjectTitle}
+                                </Link>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
+                              {/* Assign/Unlink Buttons */}
+                              {project.linkedProjectSlug ? (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-orange-500 hover:text-orange-400 cursor-pointer"
+                                      disabled={unlinkingSlug === project.slug}
+                                    >
+                                      {unlinkingSlug === project.slug ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Unlink className="h-4 w-4 mr-1" />
+                                          Unlink
+                                        </>
+                                      )}
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Unlink Documentation?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will remove the link between this documentation and{' '}
+                                        <strong>{project.linkedProjectTitle}</strong>.
+                                        The documentation will not be deleted.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-orange-600 text-white hover:bg-orange-500"
+                                        onClick={() => handleUnlink(project.slug)}
+                                      >
+                                        Unlink
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-purple-500 hover:text-purple-400 cursor-pointer"
+                                  onClick={() => handleOpenAssignDialog(project)}
+                                >
+                                  <Link2 className="h-4 w-4 mr-1" />
+                                  Assign
+                                </Button>
+                              )}
+                              
                               <Button variant="outline" size="sm" asChild className="cursor-pointer">
                                 <Link href={`/github-scrapper/docs/${project.slug}`}>
                                   View Docs
@@ -326,6 +470,20 @@ function MyDocsContent() {
             </motion.div>
           </div>
         </div>
+
+        {/* Assign to Project Dialog */}
+        {selectedDocForAssign && (
+          <AssignToProjectDialog
+            open={assignDialogOpen}
+            onOpenChange={(open) => {
+              setAssignDialogOpen(open);
+              if (!open) setSelectedDocForAssign(null);
+            }}
+            doc={selectedDocForAssign}
+            allDocs={projects}
+            onAssigned={handleAssigned}
+          />
+        )}
       </div>
     </div>
   );

@@ -80,16 +80,25 @@ export default function DocViewerPage() {
     
     const headingRegex = /^(#{1,3})\s+(.+)$/gm;
     const headings: TOCHeading[] = [];
+    const idCounts = new Map<string, number>();
     let match;
     
     while ((match = headingRegex.exec(currentContent)) !== null) {
       const level = match[1].length;
       const text = match[2].trim();
       // Create a URL-friendly ID
-      const id = text
+      let id = text
         .toLowerCase()
         .replace(/[^a-z0-9\s-]/g, '')
         .replace(/\s+/g, '-');
+      
+      // Ensure unique IDs by appending a counter if duplicate
+      const count = idCounts.get(id) || 0;
+      idCounts.set(id, count + 1);
+      if (count > 0) {
+        id = `${id}-${count}`;
+      }
+      
       headings.push({ id, text, level });
     }
     
@@ -305,10 +314,11 @@ export default function DocViewerPage() {
                 depth="layered"
                 opacityRange={[0.01, 0.1]}
                 lightModeOpacityRange={[0.01, 0.2]}
+                containerClassName="pointer-events-none"
               />
               
               {/* Main Content Area with TOC */}
-              <div className="flex gap-8">
+              <div className="relative z-10 flex gap-8">
                 {/* Main Content */}
                 <div className="flex-1 min-w-0">
                   <AnimatePresence mode="wait">
@@ -350,14 +360,19 @@ export default function DocViewerPage() {
                   
                   {/* Navigation Footer */}
                   {!loading && !error && (
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-6 border-t">
+                    <div className="relative z-20 flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 pt-6 border-t">
                       {/* Previous Button */}
                       <div className="w-full sm:w-auto order-2 sm:order-1">
                         {prevChapter ? (
                           <Button
                             variant="outline"
+                            type="button"
                             className="w-full sm:w-auto cursor-pointer hover:bg-accent"
-                            onClick={() => navigateToChapter(prevChapter.filename)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigateToChapter(prevChapter.filename);
+                            }}
                           >
                             <ChevronLeft className="h-4 w-4 mr-2" />
                             <span className="max-w-[150px] truncate">{prevChapter.title}</span>
@@ -371,8 +386,11 @@ export default function DocViewerPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        type="button"
                         className="hidden sm:flex cursor-pointer hover:bg-accent order-3 sm:order-2"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           window.open(`/api/docs/${projectSlug}/download`, '_blank');
                         }}
                       >
@@ -384,8 +402,13 @@ export default function DocViewerPage() {
                       <div className="w-full sm:w-auto order-1 sm:order-3">
                         {nextChapter ? (
                           <Button 
+                            type="button"
                             className="w-full sm:w-auto cursor-pointer hover:bg-primary/90"
-                            onClick={() => navigateToChapter(nextChapter.filename)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigateToChapter(nextChapter.filename);
+                            }}
                           >
                             <span className="max-w-[150px] truncate">{nextChapter.title}</span>
                             <ChevronRight className="h-4 w-4 ml-2" />
@@ -398,20 +421,21 @@ export default function DocViewerPage() {
                   )}
                 </div>
                 
-                {/* Right Sidebar - Table of Contents (scrolls with content) */}
+                {/* Right Sidebar - Table of Contents (sticky) */}
                 {!loading && !error && tocHeadings.length > 0 && (
-                  <aside className="hidden xl:block w-64 shrink-0">
-                    <div className="sticky top-20 max-h-[calc(100vh-6rem)] overflow-hidden flex flex-col">
-                      <div className="bg-card/50 backdrop-blur-sm rounded-lg border p-4 flex flex-col max-h-full">
+                  <aside className="hidden xl:block w-64 shrink-0 relative">
+                    <div className="sticky top-24 max-h-[calc(100vh-8rem)]">
+                      <div className="bg-card/80 backdrop-blur-sm rounded-lg border p-4 flex flex-col max-h-[calc(100vh-10rem)]">
                         <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-muted-foreground flex-shrink-0">
                           <List className="h-4 w-4" />
                           On this page
                         </div>
                         <nav className="space-y-1 overflow-y-auto flex-1 pr-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40">
-                          {tocHeadings.map((heading) => (
+                          {tocHeadings.map((heading, index) => (
                             <button
-                              key={heading.id}
+                              key={`${heading.id}-${index}`}
                               onClick={() => scrollToHeading(heading.id)}
+                              type="button"
                               className={cn(
                                 'block w-full text-left text-sm py-1.5 transition-colors cursor-pointer hover:text-foreground',
                                 heading.level === 1 && 'font-medium',
