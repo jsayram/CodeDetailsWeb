@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
   BookOpen,
   ExternalLink,
   FileText,
@@ -25,6 +31,10 @@ import {
   Sparkles,
   FolderGit2,
   Calendar,
+  ChevronDown,
+  ChevronUp,
+  Edit3,
+  Eye,
 } from 'lucide-react';
 import { useSWRConfig } from 'swr';
 import useSWR from 'swr';
@@ -65,6 +75,7 @@ export function LinkedDocumentationSection({
 }: LinkedDocumentationSectionProps) {
   const { mutate } = useSWRConfig();
   const [isUnlinking, setIsUnlinking] = useState(false);
+  const [showChapters, setShowChapters] = useState(false);
 
   // Fetch linked documentation using SWR for caching
   const { data, error, isLoading } = useSWR<LinkedDocInfo>(
@@ -221,7 +232,8 @@ export function LinkedDocumentationSection({
             )}
           </div>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 space-y-4">
+          {/* Stats row */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -265,6 +277,96 @@ export function LinkedDocumentationSection({
               </Button>
             </div>
           </div>
+
+          {/* Chapters List - Collapsible for owners */}
+          {isOwner && linkedDoc.chapters && linkedDoc.chapters.length > 0 && (
+            <Collapsible open={showChapters} onOpenChange={setShowChapters}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between hover:bg-purple-500/10 border border-dashed border-purple-500/30"
+                >
+                  <span className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-purple-500" />
+                    <span className="text-sm">
+                      Manage Chapters ({linkedDoc.chapters.length} files)
+                    </span>
+                  </span>
+                  {showChapters ? (
+                    <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <div className="rounded-lg border border-purple-500/20 bg-muted/30 overflow-hidden">
+                  <div className="px-4 py-2 bg-purple-500/5 border-b border-purple-500/20">
+                    <p className="text-xs text-muted-foreground">
+                      Click on a chapter to view or edit its content
+                    </p>
+                  </div>
+                  <ScrollArea className="max-h-[300px]">
+                    <div className="divide-y divide-border/50">
+                      {linkedDoc.chapters
+                        .sort((a, b) => a.order - b.order)
+                        .map((chapter, index) => (
+                          <div
+                            key={chapter.filename}
+                            className="flex items-center justify-between px-4 py-3 hover:bg-purple-500/5 transition-colors group"
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-purple-500/10 flex items-center justify-center">
+                                <span className="text-xs font-medium text-purple-500">
+                                  {index + 1}
+                                </span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium truncate" title={chapter.title}>
+                                  {chapter.title}
+                                </p>
+                                <p className="text-xs text-muted-foreground truncate" title={chapter.filename}>
+                                  {chapter.filename}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-purple-500"
+                              >
+                                <Link
+                                  href={`/github-scrapper/docs/${linkedDoc.docSlug}/${chapter.filename}`}
+                                  title="View chapter"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-purple-500"
+                              >
+                                <Link
+                                  href={`/github-scrapper/docs/${linkedDoc.docSlug}/${chapter.filename}?edit=true`}
+                                  title="Edit chapter"
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </CardContent>
       </Card>
     </section>

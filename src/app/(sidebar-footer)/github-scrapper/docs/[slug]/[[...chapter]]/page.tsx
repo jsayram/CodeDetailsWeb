@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -17,9 +17,14 @@ import {
   Github,
   Calendar,
   Bot,
+  Edit3,
+  Save,
+  X,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import { DocumentationViewer } from '@/components/created_mds';
 import { CodeParticlesElement } from '@/components/Elements/CodeParticlesElement';
 import { cn } from '@/lib/utils';
@@ -60,20 +65,73 @@ export default function DocViewerPage() {
   const { token } = useSupabaseToken();
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   
   const projectSlug = params.slug as string;
   const chapterFile = (params.chapter as string[] | undefined)?.[0] || '-1_overview.md';
+  const isEditMode = searchParams.get('edit') === 'true';
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [meta, setMeta] = useState<ProjectMeta | null>(null);
   const [chapters, setChaptersState] = useState<ChapterInfo[]>([]);
   const [currentContent, setCurrentContent] = useState<string>('');
+  const [editContent, setEditContent] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [activeHeading, setActiveHeading] = useState<string>('');
+  
+  // Check if user owns this documentation
+  const isOwner = meta?.userId === user?.id;
   
   // Use the doc chapters context to share with sidebar
   const { setChapters, setCurrentChapter, setProjectMeta, setIsDocPage } = useDocChapters();
   
+  // Toggle edit mode
+  const toggleEditMode = useCallback(() => {
+    const url = new URL(window.location.href);
+    if (isEditMode) {
+      url.searchParams.delete('edit');
+    } else {
+      url.searchParams.set('edit', 'true');
+      setEditContent(currentContent);
+    }
+    router.replace(url.pathname + url.search, { scroll: false });
+  }, [isEditMode, router, currentContent]);
+  
+  // Save edited content
+  const handleSave = async () => {
+    if (!isOwner) return;
+    
+    setIsSaving(true);
+    setSaveError(null);
+    
+    try {
+      const response = await fetch(`/api/docs/${projectSlug}/${chapterFile}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.detail || 'Failed to save changes');
+      }
+      
+      // Update the displayed content
+      setCurrentContent(editContent);
+      
+      // Exit edit mode
+      const url = new URL(window.location.href);
+      url.searchParams.delete('edit');
+      router.replace(url.pathname + url.search, { scroll: false });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save changes');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Extract headings from markdown content for TOC
   const tocHeadings = useMemo<TOCHeading[]>(() => {
     if (!currentContent) return [];
@@ -201,6 +259,10 @@ export default function DocViewerPage() {
         }
         const content = await response.text();
         setCurrentContent(content);
+        // Also set editContent if we're in edit mode (e.g., navigated directly with ?edit=true)
+        if (isEditMode) {
+          setEditContent(content);
+        }
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load chapter');
@@ -212,7 +274,7 @@ export default function DocViewerPage() {
     if (projectSlug) {
       loadChapter();
     }
-  }, [projectSlug, chapterFile]);
+  }, [projectSlug, chapterFile, isEditMode]);
   
   // Handle chapter navigation
   const navigateToChapter = (filename: string) => {
@@ -352,8 +414,88 @@ export default function DocViewerPage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.3 }}
+                        className="space-y-4"
                       >
-                        <DocumentationViewer content={currentContent} />
+                        {/* Edit/View Toggle for Owner */}
+                        {isOwner && (
+                          <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3 border">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <FileText className="h-4 w-4" />
+                              <span>{chapterFile}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isEditMode ? (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={toggleEditMode}
+                                    disabled={isSaving}
+                                  >
+                                    <X className="h-4 w-4 mr-1" />
+                                    Cancel
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={handleSave}
+                                    disabled={isSaving}
+                                    className="bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500"
+                                  >
+                                    {isSaving ? (
+                                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                    ) : (
+                                      <Save className="h-4 w-4 mr-1" />
+                                    )}
+                                    Save Changes
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={toggleEditMode}
+                                >
+                                  <Edit3 className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Save Error Alert */}
+                        {saveError && (
+                          <Alert variant="destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>Error Saving</AlertTitle>
+                            <AlertDescription>{saveError}</AlertDescription>
+                          </Alert>
+                        )}
+                        
+                        {/* Edit Mode or View Mode */}
+                        {isEditMode && isOwner ? (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Edit3 className="h-4 w-4" />
+                              <span>Editing markdown content</span>
+                            </div>
+                            <Textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="min-h-[500px] font-mono text-sm bg-background/50 resize-y"
+                              placeholder="Enter markdown content..."
+                            />
+                            <div className="flex items-center gap-2">
+                              <Eye className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm text-muted-foreground">Preview:</span>
+                            </div>
+                            <div className="border rounded-lg p-4 bg-background/50">
+                              <DocumentationViewer content={editContent} />
+                            </div>
+                          </div>
+                        ) : (
+                          <DocumentationViewer content={currentContent} />
+                        )}
                       </motion.div>
                     )}
                   </AnimatePresence>
