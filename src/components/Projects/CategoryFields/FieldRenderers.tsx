@@ -20,7 +20,7 @@ import type {
 } from "@/constants/project-category-fields";
 import { PROFANITY_LIST } from "@/constants/profanity-list";
 import { cn } from "@/lib/utils";
-import { GitHubTechImport } from "./GitHubTechImport";
+import { RepoTechImport } from "./RepoTechImport";
 
 // =============================================================================
 // Types
@@ -515,14 +515,14 @@ function MultiSelectFieldRenderer({
   // Limit display to prevent overflow, use scrollable container for many items
   const showScrollArea = selectedValues.length > 10;
   
-  // Check if this is the tech stack field to show GitHub import
+  // Check if this is the tech stack field to show Repo import
   const isTechStack = field.id === "techStack";
 
   return (
     <div ref={containerRef} className={cn("space-y-3", className)}>
-      {/* GitHub Import for Tech Stack */}
+      {/* Repo Import for Tech Stack */}
       {isTechStack && (
-        <GitHubTechImport
+        <RepoTechImport
           currentValues={selectedValues}
           onImport={(newValues) => onChange(newValues)}
           disabled={disabled}

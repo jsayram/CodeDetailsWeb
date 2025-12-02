@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { Github, Loader2, Sparkles, AlertCircle, Check, X } from "lucide-react";
+import { GitBranch, Loader2, Sparkles, AlertCircle, Check, ChevronDown, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +16,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 
-interface GitHubTechImportProps {
+interface RepoTechImportProps {
   /** Current selected tech stack values */
   currentValues: string[];
   /** Callback when tech stack is updated */
@@ -32,17 +37,31 @@ interface GitHubTechImportProps {
 interface AnalyzeResult {
   techStack: string[];
   repository: {
+    platform: string;
+    platformName: string;
     owner: string;
     repo: string;
+    project?: string;
+    host: string;
     url: string;
     fileCount: number;
   };
   detectedCount: number;
 }
 
+// Platform icons mapping
+const PLATFORM_ICONS: Record<string, { icon: string; color: string }> = {
+  github: { icon: "GH", color: "bg-gray-800 dark:bg-gray-700" },
+  gitlab: { icon: "GL", color: "bg-orange-600" },
+  bitbucket: { icon: "BB", color: "bg-blue-600" },
+  azure: { icon: "AZ", color: "bg-blue-500" },
+  codeberg: { icon: "CB", color: "bg-green-600" },
+  gitea: { icon: "GT", color: "bg-green-700" },
+  sourcehut: { icon: "SH", color: "bg-gray-600" },
+};
+
 /**
  * Comprehensive map of tech stack values to their display labels
- * Covers 300+ technologies across all categories
  */
 const TECH_LABELS: Record<string, string> = {
   // Programming Languages
@@ -101,14 +120,14 @@ const TECH_LABELS: Record<string, string> = {
   stencil: "Stencil",
   ember: "Ember.js",
   backbone: "Backbone.js",
-  mithril: "Mithril",
+  mithril: "Mithril.js",
   marko: "Marko",
   riot: "Riot.js",
   inferno: "Inferno",
   hyperapp: "Hyperapp",
-  htmx: "HTMX",
-  petite: "Petite Vue",
-  million: "Million.js",
+  htmx: "htmx",
+  petite: "Petite-Vue",
+  million: "Million",
 
   // CSS & Styling
   tailwindcss: "Tailwind CSS",
@@ -117,7 +136,7 @@ const TECH_LABELS: Record<string, string> = {
   chakra: "Chakra UI",
   antdesign: "Ant Design",
   shadcn: "shadcn/ui",
-  daisyui: "DaisyUI",
+  daisyui: "daisyUI",
   bulma: "Bulma",
   foundation: "Foundation",
   semantic: "Semantic UI",
@@ -127,56 +146,43 @@ const TECH_LABELS: Record<string, string> = {
   emotion: "Emotion",
   styledcomponents: "styled-components",
   stitches: "Stitches",
-  vanilla: "Vanilla Extract",
+  vanilla: "vanilla-extract",
   linaria: "Linaria",
   sass: "Sass/SCSS",
   less: "Less",
   stylus: "Stylus",
   postcss: "PostCSS",
+  cssmodules: "CSS Modules",
   radix: "Radix UI",
   headlessui: "Headless UI",
   ariakit: "Ariakit",
-  mantine: "Mantine",
-  nextui: "NextUI",
-  primereact: "PrimeReact",
-  primevue: "PrimeVue",
-  vuetify: "Vuetify",
-  quasar: "Quasar",
-  element: "Element UI",
-  naiveui: "Naive UI",
 
-  // Backend Frameworks (Node.js)
+  // Backend Frameworks - Node.js
   express: "Express.js",
   fastify: "Fastify",
   nestjs: "NestJS",
-  hono: "Hono",
   koa: "Koa",
+  hono: "Hono",
+  elysia: "Elysia",
   hapi: "Hapi",
   restify: "Restify",
-  polka: "Polka",
   adonis: "AdonisJS",
-  sails: "Sails.js",
+  feathers: "FeathersJS",
   loopback: "LoopBack",
-  feathers: "Feathers",
+  sails: "Sails.js",
   moleculer: "Moleculer",
-  nitro: "Nitro",
-  elysia: "Elysia",
-  bun: "Bun",
-  deno: "Deno",
 
-  // Python Backend
+  // Backend Frameworks - Python
   django: "Django",
   flask: "Flask",
   fastapi: "FastAPI",
   tornado: "Tornado",
+  sanic: "Sanic",
+  starlette: "Starlette",
   pyramid: "Pyramid",
   bottle: "Bottle",
   falcon: "Falcon",
-  sanic: "Sanic",
-  aiohttp: "aiohttp",
-  starlette: "Starlette",
   litestar: "Litestar",
-  django_rest: "Django REST",
   celery: "Celery",
 
   // Ruby Backend
@@ -250,83 +256,70 @@ const TECH_LABELS: Record<string, string> = {
   mongodb: "MongoDB",
   redis: "Redis",
   sqlite: "SQLite",
-  supabase: "Supabase",
-  firebase: "Firebase",
+  mariadb: "MariaDB",
+  oracle: "Oracle DB",
+  sqlserver: "SQL Server",
+  cockroachdb: "CockroachDB",
+  yugabytedb: "YugabyteDB",
+  tidb: "TiDB",
   prisma: "Prisma",
   drizzle: "Drizzle ORM",
   typeorm: "TypeORM",
   sequelize: "Sequelize",
+  mongoose: "Mongoose",
   knex: "Knex.js",
   objection: "Objection.js",
-  bookshelf: "Bookshelf.js",
   mikro: "MikroORM",
   kysely: "Kysely",
   sqlalchemy: "SQLAlchemy",
-  django_orm: "Django ORM",
-  peewee: "Peewee",
-  tortoise: "Tortoise ORM",
-  sqlmodel: "SQLModel",
-  activerecord: "ActiveRecord",
-  eloquent: "Eloquent",
-  doctrine: "Doctrine",
-  hibernate: "Hibernate",
-  gorm: "GORM",
-  ent: "Ent",
-  neo4j: "Neo4j",
-  cassandra: "Cassandra",
-  dynamodb: "DynamoDB",
-  elasticsearch: "Elasticsearch",
-  clickhouse: "ClickHouse",
-  cockroachdb: "CockroachDB",
+  supabase: "Supabase",
+  firebase: "Firebase",
   planetscale: "PlanetScale",
   neon: "Neon",
   turso: "Turso",
   upstash: "Upstash",
+  xata: "Xata",
   convex: "Convex",
-  fauna: "Fauna",
-  couchdb: "CouchDB",
-  influxdb: "InfluxDB",
-  timescaledb: "TimescaleDB",
-  mariadb: "MariaDB",
-  oracle: "Oracle DB",
-  mssql: "SQL Server",
+  neo4j: "Neo4j",
+  cassandra: "Cassandra",
+  dynamodb: "DynamoDB",
+  elasticsearch: "Elasticsearch",
 
-  // Cloud & Infrastructure
-  aws: "AWS",
-  gcp: "Google Cloud",
-  azure: "Azure",
+  // DevOps & Infrastructure
+  docker: "Docker",
+  kubernetes: "Kubernetes",
+  terraform: "Terraform",
+  ansible: "Ansible",
+  pulumi: "Pulumi",
+  vagrant: "Vagrant",
+  packer: "Packer",
+  helm: "Helm",
+  argocd: "Argo CD",
+  flux: "Flux",
+  github_actions: "GitHub Actions",
+  gitlab_ci: "GitLab CI",
+  jenkins: "Jenkins",
+  circleci: "CircleCI",
+  travis: "Travis CI",
+  teamcity: "TeamCity",
+  buildkite: "Buildkite",
+  drone: "Drone",
   vercel: "Vercel",
   netlify: "Netlify",
-  cloudflare: "Cloudflare",
   railway: "Railway",
   render: "Render",
   fly: "Fly.io",
+  aws: "AWS",
+  gcp: "Google Cloud",
+  azure: "Azure",
   digitalocean: "DigitalOcean",
+  linode: "Linode",
   heroku: "Heroku",
-  docker: "Docker",
-  kubernetes: "Kubernetes",
-  helm: "Helm",
-  terraform: "Terraform",
-  pulumi: "Pulumi",
-  ansible: "Ansible",
-  vagrant: "Vagrant",
-  packer: "Packer",
+  cloudflare: "Cloudflare",
 
-  // CI/CD
-  "github-actions": "GitHub Actions",
-  gitlab: "GitLab CI",
-  circleci: "CircleCI",
-  jenkins: "Jenkins",
-  travis: "Travis CI",
-  bitbucket: "Bitbucket Pipelines",
-  azure_devops: "Azure DevOps",
-  drone: "Drone CI",
-  buildkite: "Buildkite",
-
-  // AI/ML & Data Science
+  // AI & Machine Learning
   tensorflow: "TensorFlow",
   pytorch: "PyTorch",
-  "scikit-learn": "Scikit-learn",
   keras: "Keras",
   huggingface: "Hugging Face",
   langchain: "LangChain",
@@ -585,22 +578,24 @@ function getTechLabel(value: string): string {
   return TECH_LABELS[value] || value;
 }
 
-export function GitHubTechImport({
+export function RepoTechImport({
   currentValues,
   onImport,
   disabled,
   className,
-}: GitHubTechImportProps) {
+}: RepoTechImportProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [githubUrl, setGithubUrl] = useState("");
+  const [repoUrl, setRepoUrl] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const [selectedTech, setSelectedTech] = useState<Set<string>>(new Set());
+  const [token, setToken] = useState("");
+  const [showTokenInput, setShowTokenInput] = useState(false);
 
   const handleAnalyze = async () => {
-    if (!githubUrl.trim()) {
-      setError("Please enter a GitHub URL");
+    if (!repoUrl.trim()) {
+      setError("Please enter a repository URL");
       return;
     }
 
@@ -609,10 +604,14 @@ export function GitHubTechImport({
     setResult(null);
 
     try {
-      const response = await fetch("/api/github/analyze-repo", {
+      const response = await fetch("/api/repo/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: githubUrl }),
+        body: JSON.stringify({ 
+          url: repoUrl,
+          // Only include token if provided (for private repos)
+          ...(token.trim() && { token: token.trim() })
+        }),
       });
 
       const data = await response.json();
@@ -657,7 +656,7 @@ export function GitHubTechImport({
     
     // Reset and close
     setIsOpen(false);
-    setGithubUrl("");
+    setRepoUrl("");
     setResult(null);
     setSelectedTech(new Set());
     setError(null);
@@ -665,15 +664,22 @@ export function GitHubTechImport({
 
   const handleClose = () => {
     setIsOpen(false);
-    setGithubUrl("");
+    setRepoUrl("");
     setResult(null);
     setSelectedTech(new Set());
     setError(null);
+    setToken("");
+    setShowTokenInput(false);
   };
 
   // Separate new and existing tech
   const newTech = result?.techStack.filter((tech) => !currentValues.includes(tech)) ?? [];
   const existingTech = result?.techStack.filter((tech) => currentValues.includes(tech)) ?? [];
+
+  // Get platform info for display
+  const platformInfo = result?.repository.platform 
+    ? PLATFORM_ICONS[result.repository.platform] 
+    : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -686,18 +692,19 @@ export function GitHubTechImport({
           className={cn("gap-2", className)}
           onClick={() => setIsOpen(true)}
         >
-          <Github className="h-4 w-4" />
-          Import from GitHub
+          <GitBranch className="h-4 w-4" />
+          Import from Repo
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Github className="h-5 w-5" />
-            Import Tech Stack from GitHub
+            <GitBranch className="h-5 w-5" />
+            Import Tech Stack from Repository
           </DialogTitle>
           <DialogDescription>
-            Enter a GitHub repository URL to automatically detect and import the tech stack.
+            Enter a repository URL to automatically detect and import the tech stack.
+            Supports GitHub, GitLab, Bitbucket, Azure DevOps, Codeberg, and more.
           </DialogDescription>
         </DialogHeader>
 
@@ -705,9 +712,9 @@ export function GitHubTechImport({
           {/* URL Input */}
           <div className="flex gap-2">
             <Input
-              placeholder="https://github.com/owner/repo"
-              value={githubUrl}
-              onChange={(e) => setGithubUrl(e.target.value)}
+              placeholder="https://github.com/owner/repo or any Git URL"
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAnalyze()}
               disabled={isAnalyzing}
               className="flex-1"
@@ -715,7 +722,7 @@ export function GitHubTechImport({
             <Button
               type="button"
               onClick={handleAnalyze}
-              disabled={isAnalyzing || !githubUrl.trim()}
+              disabled={isAnalyzing || !repoUrl.trim()}
             >
               {isAnalyzing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -724,6 +731,70 @@ export function GitHubTechImport({
               )}
               <span className="ml-2 hidden sm:inline">Analyze</span>
             </Button>
+          </div>
+
+          {/* Token input for private repos */}
+          <Collapsible open={showTokenInput} onOpenChange={setShowTokenInput}>
+            <CollapsibleTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between text-muted-foreground hover:text-foreground"
+              >
+                <span className="flex items-center gap-2 text-xs">
+                  <Key className="h-3 w-3" />
+                  {token ? "Access token configured" : "Private repo? Add access token"}
+                </span>
+                <ChevronDown className={cn(
+                  "h-4 w-4 transition-transform",
+                  showTokenInput && "rotate-180"
+                )} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  placeholder="Personal access token (optional)"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  disabled={isAnalyzing}
+                  className="text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  For private repos, provide a personal access token. 
+                  <span className="font-medium text-amber-600 dark:text-amber-500">
+                    {" "}This token is used only for this session and will be cleared when you close this dialog or refresh the page. It is never stored.
+                  </span>
+                </p>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium">Token formats by platform:</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                    <li><span className="font-mono">GitHub</span>: ghp_xxxx or github_pat_xxxx</li>
+                    <li><span className="font-mono">GitLab</span>: glpat-xxxx</li>
+                    <li><span className="font-mono">Bitbucket</span>: App password</li>
+                    <li><span className="font-mono">Azure DevOps</span>: PAT token</li>
+                  </ul>
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Supported platforms hint */}
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(PLATFORM_ICONS).map(([key, { icon, color }]) => (
+              <span
+                key={key}
+                className={cn(
+                  "text-[10px] font-medium px-1.5 py-0.5 rounded text-white",
+                  color
+                )}
+              >
+                {icon}
+              </span>
+            ))}
+            <span className="text-xs text-muted-foreground ml-1">supported</span>
           </div>
 
           {/* Error */}
@@ -739,10 +810,21 @@ export function GitHubTechImport({
             <div className="space-y-4">
               {/* Repository Info */}
               <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                <p className="font-medium text-foreground">
-                  {result.repository.owner}/{result.repository.repo}
-                </p>
+                <div className="flex items-center gap-2">
+                  {platformInfo && (
+                    <span className={cn(
+                      "text-[10px] font-medium px-1.5 py-0.5 rounded text-white",
+                      platformInfo.color
+                    )}>
+                      {platformInfo.icon}
+                    </span>
+                  )}
+                  <p className="font-medium text-foreground">
+                    {result.repository.owner}/{result.repository.repo}
+                  </p>
+                </div>
                 <p className="text-xs mt-1">
+                  {result.repository.platformName} • 
                   Analyzed {result.repository.fileCount.toLocaleString()} files • 
                   Detected {result.detectedCount} technologies
                 </p>
