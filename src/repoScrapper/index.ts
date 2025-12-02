@@ -225,3 +225,37 @@ export {
   type ChapterContentPromptParams,
   type MermaidPromptParams,
 } from './generator';
+
+// ============================================================================
+// PocketFlow Nodes & Flow
+// ============================================================================
+
+export {
+  // Nodes
+  FetchRepo,
+  IdentifyAbstractions,
+  AnalyzeRelationships,
+  OrderChapters,
+  WriteChapters,
+  CombineTutorial,
+  
+  // Types
+  type SharedData,
+  type Abstraction as NodeAbstraction,
+  type Relationship,
+  type RelationshipData,
+  type ChapterData,
+  type ChapterFilenameInfo,
+  type ProgressCallback,
+} from './nodes';
+
+export {
+  // Flow functions
+  createDocumentationFlow,
+  runDocumentationFlow,
+  runDocumentationFlowWithProgress,
+  estimateTokenUsage,
+  
+  // Types
+  type DocGenerationResult,
+} from './flow';
