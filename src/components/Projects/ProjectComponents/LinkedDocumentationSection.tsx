@@ -31,12 +31,18 @@ import useSWR from 'swr';
 
 interface LinkedDocInfo {
   hasLinkedDoc: boolean;
-  doc?: {
-    slug: string;
+  linkedDoc?: {
+    docSlug: string;
     projectName: string;
     repoUrl: string;
+    repoOwner: string;
+    repoName: string;
+    branch: string;
     createdAt: string;
     chapterCount: number;
+    chapters: Array<{ filename: string; title: string; order: number }>;
+    llmProvider?: string;
+    llmModel?: string;
   } | null;
 }
 
@@ -45,8 +51,13 @@ interface LinkedDocumentationSectionProps {
   isOwner: boolean;
 }
 
-// Fetcher for SWR
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+// Fetcher for SWR - unwraps the success() wrapper
+const fetcher = async (url: string): Promise<LinkedDocInfo> => {
+  const res = await fetch(url);
+  const json = await res.json();
+  // API returns { success: true, data: { hasLinkedDoc, linkedDoc } }
+  return json.data ?? { hasLinkedDoc: false, linkedDoc: null };
+};
 
 export function LinkedDocumentationSection({
   projectSlug,
@@ -67,11 +78,11 @@ export function LinkedDocumentationSection({
 
   // Handle unlinking
   const handleUnlink = async () => {
-    if (!data?.doc?.slug) return;
+    if (!data?.linkedDoc?.docSlug) return;
 
     setIsUnlinking(true);
     try {
-      const response = await fetch(`/api/docs/${data.doc.slug}/link-project`, {
+      const response = await fetch(`/api/docs/${data.linkedDoc.docSlug}/link-project`, {
         method: 'DELETE',
       });
 
@@ -141,8 +152,8 @@ export function LinkedDocumentationSection({
   }
 
   // Has linked documentation
-  const doc = data?.doc;
-  if (!doc) return null;
+  const linkedDoc = data?.linkedDoc;
+  if (!linkedDoc) return null;
 
   return (
     <section id="architecture-docs" className="mb-6 sm:mb-8">
@@ -215,15 +226,15 @@ export function LinkedDocumentationSection({
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <FolderGit2 className="h-4 w-4" />
-                {doc.projectName}
+                {linkedDoc.repoOwner}/{linkedDoc.repoName}
               </span>
               <span className="flex items-center gap-1">
                 <FileText className="h-4 w-4" />
-                {doc.chapterCount} chapters
+                {linkedDoc.chapterCount} chapters
               </span>
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {new Date(doc.createdAt).toLocaleDateString()}
+                {new Date(linkedDoc.createdAt).toLocaleDateString()}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -234,7 +245,7 @@ export function LinkedDocumentationSection({
                 className="border-purple-500/30 hover:border-purple-500/50 hover:bg-purple-500/10"
               >
                 <a
-                  href={doc.repoUrl}
+                  href={linkedDoc.repoUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -247,7 +258,7 @@ export function LinkedDocumentationSection({
                 size="sm"
                 className="bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white shadow-md shadow-purple-500/20"
               >
-                <Link href={`/github-scrapper/docs/${doc.slug}`}>
+                <Link href={`/github-scrapper/docs/${linkedDoc.docSlug}`}>
                   <BookOpen className="h-4 w-4 mr-1" />
                   Read Documentation
                 </Link>
