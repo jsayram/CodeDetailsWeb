@@ -25,6 +25,8 @@ const ReactMarkdown = dynamic(
 interface DocumentationViewerProps {
   content: string;
   className?: string;
+  /** Project slug for rewriting relative chapter links */
+  projectSlug?: string;
 }
 
 /**
@@ -35,6 +37,7 @@ interface DocumentationViewerProps {
 export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
   content,
   className,
+  projectSlug,
 }) => {
   // Custom components for ReactMarkdown
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -193,19 +196,31 @@ export const DocumentationViewer: React.FC<DocumentationViewerProps> = ({
         </li>
       ),
 
-      // Links
+      // Links - rewrite relative .md links to include project slug
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      a: ({ node, children, href, ...props }: any) => (
-        <a
-          href={href}
-          target={href?.startsWith('http') ? '_blank' : undefined}
-          rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
-          className="text-primary hover:underline"
-          {...props}
-        >
-          {children}
-        </a>
-      ),
+      a: ({ node, children, href, ...props }: any) => {
+        let finalHref = href;
+        
+        // Check if it's a relative .md link (chapter link)
+        if (href && !href.startsWith('http') && !href.startsWith('#') && href.endsWith('.md')) {
+          // Rewrite to proper route: /github-scrapper/docs/[slug]/[chapter]
+          if (projectSlug) {
+            finalHref = `/github-scrapper/docs/${projectSlug}/${href}`;
+          }
+        }
+        
+        return (
+          <a
+            href={finalHref}
+            target={href?.startsWith('http') ? '_blank' : undefined}
+            rel={href?.startsWith('http') ? 'noopener noreferrer' : undefined}
+            className="text-primary hover:underline"
+            {...props}
+          >
+            {children}
+          </a>
+        );
+      },
 
       // Tables
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

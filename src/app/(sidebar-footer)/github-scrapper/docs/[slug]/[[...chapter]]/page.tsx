@@ -490,11 +490,11 @@ export default function DocViewerPage() {
                               <span className="text-sm text-muted-foreground">Preview:</span>
                             </div>
                             <div className="border rounded-lg p-4 bg-background/50">
-                              <DocumentationViewer content={editContent} />
+                              <DocumentationViewer content={editContent} projectSlug={projectSlug} />
                             </div>
                           </div>
                         ) : (
-                          <DocumentationViewer content={currentContent} />
+                          <DocumentationViewer content={currentContent} projectSlug={projectSlug} />
                         )}
                       </motion.div>
                     )}
