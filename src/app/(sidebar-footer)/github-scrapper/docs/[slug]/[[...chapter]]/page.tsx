@@ -380,7 +380,7 @@ export default function DocViewerPage() {
               />
               
               {/* Main Content Area with TOC */}
-              <div className="relative z-10 flex gap-8">
+              <div className="relative z-10 flex gap-8 items-start">
                 {/* Main Content */}
                 <div className="flex-1 min-w-0">
                   <AnimatePresence mode="wait">
@@ -565,34 +565,32 @@ export default function DocViewerPage() {
                 
                 {/* Right Sidebar - Table of Contents (sticky) */}
                 {!loading && !error && tocHeadings.length > 0 && (
-                  <aside className="hidden xl:block w-64 shrink-0 relative">
-                    <div className="sticky top-24 max-h-[calc(100vh-8rem)]">
-                      <div className="bg-card/80 backdrop-blur-sm rounded-lg border p-4 flex flex-col max-h-[calc(100vh-10rem)]">
-                        <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-muted-foreground flex-shrink-0">
-                          <List className="h-4 w-4" />
-                          On this page
-                        </div>
-                        <nav className="space-y-1 overflow-y-auto flex-1 pr-1 scrollbar-thin scrollbar-thumb-muted-foreground/20 hover:scrollbar-thumb-muted-foreground/40">
-                          {tocHeadings.map((heading, index) => (
-                            <button
-                              key={`${heading.id}-${index}`}
-                              onClick={() => scrollToHeading(heading.id)}
-                              type="button"
-                              className={cn(
-                                'block w-full text-left text-sm py-1.5 transition-colors cursor-pointer hover:text-foreground',
-                                heading.level === 1 && 'font-medium',
-                                heading.level === 2 && 'pl-3 text-muted-foreground',
-                                heading.level === 3 && 'pl-6 text-muted-foreground text-xs',
-                                activeHeading === heading.id
-                                  ? 'text-primary font-medium'
-                                  : 'text-muted-foreground'
-                              )}
-                            >
-                              <span className="line-clamp-2">{heading.text}</span>
-                            </button>
-                          ))}
-                        </nav>
+                  <aside className="hidden xl:block w-64 shrink-0">
+                    <div className="sticky top-24 bg-card/80 backdrop-blur-sm rounded-lg border p-4">
+                      <div className="flex items-center gap-2 mb-4 text-sm font-semibold text-muted-foreground">
+                        <List className="h-4 w-4" />
+                        On this page
                       </div>
+                      <nav className="space-y-1">
+                        {tocHeadings.map((heading, index) => (
+                          <button
+                            key={`${heading.id}-${index}`}
+                            onClick={() => scrollToHeading(heading.id)}
+                            type="button"
+                            className={cn(
+                              'block w-full text-left text-sm py-1.5 transition-colors cursor-pointer hover:text-foreground',
+                              heading.level === 1 && 'font-medium',
+                              heading.level === 2 && 'pl-3 text-muted-foreground',
+                              heading.level === 3 && 'pl-6 text-muted-foreground text-xs',
+                              activeHeading === heading.id
+                                ? 'text-primary font-medium'
+                                : 'text-muted-foreground'
+                            )}
+                          >
+                            <span className="line-clamp-2">{heading.text}</span>
+                          </button>
+                        ))}
+                      </nav>
                     </div>
                   </aside>
                 )}

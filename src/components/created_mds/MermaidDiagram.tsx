@@ -52,6 +52,22 @@ function sanitizeMermaidChart(chart: string): string {
   // D[/path/[slug]: full form)] -> D["/path/slug - full form"]
   sanitized = sanitized.replace(/\[([^\]]*)\)\]/g, '["$1"]');
   
+  // Fix forward slashes in node labels - wrap in quotes if not already quoted
+  // Pattern: A[/dashboard/admin] -> A["/dashboard/admin"]
+  // But don't double-quote: A["/dashboard/admin"] stays as is
+  sanitized = sanitized.replace(/\[([^\]"]*\/[^\]"]*)\]/g, (match, content) => {
+    // If content starts with forward slash for trapezoid shape, skip
+    if (/^\/[^\/]/.test(content) && !content.includes(' ')) {
+      return match; // This might be a trapezoid shape, leave as is
+    }
+    // Wrap paths with slashes in quotes
+    return `["${content}"]`;
+  });
+  
+  // Fix node labels with colons that aren't quoted
+  // Pattern: A[path: description] -> A["path: description"]
+  sanitized = sanitized.replace(/\[([^\]"]*:[^\]"]+)\]/g, '["$1"]');
+  
   return sanitized;
 }
 
@@ -120,31 +136,43 @@ export const MermaidDiagram: React.FC<MermaidDiagramProps> = ({ chart, className
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
           flowchart: { htmlLabels: true, curve: 'basis' },
           suppressErrorRendering: true, // Don't render error messages in DOM
-          logLevel: 'error', // Only log actual errors
+          logLevel: 5, // Fatal only - suppress all other logs including errors
         });
 
         // Sanitize the chart to fix common syntax issues
         const sanitizedChart = sanitizeMermaidChart(chart);
 
-        // Validate syntax first before rendering
-        try {
-          await mermaid.parse(sanitizedChart, { suppressErrors: true });
-        } catch {
-          // Parse can throw, treat as invalid - don't render if syntax is bad
-          throw new Error('Invalid diagram syntax');
-        }
+        // Temporarily suppress console.error during mermaid operations
+        const originalError = console.error;
+        console.error = (...args: unknown[]) => {
+          // Only suppress mermaid-related errors
+          const msg = args[0]?.toString() || '';
+          if (msg.includes('Error parsing') || msg.includes('Lexical error') || msg.includes('mermaid')) {
+            return; // Suppress
+          }
+          originalError.apply(console, args);
+        };
 
-        const { svg } = await mermaid.render(diagramId, sanitizedChart);
-        if (cancelled) return;
-        
-        setSvgContent(svg);
-        setStatus('success');
+        try {
+          // Validate syntax first before rendering
+          try {
+            await mermaid.parse(sanitizedChart, { suppressErrors: true });
+          } catch {
+            // Parse can throw, treat as invalid - don't render if syntax is bad
+            throw new Error('Invalid diagram syntax');
+          }
+
+          const { svg } = await mermaid.render(diagramId, sanitizedChart);
+          if (cancelled) return;
+          
+          setSvgContent(svg);
+          setStatus('success');
+        } finally {
+          // Restore console.error
+          console.error = originalError;
+        }
       } catch (err) {
         if (cancelled) return;
-        // Only log in development, don't spam console
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Mermaid diagram failed to render:', err);
-        }
         setErrorMsg(err instanceof Error ? err.message : 'Invalid diagram syntax');
         setStatus('error');
         
