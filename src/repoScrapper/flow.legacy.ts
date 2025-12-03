@@ -1,21 +1,8 @@
 /**
- * ================================================================================
- * POCKETFLOW DOCUMENTATION GENERATION FLOW
- * ================================================================================
+ * PocketFlow-based Documentation Generation Flow
  * 
  * Creates and runs the documentation generation pipeline:
- * FetchRepo → IdentifyAbstractions → AnalyzeRelationships → OrderChapters → WriteChapters → CombineTutorial
- * 
- * ARCHITECTURE:
- * - Nodes are imported from ./nodes.ts (which imports prompts from ./generator/prompts.ts)
- * - Prompts are centralized in generator/prompts.ts (SINGLE SOURCE OF TRUTH)
- * - This file only handles flow orchestration
- * 
- * SYNC WITH PYTHON:
- * - Flow structure matches src/lib/portable_tutorial_gen/flow.py
- * - Keep both in sync when making changes!
- * 
- * ================================================================================
+ * FetchRepo -> IdentifyAbstractions -> AnalyzeRelationships -> OrderChapters -> WriteChapters -> CombineTutorial
  */
 
 import { Flow } from 'pocketflow';

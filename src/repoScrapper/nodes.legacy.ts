@@ -1,40 +1,18 @@
 /**
- * ================================================================================
- * POCKETFLOW NODES FOR TUTORIAL/ARCHITECTURE DOCUMENTATION GENERATION
- * ================================================================================
+ * PocketFlow Nodes for Architecture Documentation Generation
  * 
- * This module provides nodes for generating documentation from repositories.
+ * This module provides nodes for generating architecture documentation from repositories.
  * Uses the llm/client.ts for LLM calls and supports multiple providers.
  * 
- * ARCHITECTURE:
- * - Prompts are imported from ./generator/prompts.ts (SINGLE SOURCE OF TRUTH)
- * - This file contains only node logic (prep → exec → post lifecycle)
- * - Keeps concerns separated: prompts vs processing logic
- * 
- * FLOW:
- * FetchRepo → IdentifyAbstractions → AnalyzeRelationships → OrderChapters → WriteChapters → CombineTutorial
- * 
- * SYNC WITH PYTHON:
- * - Prompts match src/lib/portable_tutorial_gen/nodes.py
- * - Keep both in sync when making changes!
- * 
- * ================================================================================
+ * Flow: FetchRepo -> IdentifyAbstractions -> AnalyzeRelationships -> OrderChapters -> WriteChapters -> CombineTutorial
  */
 
-import * as yaml from 'js-yaml';
+import yaml from 'js-yaml';
 import { Node, BatchNode } from 'pocketflow';
 import { callLLM } from '@/llm/client';
 import type { LLMCallOptions } from '@/llm/types';
 import { serverGithubCrawler } from './server-crawler';
 import type { CrawlerOptions, CrawlerResult } from './types';
-
-// Import prompts from centralized prompts file (SINGLE SOURCE OF TRUTH)
-import {
-  buildIdentifyAbstractionsPrompt,
-  buildAnalyzeRelationshipsPrompt,
-  buildOrderChaptersPrompt,
-  buildWriteChapterPrompt,
-} from './generator/prompts';
 
 // ============================================================================
 // Types
@@ -127,25 +105,17 @@ export type ProgressCallback = (update: {
 // ============================================================================
 
 /**
- * Create a safe filename from a chapter title
- * Format: 00_title-slug.md (matches output-utils.ts createChapterFilename)
- * 
- * IMPORTANT: This must match the format used by saveChapter() in output-utils.ts
- * so that index links work correctly!
- * 
- * @param order - 0-based chapter order (0, 1, 2, ...)
- * @param title - Full chapter title e.g. "Chapter 1: File Upload"
+ * Create a safe filename from a chapter name
  */
-function createChapterFilename(order: number, title: string): string {
-  const paddedOrder = String(order).padStart(2, '0');
-  const safeTitle = title
+function createSafeFilename(name: string, prefix: number): string {
+  const safeName = name
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .slice(0, 50);
+    .replace(/[^a-z0-9\s_-]/g, '')
+    .replace(/\s+/g, '_')
+    .substring(0, 50);
   
-  return `${paddedOrder}_${safeTitle}.md`;
+  const paddedPrefix = String(prefix).padStart(2, '0');
+  return `${paddedPrefix}_${safeName}.md`;
 }
 
 /**
@@ -163,6 +133,164 @@ function getContentForIndices(
     }
   }
   return map;
+}
+
+/**
+ * Extract high-level signatures from file content for architecture documentation.
+ * Captures imports, exports, interfaces, types, function/class signatures without implementation.
+ */
+function extractFileSignatures(content: string, filePath: string): string {
+  const lines = content.split('\n');
+  const signatures: string[] = [];
+  let inMultiLineImport = false;
+  let inInterface = false;
+  let inType = false;
+  let braceDepth = 0;
+  let currentBlock: string[] = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // Skip empty lines and comments (unless in a block)
+    if (!inMultiLineImport && !inInterface && !inType) {
+      if (trimmed === '' || trimmed.startsWith('//')) continue;
+    }
+    
+    // Capture import statements
+    if (trimmed.startsWith('import ') || inMultiLineImport) {
+      signatures.push(line);
+      if (trimmed.includes('{') && !trimmed.includes('}')) {
+        inMultiLineImport = true;
+      }
+      if (trimmed.includes('}') || (trimmed.includes('from ') && (trimmed.endsWith(';') || trimmed.endsWith("'") || trimmed.endsWith('"')))) {
+        inMultiLineImport = false;
+      }
+      continue;
+    }
+    
+    // Capture export statements
+    if (trimmed.startsWith('export ') && 
+        !trimmed.startsWith('export default function') && 
+        !trimmed.startsWith('export default class') && 
+        !trimmed.startsWith('export class') && 
+        !trimmed.startsWith('export function') && 
+        !trimmed.startsWith('export async function')) {
+      if (!trimmed.startsWith('export type ') && !trimmed.startsWith('export interface ')) {
+        signatures.push(line);
+        continue;
+      }
+    }
+    
+    // Capture interface definitions
+    if (trimmed.startsWith('interface ') || trimmed.startsWith('export interface ')) {
+      inInterface = true;
+      braceDepth = 0;
+      currentBlock = [line];
+      if (trimmed.includes('{')) braceDepth++;
+      if (trimmed.includes('}')) braceDepth--;
+      if (braceDepth === 0 && trimmed.includes('}')) {
+        signatures.push(currentBlock.join('\n'));
+        inInterface = false;
+        currentBlock = [];
+      }
+      continue;
+    }
+    
+    if (inInterface) {
+      currentBlock.push(line);
+      if (trimmed.includes('{')) braceDepth++;
+      if (trimmed.includes('}')) braceDepth--;
+      if (braceDepth === 0) {
+        signatures.push(currentBlock.join('\n'));
+        inInterface = false;
+        currentBlock = [];
+      }
+      continue;
+    }
+    
+    // Capture type definitions
+    if (trimmed.startsWith('type ') || trimmed.startsWith('export type ')) {
+      if (trimmed.includes('=') && (trimmed.endsWith(';') || trimmed.endsWith("'") || trimmed.endsWith('"') || trimmed.endsWith('>'))) {
+        signatures.push(line);
+      } else {
+        inType = true;
+        braceDepth = 0;
+        currentBlock = [line];
+        if (trimmed.includes('{') || trimmed.includes('(')) braceDepth++;
+        if (trimmed.includes('}') || trimmed.includes(')')) braceDepth--;
+      }
+      continue;
+    }
+    
+    if (inType) {
+      currentBlock.push(line);
+      if (trimmed.includes('{') || trimmed.includes('(')) braceDepth++;
+      if (trimmed.includes('}') || trimmed.includes(')')) braceDepth--;
+      if (braceDepth === 0 && (trimmed.endsWith(';') || trimmed.endsWith('}') || trimmed.endsWith(')'))) {
+        signatures.push(currentBlock.join('\n'));
+        inType = false;
+        currentBlock = [];
+      }
+      continue;
+    }
+    
+    // Capture function signatures
+    if (trimmed.match(/^(export\s+)?(async\s+)?function\s+\w+/) || 
+        trimmed.match(/^(export\s+)?const\s+\w+\s*=\s*(async\s+)?\(/) ||
+        trimmed.match(/^(export\s+)?const\s+\w+\s*=\s*(async\s+)?function/)) {
+      const funcMatch = trimmed.match(/^(.+?)\s*[{=]/);
+      if (funcMatch) {
+        signatures.push(`${funcMatch[1]} { /* ... */ }`);
+      } else {
+        signatures.push(`${trimmed.split('{')[0].trim()} { /* ... */ }`);
+      }
+      continue;
+    }
+    
+    // Capture class declarations
+    if (trimmed.match(/^(export\s+)?(default\s+)?class\s+\w+/)) {
+      signatures.push(`${trimmed.split('{')[0].trim()} {`);
+      let classDepth = 1;
+      for (let j = i + 1; j < lines.length && classDepth > 0; j++) {
+        const classLine = lines[j].trim();
+        if (classLine.includes('{')) classDepth++;
+        if (classLine.includes('}')) classDepth--;
+        
+        if (classLine.match(/^(async\s+)?(private\s+|public\s+|protected\s+)?\w+\s*\(/) ||
+            classLine.match(/^constructor\s*\(/)) {
+          const methodSig = classLine.split('{')[0].trim();
+          signatures.push(`  ${methodSig} { /* ... */ }`);
+        }
+      }
+      signatures.push('}');
+      continue;
+    }
+    
+    // Capture React component declarations
+    if (trimmed.match(/^(export\s+)?(default\s+)?function\s+[A-Z]\w*/) ||
+        trimmed.match(/^(export\s+)?const\s+[A-Z]\w+\s*[=:]/)) {
+      const compMatch = trimmed.match(/^(.+?)\s*[{=(\n]/);
+      if (compMatch) {
+        signatures.push(`${compMatch[1]} { /* React Component */ }`);
+      }
+      continue;
+    }
+  }
+  
+  const extension = filePath.split('.').pop() || '';
+  const fileTypeLabels: Record<string, string> = {
+    'tsx': 'React Component/Page',
+    'ts': 'TypeScript Module',
+    'jsx': 'React Component',
+    'js': 'JavaScript Module',
+    'py': 'Python Module',
+    'md': 'Documentation',
+    'json': 'Configuration',
+  };
+  const fileType = fileTypeLabels[extension] || 'Source File';
+  
+  return `// ${fileType}: ${filePath}\n${signatures.join('\n')}`;
 }
 
 /**
@@ -262,8 +390,6 @@ export class FetchRepo extends Node<SharedData> {
 
 /**
  * IdentifyAbstractions Node - Identifies key abstractions using LLM
- * 
- * Uses buildIdentifyAbstractionsPrompt from centralized prompts.
  */
 export class IdentifyAbstractions extends Node<SharedData> {
   private _shared?: SharedData;
@@ -285,24 +411,53 @@ export class IdentifyAbstractions extends Node<SharedData> {
       throw new Error('No files data found for IdentifyAbstractions.');
     }
     
-    // Build context - include full file contents for tutorial mode
+    // Build context using signature extraction (architecture mode)
     const CONTEXT_USAGE_RATIO = 0.70;
     const MAX_CONTEXT_TOKENS = Math.floor(modelContextWindow * CONTEXT_USAGE_RATIO);
     const CHARS_PER_TOKEN = 3.5;
     const MAX_CONTEXT_CHARS = MAX_CONTEXT_TOKENS * CHARS_PER_TOKEN;
     
-    // Build context with file contents
+    // Process files with signature extraction
+    const processedFiles: { path: string; content: string; index: number; chars: number }[] = [];
+    
+    filesData.forEach(([path, content], index) => {
+      const processedContent = extractFileSignatures(content, path);
+      processedFiles.push({
+        path,
+        content: processedContent,
+        index,
+        chars: processedContent.length,
+      });
+    });
+    
+    // Sort by priority
+    const priorityPatterns = [
+      /page\.(tsx?|jsx?)$/,
+      /index\.(tsx?|jsx?|ts|js|py)$/,
+      /main\.(tsx?|jsx?|ts|js|py)$/,
+      /app\.(tsx?|jsx?|ts|js|py)$/,
+      /route\.(tsx?|jsx?)$/,
+      /layout\.(tsx?|jsx?)$/,
+    ];
+    
+    processedFiles.sort((a, b) => {
+      const aScore = priorityPatterns.findIndex(p => p.test(a.path));
+      const bScore = priorityPatterns.findIndex(p => p.test(b.path));
+      return (aScore === -1 ? 999 : aScore) - (bScore === -1 ? 999 : bScore);
+    });
+    
+    // Build context with limit
     let context = '';
     const fileInfo: [number, string][] = [];
     let currentChars = 0;
     
-    for (let i = 0; i < filesData.length; i++) {
-      const [path, content] = filesData[i];
-      const fileEntry = `--- File Index ${i}: ${path} ---\n${content}\n\n`;
+    for (const file of processedFiles) {
+      const fileHeader = `--- File Index ${file.index}: ${file.path} ---\n`;
+      const fileEntry = fileHeader + file.content + '\n\n';
       
       if (currentChars + fileEntry.length <= MAX_CONTEXT_CHARS) {
         context += fileEntry;
-        fileInfo.push([i, path]);
+        fileInfo.push([file.index, file.path]);
         currentChars += fileEntry.length;
       }
     }
@@ -330,21 +485,60 @@ export class IdentifyAbstractions extends Node<SharedData> {
     if (onProgress) {
       await onProgress({
         stage: 'abstractions',
-        message: 'Analyzing codebase and identifying core abstractions...',
+        message: 'Analyzing architecture and identifying major subsystems...',
         progress: 15
       });
     }
     
     console.log('[IdentifyAbstractions] Identifying abstractions using LLM...');
     
-    // Use centralized prompt builder
-    const prompt = buildIdentifyAbstractionsPrompt({
-      projectName: projectName || 'Unknown',
-      context,
-      fileListing,
-      maxAbstractions: maxAbs,
-      language,
-    });
+    const prompt = `
+For the project \`${projectName}\`:
+
+Codebase Structure (signatures and interfaces):
+${context}
+
+Analyze this codebase to understand its **architecture and purpose**.
+
+Identify the top 3-${maxAbs} major **subsystems or architectural components** that define what this project does.
+
+For each subsystem, provide:
+1. A concise \`name\` that describes the subsystem.
+2. A high-level \`description\` explaining:
+   - What this subsystem's PURPOSE is (what problem it solves)
+   - How it fits into the overall architecture
+   - Key responsibilities (in around 80-100 words)
+3. A list of relevant \`file_indices\` (integers) using the format \`idx # path/comment\`.
+
+Focus on:
+- Entry points (pages, routes, main files)
+- Core business logic flows
+- Data models and state management
+- External integrations (APIs, databases)
+
+List of file indices and paths present in the context:
+${fileListing}
+
+Format the output as a YAML list of dictionaries:
+
+\`\`\`yaml
+- name: |
+    User Interface Layer
+  description: |
+    Handles user interactions through React pages and components.
+    This is the entry point for users, rendering forms and displaying data.
+  file_indices:
+    - 0 # src/app/page.tsx
+    - 3 # src/components/Form.tsx
+- name: |
+    Data Processing Pipeline
+  description: |
+    Core business logic that transforms and processes data.
+    Acts as the brain of the application, orchestrating workflows.
+  file_indices:
+    - 5 # src/lib/processor.ts
+# ... up to ${maxAbs} subsystems
+\`\`\``;
 
     const llmOptions: LLMCallOptions = {
       prompt,
@@ -415,8 +609,6 @@ export class IdentifyAbstractions extends Node<SharedData> {
 
 /**
  * AnalyzeRelationships Node - Analyzes relationships between abstractions
- * 
- * Uses buildAnalyzeRelationshipsPrompt from centralized prompts.
  */
 export class AnalyzeRelationships extends Node<SharedData> {
   private _shared?: SharedData;
@@ -427,7 +619,6 @@ export class AnalyzeRelationships extends Node<SharedData> {
     const abstractions = shared.abstractions;
     const filesData = shared.files;
     const projectName = shared.project_name;
-    const language = shared.language ?? 'english';
     const maxLinesPerFile = shared.max_lines_per_file ?? 150;
     const llmProvider = shared.llm_provider;
     const llmModel = shared.llm_model;
@@ -468,7 +659,6 @@ export class AnalyzeRelationships extends Node<SharedData> {
       abstractionListing: abstractionPromptInfo.join('\n'),
       numAbstractions: abstractions.length,
       projectName,
-      language,
       llmProvider,
       llmModel,
       llmApiKey,
@@ -477,7 +667,7 @@ export class AnalyzeRelationships extends Node<SharedData> {
   }
   
   async exec(prepRes: Awaited<ReturnType<this['prep']>>): Promise<RelationshipData> {
-    const { context, abstractionListing, numAbstractions, projectName, language, llmProvider, llmModel, llmApiKey, llmBaseUrl } = prepRes;
+    const { context, abstractionListing, numAbstractions, projectName, llmProvider, llmModel, llmApiKey, llmBaseUrl } = prepRes;
     
     const onProgress = this._shared?._onProgress;
     if (onProgress) {
@@ -490,13 +680,38 @@ export class AnalyzeRelationships extends Node<SharedData> {
     
     console.log('[AnalyzeRelationships] Analyzing relationships using LLM...');
     
-    // Use centralized prompt builder
-    const prompt = buildAnalyzeRelationshipsPrompt({
-      projectName: projectName || 'Unknown',
-      context,
-      abstractionListing,
-      language,
-    });
+    const prompt = `
+Based on the following abstractions and code from the project \`${projectName}\`:
+
+List of Abstraction Indices and Names:
+${abstractionListing}
+
+Context (Abstractions, Descriptions, Code):
+${context}
+
+Please provide:
+1. A high-level \`summary\` of the project's main purpose and functionality in a few beginner-friendly sentences. Use markdown formatting with **bold** and *italic* text.
+2. A list (\`relationships\`) describing the key interactions between these abstractions. For each relationship, specify:
+    - \`from_abstraction\`: Index of the source abstraction (e.g., \`0 # AbstractionName1\`)
+    - \`to_abstraction\`: Index of the target abstraction (e.g., \`1 # AbstractionName2\`)
+    - \`label\`: A brief label for the interaction **in just a few words** (e.g., "Manages", "Inherits", "Uses").
+
+IMPORTANT: Make sure EVERY abstraction is involved in at least ONE relationship.
+
+Format the output as YAML:
+
+\`\`\`yaml
+summary: |
+  A brief, simple explanation of the project.
+  Can span multiple lines with **bold** and *italic* for emphasis.
+relationships:
+  - from_abstraction: 0 # AbstractionName1
+    to_abstraction: 1 # AbstractionName2
+    label: "Manages"
+  - from_abstraction: 2 # AbstractionName3
+    to_abstraction: 0 # AbstractionName1
+    label: "Provides config"
+\`\`\``;
 
     const response = await callLLM({
       prompt,
@@ -554,8 +769,6 @@ export class AnalyzeRelationships extends Node<SharedData> {
 
 /**
  * OrderChapters Node - Determines the order of chapters
- * 
- * Uses buildOrderChaptersPrompt from centralized prompts.
  */
 export class OrderChapters extends Node<SharedData> {
   private _shared?: SharedData;
@@ -566,7 +779,6 @@ export class OrderChapters extends Node<SharedData> {
     const abstractions = shared.abstractions;
     const relationships = shared.relationships;
     const projectName = shared.project_name;
-    const language = shared.language ?? 'english';
     const llmProvider = shared.llm_provider;
     const llmModel = shared.llm_model;
     const llmApiKey = shared.llm_api_key;
@@ -590,7 +802,6 @@ export class OrderChapters extends Node<SharedData> {
       context,
       numAbstractions: abstractions.length,
       projectName,
-      language,
       llmProvider,
       llmModel,
       llmApiKey,
@@ -599,7 +810,7 @@ export class OrderChapters extends Node<SharedData> {
   }
   
   async exec(prepRes: Awaited<ReturnType<this['prep']>>): Promise<number[]> {
-    const { abstractionListing, context, numAbstractions, projectName, language, llmProvider, llmModel, llmApiKey, llmBaseUrl } = prepRes;
+    const { abstractionListing, context, numAbstractions, projectName, llmProvider, llmModel, llmApiKey, llmBaseUrl } = prepRes;
     
     const onProgress = this._shared?._onProgress;
     if (onProgress) {
@@ -612,13 +823,25 @@ export class OrderChapters extends Node<SharedData> {
     
     console.log('[OrderChapters] Determining chapter order using LLM...');
     
-    // Use centralized prompt builder
-    const prompt = buildOrderChaptersPrompt({
-      projectName: projectName || 'Unknown',
-      abstractionListing,
-      context,
-      language,
-    });
+    const prompt = `
+Given the following project abstractions and their relationships for the project \`${projectName}\`:
+
+Abstractions (Index # Name):
+${abstractionListing}
+
+Context about relationships and project summary:
+${context}
+
+What is the best order to explain these abstractions for architecture documentation?
+Start with the most important or foundational concepts (user-facing, entry points), then move to implementation details.
+
+Output the ordered list of abstraction indices with names as comments:
+
+\`\`\`yaml
+- 2 # FoundationalConcept
+- 0 # CoreClassA
+- 1 # CoreClassB
+\`\`\``;
 
     const response = await callLLM({
       prompt,
@@ -684,9 +907,6 @@ export class OrderChapters extends Node<SharedData> {
 
 /**
  * WriteChapters BatchNode - Writes chapter content using LLM
- * 
- * Uses buildWriteChapterPrompt from centralized prompts.
- * This is the most detailed prompt - synced with Python's WriteChapters node.
  */
 interface WriteChapterItem {
   chapterNum: number;
@@ -735,14 +955,12 @@ export class WriteChapters extends BatchNode<SharedData, WriteChapterItem> {
     const chapterFilenamesMap: Record<number, ChapterFilenameInfo> = {};
     
     // First pass: Generate filenames
-    // IMPORTANT: Use 0-based index to match saveChapter() in output-utils.ts
     chapterOrder.forEach((abstractionIndex, i) => {
       if (abstractionIndex < 0 || abstractionIndex >= abstractions.length) return;
       
       const chapterNum = i + 1;
       const chapterName = abstractions[abstractionIndex].name;
-      const chapterTitle = `Chapter ${chapterNum}: ${chapterName}`;
-      const filename = createChapterFilename(i, chapterTitle); // 0-based order!
+      const filename = createSafeFilename(chapterName, chapterNum);
       
       chapterFilenamesMap[abstractionIndex] = { num: chapterNum, name: chapterName, filename };
       allChaptersList.push(`${chapterNum}. [${chapterName}](${filename})`);
@@ -799,7 +1017,7 @@ export class WriteChapters extends BatchNode<SharedData, WriteChapterItem> {
   }
   
   async exec(item: WriteChapterItem): Promise<string> {
-    const { chapterNum, abstractionDetails, relatedFilesContentMap, projectName, fullChapterListing, language, llmProvider, llmModel, llmApiKey, llmBaseUrl } = item;
+    const { chapterNum, abstractionDetails, relatedFilesContentMap, projectName, fullChapterListing, prevChapter, nextChapter, llmProvider, llmModel, llmApiKey, llmBaseUrl } = item;
     
     const abstractionName = abstractionDetails.name;
     const abstractionDescription = abstractionDetails.description;
@@ -818,25 +1036,43 @@ export class WriteChapters extends BatchNode<SharedData, WriteChapterItem> {
       });
     }
     
-    // Prepare file context
     const fileContextStr = Object.entries(relatedFilesContentMap)
       .map(([idxPath, content]) => `--- File: ${idxPath.split('# ')[1] ?? idxPath} ---\n${content}`)
-      .join('\n\n');
+      .join('\n\n') || 'No specific code snippets provided.';
     
-    // Get previous chapters for context (full content like Python does)
-    const previousChaptersSummary = this.chaptersWrittenSoFar.join('\n---\n');
+    const previousChaptersSummary = this.chaptersWrittenSoFar.join('\n---\n') || 'This is the first chapter.';
     
-    // Use centralized prompt builder (matches Python's WriteChapters exactly)
-    const prompt = buildWriteChapterPrompt({
-      projectName,
-      chapterNum,
-      abstractionName,
-      abstractionDescription,
-      fullChapterListing,
-      previousChaptersSummary,
-      fileContextStr,
-      language,
-    });
+    const prompt = `
+Write an architecture documentation chapter (in Markdown format) for the project \`${projectName}\` about: "${abstractionName}". This is Chapter ${chapterNum}.
+
+Concept Details:
+- Name: ${abstractionName}
+- Description:
+${abstractionDescription}
+
+Complete Chapter Structure:
+${fullChapterListing}
+
+Context from previous chapters:
+${previousChaptersSummary}
+
+Relevant Code Snippets:
+${fileContextStr}
+
+Instructions:
+- Start with a clear heading: \`# Chapter ${chapterNum}: ${abstractionName}\`
+${prevChapter ? `- Begin with a brief transition from the previous chapter, referencing [${prevChapter.name}](${prevChapter.filename}).\n` : ''}
+- Explain what problem this component/subsystem solves.
+- Include a **Component Overview** section with a flowchart showing how this fits into the system. Use \`\`\`mermaid flowchart TD\`\`\` format.
+- Break down key concepts and explain them clearly.
+- Provide example code blocks (BELOW 10 lines each). Use comments to skip non-important details.
+- Use a simple sequenceDiagram to show internal flow (max 5 participants).
+- When referring to other chapters, use Markdown links like [Chapter Title](filename.md).
+- Use analogies and examples to help understanding.
+${nextChapter ? `- End with a transition to the next chapter: [${nextChapter.name}](${nextChapter.filename}).\n` : '- End with a brief conclusion summarizing what was learned.\n'}
+- Keep a welcoming, educational tone.
+
+Output *only* the Markdown content for this chapter (no \`\`\`markdown\`\`\` tags):`;
 
     const response = await callLLM({
       prompt,
@@ -849,13 +1085,12 @@ export class WriteChapters extends BatchNode<SharedData, WriteChapterItem> {
     
     let chapterContent = response.trim();
     
-    // Ensure heading is present (like Python does)
+    // Ensure heading is present
     const expectedHeading = `# Chapter ${chapterNum}: ${abstractionName}`;
     if (!chapterContent.match(new RegExp(`^#+\\s*Chapter\\s+${chapterNum}:`, 'i'))) {
       chapterContent = `${expectedHeading}\n\n${chapterContent}`;
     }
     
-    // Add to context for next chapter (like Python's self.chapters_written_so_far)
     this.chaptersWrittenSoFar.push(chapterContent);
     
     if (this.onProgress) {
@@ -936,18 +1171,24 @@ export class CombineTutorial extends Node<SharedData> {
     const mermaidDiagram = mermaidLines.join('\n');
     
     // Build index content
-    let indexContent = `# Tutorial: ${projectName}\n\n`;
-    indexContent += `${relationshipsData.summary}\n\n`;
+    let indexContent = `# ${projectName} - Architecture Overview\n\n`;
+    indexContent += `> High-level documentation of the project's architecture and design.\n\n`;
     
     if (repoUrl) {
-      indexContent += `**Source Repository:** [${repoUrl}](${repoUrl})\n\n`;
+      indexContent += `**📦 Repository:** [${repoUrl}](${repoUrl})\n\n`;
     }
     
+    indexContent += `## 🎯 Project Purpose\n\n`;
+    indexContent += `${relationshipsData.summary}\n\n`;
+    
+    indexContent += `## 🏗️ System Architecture\n\n`;
+    indexContent += `The following diagram shows the major components and their interactions:\n\n`;
     indexContent += '```mermaid\n';
     indexContent += mermaidDiagram + '\n';
     indexContent += '```\n\n';
     
-    indexContent += `## Chapters\n\n`;
+    indexContent += `## 📚 Subsystem Details\n\n`;
+    indexContent += `Click on each subsystem below for detailed documentation:\n\n`;
     
     const chapterFilesData: ChapterData[] = [];
     const numChaptersToProcess = Math.min(chapterOrder.length, chaptersContent.length);
@@ -958,14 +1199,13 @@ export class CombineTutorial extends Node<SharedData> {
       
       const abstractionName = abstractions[abstractionIndex].name;
       const chapterNum = i + 1;
-      const chapterTitle = `Chapter ${chapterNum}: ${abstractionName}`;
-      const filename = createChapterFilename(i, chapterTitle); // 0-based order!
+      const filename = createSafeFilename(abstractionName, chapterNum);
       
       indexContent += `${chapterNum}. [${abstractionName}](${filename})\n`;
       
       let chapterContent = chaptersContent[i];
       if (!chapterContent.endsWith('\n\n')) chapterContent += '\n\n';
-      chapterContent += `---\n\nGenerated by [AI Codebase Knowledge Builder](https://github.com/The-Pocket/Tutorial-Codebase-Knowledge)`;
+      chapterContent += `\n\n---\n\nGenerated by [Code Details AI Documentation](https://codedetails.io)\n\n---\n\n`;
       
       chapterFilesData.push({
         filename,
@@ -974,7 +1214,7 @@ export class CombineTutorial extends Node<SharedData> {
       });
     }
     
-    indexContent += `\n\n---\n\nGenerated by [AI Codebase Knowledge Builder](https://github.com/The-Pocket/Tutorial-Codebase-Knowledge)`;
+    indexContent += `\n\n---\n\nGenerated by [Code Details AI Documentation](https://codedetails.io)\n\n---\n\n`;
     
     return {
       indexContent,
