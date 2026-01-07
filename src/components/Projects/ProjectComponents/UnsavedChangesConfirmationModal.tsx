@@ -17,12 +17,15 @@ interface UnsavedChangesConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  /** Number of pending (unsaved) image uploads */
+  pendingImageCount?: number;
 }
 
 export function UnsavedChangesConfirmationModal({
   isOpen,
   onClose,
   onConfirm,
+  pendingImageCount = 0,
 }: UnsavedChangesConfirmationModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -70,7 +73,12 @@ export function UnsavedChangesConfirmationModal({
                   Changes Detected
                 </p>
                 <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
-                  Your edits to title, description, category, tags, or links have not been saved.
+                  Your edits to title, description, category, tags, links, or images have not been saved.
+                  {pendingImageCount > 0 && (
+                    <span className="block mt-1 font-medium">
+                      {pendingImageCount} uploaded {pendingImageCount === 1 ? 'image' : 'images'} will be deleted.
+                    </span>
+                  )}
                   Are you sure you want to discard these changes?
                 </p>
               </div>

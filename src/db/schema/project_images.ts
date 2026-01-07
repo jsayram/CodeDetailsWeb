@@ -24,6 +24,7 @@ export const project_images = pgTable("project_images", {
 
   // Image purpose & display
   image_type: varchar("image_type", { length: 20 }).notNull(), // 'cover', 'screenshot', 'diagram', 'logo'
+  aspect_ratio: varchar("aspect_ratio", { length: 10 }).default("auto"), // 'auto', '16:9', '4:3', '1:1'
   display_order: integer("display_order").default(0), // Order to show images
   alt_text: text("alt_text"), // Accessibility description
   caption: text("caption"), // Optional caption for galleries
@@ -43,6 +44,12 @@ export type SelectProjectImage = typeof project_images.$inferSelect;
  */
 export const IMAGE_TYPES = ['cover', 'screenshot', 'diagram', 'logo'] as const;
 export type ImageType = (typeof IMAGE_TYPES)[number];
+
+/**
+ * Valid aspect ratios
+ */
+export const ASPECT_RATIOS = ['auto', '16:9', '4:3', '1:1'] as const;
+export type AspectRatio = (typeof ASPECT_RATIOS)[number];
 
 /**
  * Project image with additional metadata

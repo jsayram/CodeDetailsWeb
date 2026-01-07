@@ -46,6 +46,8 @@ export default function CreateProjectPage() {
     category: "",
     total_favorites: "",
     url_links: null,
+    category_data: null,
+    field_order: null,
     created_at: new Date(),
     updated_at: currentDate,
     deleted_at: null,

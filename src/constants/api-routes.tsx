@@ -65,6 +65,8 @@ export const API_ROUTES = {
 
       return `${baseUrl}?${params.toString()}`;
     },
+    SHARED_CATEGORIES: (username: string) =>
+      `/api/shared-projects/${username}/categories`,
   },
   TIERS: {
     USER_TIER: "/api/tiers/user-tier",

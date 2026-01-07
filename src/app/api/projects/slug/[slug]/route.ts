@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { getProjectBySlugServer } from "@/db/actions";
 import { auth } from "@clerk/nextjs/server";
 import { success, notFound, databaseError } from "@/lib/api-errors";

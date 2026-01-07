@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProjectFilters } from "@/providers/projects-provider";
 import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
+import { useCategoryCounts } from "@/hooks/use-category-counts";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
@@ -80,6 +81,23 @@ export const ProjectList = React.memo(function ProjectList({
 
   const { userId } = useAuth();
   const router = useRouter();
+
+  // Determine category counts filter based on current view
+  const categoryCountsFilters = React.useMemo(() => {
+    if (showDeletedOnly && userId) {
+      return { userId, deleted: true };
+    }
+    if (showFavoritesOnly && userId) {
+      return { userId, favorites: true };
+    }
+    if (showUserProjectsOnly && userId) {
+      return { userId };
+    }
+    // Community view - global counts
+    return undefined;
+  }, [showUserProjectsOnly, showFavoritesOnly, showDeletedOnly, userId]);
+
+  const { hasCategoryProjects } = useCategoryCounts(categoryCountsFilters);
   const [viewMode, setViewMode] = useState("card");
   const [isMobile, setIsMobile] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -476,6 +494,7 @@ export const ProjectList = React.memo(function ProjectList({
                   value={filters.category}
                   onValueChange={handleCategoryChange}
                   triggerClassName="w-full sm:w-auto"
+                  hasCategoryProjects={hasCategoryProjects}
                 />
               )}
 

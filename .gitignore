@@ -48,6 +48,10 @@ public/sw.js
 public/workbox-*.js
 public/workbox-*.json
 
+# Generated documentation output (keep .gitkeep)
+src/app/output/*
+!src/app/output/.gitkeep
+
 # Ignore build artifacts
 build/
 dist/

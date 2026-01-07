@@ -10,6 +10,7 @@ import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLo
 import { API_ROUTES } from "@/constants/api-routes";
 import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
 import { ProjectCategory } from "@/constants/project-categories";
+import { useUserCategoryCounts } from "@/hooks/use-user-category-counts";
 
 interface SharedProjectsGridProps {
   username: string;
@@ -23,6 +24,7 @@ export function SharedProjectsGrid({
   onPageChange,
 }: SharedProjectsGridProps) {
   const router = useRouter();
+  const { hasCategoryProjects } = useUserCategoryCounts(username);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<
@@ -68,7 +70,10 @@ export function SharedProjectsGrid({
         return;
       }
 
-      if (!result.data || !Array.isArray(result.data)) {
+      // Handle RFC 7807 success response format: { success: true, data: { data: [...], pagination: {...} } }
+      const responseData = result.success ? result.data : result;
+      
+      if (!responseData.data || !Array.isArray(responseData.data)) {
         throw new Error("Invalid response format");
       }
 
@@ -95,7 +100,7 @@ export function SharedProjectsGrid({
       }
 
       setProjects(
-        result.data.map((projectData: SharedProjectData) => {
+        responseData.data.map((projectData: SharedProjectData) => {
           const category = projectData.project.category || "other";
           return {
             ...projectData.project,
@@ -107,9 +112,9 @@ export function SharedProjectsGrid({
         })
       );
       setPagination({
-        total: result.pagination?.total ?? 0,
-        totalPages: result.pagination?.totalPages ?? 1,
-        currentPage: result.pagination?.page ?? currentPage,
+        total: responseData.pagination?.total ?? 0,
+        totalPages: responseData.pagination?.totalPages ?? 1,
+        currentPage: responseData.pagination?.page ?? currentPage,
       });
     } catch (error) {
       console.error("❌ Error in fetchSharedProjects:", error);
@@ -133,12 +138,6 @@ export function SharedProjectsGrid({
 
   const handleSortChange = (value: SortByValue) => {
     setSortBy(value);
-  };
-  const hasCategoryProjects = (categoryKey: string) => {
-    const hasProjects = projects.some(
-      (project) => project.category === categoryKey
-    );
-    return hasProjects;
   };
 
   if (loading) {

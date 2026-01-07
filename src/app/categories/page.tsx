@@ -13,43 +13,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useCategoryCounts } from "@/hooks/use-category-counts";
 
 // Component that fetches and displays category counts
 function CategoriesContent() {
   const router = useRouter();
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
+  const { categoryCounts, isLoading: loading } = useCategoryCounts();
   const [loadingCategories, setLoadingCategories] = useState<Record<string, boolean>>({});
-
-  // Fetch category counts from API
-  useEffect(() => {
-    async function fetchCategoryCounts() {
-      try {
-        const response = await fetch("/api/categories/counts");
-        if (response.ok) {
-          const data = await response.json();
-          // Handle RFC 7807 success response format
-          if (data.success && data.data) {
-            setCategoryCounts(data.data);
-          } else {
-            // Fallback for unexpected response format
-            setCategoryCounts(data);
-          }
-        } else {
-          // Handle RFC 7807 error response
-          const errorData = await response.json();
-          console.error("Failed to fetch category counts:", errorData.error?.detail || "Unknown error");
-        }
-      } catch (error) {
-        console.error("Failed to fetch category counts:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchCategoryCounts();
-  }, []);
 
   const handleCategoryClick = (key: string, hasProjects: boolean) => {
     if (!hasProjects) return;
