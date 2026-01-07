@@ -1,0 +1,326 @@
+/* Category Cards and Badges Styling */
+
+
+/* Light Theme Category Styles */
+.category-web {
+  --bg-light: theme('colors.blue.100');
+  --bg-dark: theme('colors.blue.950/50');
+  --text-light: theme('colors.blue.700');
+  --text-dark: theme('colors.blue.300');
+  --border-light: theme('colors.blue.200');
+  --border-dark: theme('colors.blue.800/50');
+}
+
+.category-mobile {
+  --bg-light: theme('colors.purple.100');
+  --bg-dark: theme('colors.purple.950/50');
+  --text-light: theme('colors.purple.700');
+  --text-dark: theme('colors.purple.300');
+  --border-light: theme('colors.purple.200');
+  --border-dark: theme('colors.purple.800/50');
+}
+
+.category-desktop {
+  --bg-light: theme('colors.green.100');
+  --bg-dark: theme('colors.green.950/50');
+  --text-light: theme('colors.green.700');
+  --text-dark: theme('colors.green.300');
+  --border-light: theme('colors.green.200');
+  --border-dark: theme('colors.green.800/50');
+}
+
+.category-backend {
+  --bg-light: theme('colors.amber.100');
+  --bg-dark: theme('colors.amber.950/50');
+  --text-light: theme('colors.amber.700');
+  --text-dark: theme('colors.amber.300');
+  --border-light: theme('colors.amber.200');
+  --border-dark: theme('colors.amber.800/50');
+}
+
+.category-cloud-devops {
+  --bg-light: theme('colors.cyan.100');
+  --bg-dark: theme('colors.cyan.950/50');
+  --text-light: theme('colors.cyan.700');
+  --text-dark: theme('colors.cyan.300');
+  --border-light: theme('colors.cyan.200');
+  --border-dark: theme('colors.cyan.800/50');
+}
+
+.category-data-engineering {
+  --bg-light: theme('colors.indigo.100');
+  --bg-dark: theme('colors.indigo.950/50');
+  --text-light: theme('colors.indigo.700');
+  --text-dark: theme('colors.indigo.300');
+  --border-light: theme('colors.indigo.200');
+  --border-dark: theme('colors.indigo.800/50');
+}
+
+.category-ai-ml {
+  --bg-light: theme('colors.rose.100');
+  --bg-dark: theme('colors.rose.950/50');
+  --text-light: theme('colors.rose.700');
+  --text-dark: theme('colors.rose.300');
+  --border-light: theme('colors.rose.200');
+  --border-dark: theme('colors.rose.800/50');
+}
+
+.category-dev-tools {
+  --bg-light: theme('colors.emerald.100');
+  --bg-dark: theme('colors.emerald.950/50');
+  --text-light: theme('colors.emerald.700');
+  --text-dark: theme('colors.emerald.300');
+  --border-light: theme('colors.emerald.200');
+  --border-dark: theme('colors.emerald.800/50');
+}
+
+.category-integration {
+  --bg-light: theme('colors.violet.100');
+  --bg-dark: theme('colors.violet.950/50');
+  --text-light: theme('colors.violet.700');
+  --text-dark: theme('colors.violet.300');
+  --border-light: theme('colors.violet.200');
+  --border-dark: theme('colors.violet.800/50');
+}
+
+.category-embedded-iot {
+  --bg-light: theme('colors.teal.100');
+  --bg-dark: theme('colors.teal.950/50');
+  --text-light: theme('colors.teal.700');
+  --text-dark: theme('colors.teal.300');
+  --border-light: theme('colors.teal.200');
+  --border-dark: theme('colors.teal.800/50');
+}
+
+.category-gaming-graphics {
+  --bg-light: theme('colors.fuchsia.100');
+  --bg-dark: theme('colors.fuchsia.950/50');
+  --text-light: theme('colors.fuchsia.700');
+  --text-dark: theme('colors.fuchsia.300');
+  --border-light: theme('colors.fuchsia.200');
+  --border-dark: theme('colors.fuchsia.800/50');
+}
+
+.category-security {
+  --bg-light: theme('colors.red.100');
+  --bg-dark: theme('colors.red.950/50');
+  --text-light: theme('colors.red.700');
+  --text-dark: theme('colors.red.300');
+  --border-light: theme('colors.red.200');
+  --border-dark: theme('colors.red.800/50');
+}
+
+.category-blockchain-web3 {
+  --bg-light: theme('colors.orange.100');
+  --bg-dark: theme('colors.orange.950/50');
+  --text-light: theme('colors.orange.700');
+  --text-dark: theme('colors.orange.300');
+  --border-light: theme('colors.orange.200');
+  --border-dark: theme('colors.orange.800/50');
+}
+
+.category-ar-vr-xr {
+  --bg-light: theme('colors.lime.100');
+  --bg-dark: theme('colors.lime.950/50');
+  --text-light: theme('colors.lime.700');
+  --text-dark: theme('colors.lime.300');
+  --border-light: theme('colors.lime.200');
+  --border-dark: theme('colors.lime.800/50');
+}
+
+.category-multimedia {
+  --bg-light: theme('colors.pink.100');
+  --bg-dark: theme('colors.pink.950/50');
+  --text-light: theme('colors.pink.700');
+  --text-dark: theme('colors.pink.300');
+  --border-light: theme('colors.pink.200');
+  --border-dark: theme('colors.pink.800/50');
+}
+
+.category-automation-scripting {
+  --bg-light: theme('colors.sky.100');
+  --bg-dark: theme('colors.sky.950/50');
+  --text-light: theme('colors.sky.700');
+  --text-dark: theme('colors.sky.300');
+  --border-light: theme('colors.sky.200');
+  --border-dark: theme('colors.sky.800/50');
+}
+
+.category-database-storage {
+  --bg-light: theme('colors.zinc.100');
+  --bg-dark: theme('colors.zinc.950/50');
+  --text-light: theme('colors.zinc.700');
+  --text-dark: theme('colors.zinc.300');
+  --border-light: theme('colors.zinc.200');
+  --border-dark: theme('colors.zinc.800/50');
+}
+
+.category-testing-qa {
+  --bg-light: theme('colors.neutral.100');
+  --bg-dark: theme('colors.neutral.950/50');
+  --text-light: theme('colors.neutral.700');
+  --text-dark: theme('colors.neutral.300');
+  --border-light: theme('colors.neutral.200');
+  --border-dark: theme('colors.neutral.800/50');
+}
+
+.category-other {
+  --bg-light: theme('colors.stone.100');
+  --bg-dark: theme('colors.stone.950/50');
+  --text-light: theme('colors.stone.700');
+  --text-dark: theme('colors.stone.300');
+  --border-light: theme('colors.stone.200');
+  --border-dark: theme('colors.stone.800/50');
+}
+
+
+[class*="category-"]:hover {
+  border-color: var(--text-light);
+}
+
+.dark [class*="category-"]:hover {
+  border-color: var(--text-dark);
+}
+
+
+
+
+
+/* Category Badge Base Styles */
+.category-badge {
+  @apply rounded-lg border text-xs font-medium;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+  width: fit-content;
+  max-width: calc(100% - 1rem);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Light/Dark Mode Styles */
+.category-badge {
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  border-color: var(--border-light);
+}
+
+.dark .category-badge {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+/* Filter Category Pills */
+.filter-category-pill {
+  @apply px-3 py-1 rounded-full text-sm font-medium transition-colors;
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  border: 1px solid var(--border-light);
+}
+
+.dark .filter-category-pill {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+  border-color: var(--border-dark);
+}
+
+.filter-category-pill:hover {
+  filter: brightness(0.95);
+}
+
+.dark .filter-category-pill:hover {
+  filter: brightness(1.1);
+}
+
+/* Tag Badge Base Styles */
+.tag-badge {
+  @apply rounded-full px-2 py-0.5 text-xs font-medium transition-colors whitespace-nowrap overflow-hidden text-ellipsis;
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border: 1px solid var(--border);
+}
+
+.tag-badge:hover {
+  background-color: var(--secondary);
+  opacity: 0.9;
+}
+
+/* Dark mode styles for tags */
+.dark .tag-badge {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+  border-color: var(--border);
+}
+
+.dark .tag-badge:hover {
+  opacity: 0.8;
+}
+
+/* Deleted state tags */
+.tag-badge-deleted {
+  background-color: var(--destructive);
+  color: var(--destructive-foreground);
+  border-color: var(--destructive);
+  opacity: 0.7;
+}
+
+.tag-badge-deleted:hover {
+  opacity: 0.8;
+}
+
+/* Loading state for tags */
+.tag-badge-loading {
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  border-color: var(--border);
+}
+
+/* Category Card Styles */
+.category-card {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.category-card:not(.disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 20px -8px oklch(0.3 0.1 280 / 0.15),
+    0 4px 10px -4px oklch(0.3 0.1 280 / 0.1);
+}
+
+.category-card.disabled {
+  cursor: not-allowed;
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.98 0.01 290 / 0.9),
+    oklch(0.96 0.01 290 / 0.9)
+  );
+}
+
+.dark .category-card.disabled {
+  background: linear-gradient(
+    to bottom right,
+    oklch(0.2 0.04 280 / 0.9),
+    oklch(0.18 0.04 280 / 0.9)
+  );
+}
+
+.category-card .category-count {
+  transition: all 0.2s ease;
+}
+
+.category-card:not(.disabled):hover .category-count {
+  transform: scale(1.05);
+}
+
+/* Category Button Styles */
+.category-card .category-button {
+  transition: all 0.2s ease;
+}
+
+.category-card:not(.disabled):hover .category-button {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}

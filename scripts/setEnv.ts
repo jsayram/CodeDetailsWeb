@@ -1,17 +1,36 @@
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import dotenv from 'dotenv';
+import path from 'path';
 
-//Get the current environment (defaults to "development" if not explicitly set)
-const currentEnvironment = process.env.NODE_ENV || "development";
+export function setEnv() {
+// Use the current environment set by the package.json scripts
+const currentEnvironment = process.env.NODE_ENV || 'development';
 
-//Define the expected environment file path based on the environment
-const environmentFilePath = path.resolve(__dirname, `../.env.${currentEnvironment}`);
+console.log(`🚀 Loading environment for: ${currentEnvironment}`);
 
-//Check if the required .env file exists
-if (!fs.existsSync(environmentFilePath)) {
-  console.error(`🚨 Missing environment file: ${environmentFilePath}`);
-  console.error("Please create the appropriate .env file before running the application.");
-  process.exit(1); // Exit the process to prevent the app from running without the correct environment variables
-} else {
-  console.log(`✅ Using environment configuration from: ${environmentFilePath}`);
+// Map environment names to their respective .env files
+const envFileMap: Record<string, string> = {
+  development: '.env.development',
+  test: '.env.test',
+  production: '.env.production'
+};
+
+// Determine the expected .env file
+let envFilePath = envFileMap[currentEnvironment];
+
+// Resolve the absolute path of the expected .env file
+const resolvedEnvPath = path.resolve(process.cwd(), envFilePath);
+
+// Check if the expected .env file exists
+if (!fs.existsSync(resolvedEnvPath)) {
+  console.warn(`⚠️ Environment file ${envFilePath} not found. Falling back to .env.local.`);
+  
+  // Default to .env.local if the expected file is missing
+  envFilePath = '.env.local';
+}
+
+// Load environment variables from the selected .env file
+dotenv.config({ path: path.resolve(process.cwd(), envFilePath) });
+
+console.log(`✅ Using environment configuration from: ${envFilePath}`);
 }

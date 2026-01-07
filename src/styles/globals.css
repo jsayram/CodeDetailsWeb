@@ -1,0 +1,399 @@
+/* Code Details Custom Theme Below */
+
+@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./toast.css";
+@import "./cards.css";
+@import "./category-styles.css";
+@import "./table.css";
+
+/* Increase base font size for XL screens and above */
+@media (min-width: 1920px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 18px;
+  }
+}
+
+:root {
+  --radius: 0.625rem; /* Base border radius value for UI consistency */
+  
+  /* ===== LIGHT THEME ===== */
+  
+  /* --- Base UI Elements --- */
+  --background: oklch(0.97 0.02 285);   /* Main background - subtle purple tint */
+  --foreground: oklch(0.25 0.05 280);   /* Primary text - dark purple with good contrast */
+  --card: oklch(0.99 0.01 290);         /* Card backgrounds - lighter than main background */
+  --card-foreground: oklch(0.2 0.05 280); /* Card text - slightly darker than main text */
+  --popover: oklch(0.99 0.01 290);      /* Popup/popover backgrounds - matches cards */
+  --popover-foreground: oklch(0.2 0.05 280); /* Popover text - matches card text */
+  --border: oklch(0.85 0.05 275);       /* Borders and dividers - soft purple */
+  --input: oklch(0.93 0.03 280);        /* Form input backgrounds - slightly tinted */
+  
+  /* --- Interactive Elements --- */
+  --primary: oklch(0.55 0.20 275);      /* Primary buttons/links - vibrant purple */
+  --primary-foreground: oklch(0.98 0.003 280); /* Text on primary elements - near white */
+  --secondary: oklch(0.94 0.04 265);    /* Secondary buttons - soft lavender */
+  --secondary-foreground: oklch(0.3 0.1 280); /* Text on secondary elements - dark purple */
+  --accent: oklch(0.85 0.08 230);       /* Accent/highlight elements - soft blue */
+  --accent-foreground: oklch(0.3 0.1 280); /* Text on accent elements - dark purple */
+  --muted: oklch(0.95 0.03 285);        /* Muted/subtle backgrounds - very light purple */
+  --muted-foreground: oklch(0.55 0.07 280); /* Muted text - medium purple */
+  --ring: oklch(0.7 0.12 280);          /* Focus rings - medium purple */
+  
+  /* --- Feedback States --- */
+  --destructive: oklch(0.65 0.28 25);   /* Error/delete actions - bright red */
+  --destructive-foreground: oklch(0.98 0.003 280); /* Text on destructive elements - near white */
+  --success: oklch(0.65 0.18 150);      /* Success indicators - green */
+  --success-foreground: oklch(0.2 0.05 160); /* Text on success elements - dark green */
+  --warning: oklch(0.75 0.18 80);       /* Warning indicators - amber/orange */
+  --warning-foreground: oklch(0.25 0.08 85); /* Text on warning elements - dark amber */
+  --info: oklch(0.65 0.15 230);         /* Info indicators - blue */
+  --info-foreground: oklch(0.2 0.08 240); /* Text on info elements - dark blue */
+  
+  /* --- Chart Palette --- */
+  --chart-1: oklch(0.70 0.25 280);      /* Primary chart color - vibrant purple */
+  --chart-2: oklch(0.65 0.20 230);      /* Secondary chart color - bright blue */
+  --chart-3: oklch(0.65 0.18 330);      /* Tertiary chart color - soft pink */
+  --chart-4: oklch(0.70 0.22 255);      /* Fourth chart color - periwinkle */
+  --chart-5: oklch(0.75 0.20 190);      /* Fifth chart color - turquoise */
+  
+  /* --- Sidebar Components --- */
+  --sidebar: oklch(0.95 0.04 275);      /* Sidebar background - light purple */
+  --sidebar-foreground: oklch(0.25 0.05 280); /* Sidebar text - dark purple */
+  --sidebar-primary: oklch(0.55 0.20 275); /* Sidebar active items - matches main primary */
+  --sidebar-primary-foreground: oklch(0.98 0.003 280); /* Text on sidebar active items */
+  --sidebar-accent: oklch(0.90 0.06 265); /* Sidebar hover/highlight - light lavender */
+  --sidebar-accent-foreground: oklch(0.3 0.1 280); /* Text on sidebar hover elements */
+  --sidebar-border: oklch(0.85 0.05 275); /* Sidebar dividers - soft purple */
+  --sidebar-ring: oklch(0.7 0.12 280);  /* Sidebar focus rings - medium purple */
+}
+
+.dark {
+  /* ===== DARK THEME ===== */
+  
+  /* --- Base UI Elements --- */
+  --background: oklch(0.15 0.05 280);   /* Main background - deep purple */
+  --foreground: oklch(0.9 0.02 280);    /* Primary text - near white with slight purple tint */
+  --card: oklch(0.2 0.06 280);          /* Card backgrounds - slightly lighter than main background */
+  --card-foreground: oklch(0.95 0.01 280); /* Card text - near white */
+  --popover: oklch(0.2 0.06 280);       /* Popup/popover backgrounds - matches cards */
+  --popover-foreground: oklch(0.95 0.01 280); /* Popover text - matches card text */
+  --border: oklch(1 0 0 / 20%);         /* Borders and dividers - subtle white */
+  --input: oklch(1 0 0 / 25%);          /* Form input backgrounds - subtle white overlay */
+  
+  /* --- Interactive Elements --- */
+  --primary: oklch(0.65 0.2 280);       /* Primary buttons/links - bright purple */
+  --primary-foreground: oklch(0.15 0.05 280); /* Text on primary elements - dark purple */
+  --secondary: oklch(0.25 0.07 280);    /* Secondary buttons - medium-dark purple */
+  --secondary-foreground: oklch(0.95 0.01 280); /* Text on secondary elements - near white */
+  --accent: oklch(0.5 0.15 220);        /* Accent/highlight elements - deep blue */
+  --accent-foreground: oklch(0.95 0.01 280); /* Text on accent elements - near white */
+  --muted: oklch(0.3 0.05 280);         /* Muted/subtle backgrounds - dark purple */
+  --muted-foreground: oklch(0.7 0.08 280); /* Muted text - light purple */
+  --ring: oklch(0.55 0.15 280);         /* Focus rings - medium purple */
+  
+  /* --- Feedback States --- */
+  --destructive: oklch(0.7 0.2 20);     /* Error/delete actions - bright red */
+  --destructive-foreground: oklch(0.15 0.05 280); /* Text on destructive elements - dark purple */
+  --success: oklch(0.55 0.15 150);      /* Success indicators - rich green */
+  --success-foreground: oklch(0.15 0.05 160); /* Text on success elements - dark green */
+  --warning: oklch(0.65 0.15 80);       /* Warning indicators - amber/orange */
+  --warning-foreground: oklch(0.15 0.05 85); /* Text on warning elements - dark amber */
+  --info: oklch(0.55 0.15 220);         /* Info indicators - deep blue */
+  --info-foreground: oklch(0.15 0.05 240); /* Text on info elements - dark blue */
+  
+  /* --- Chart Palette --- */
+  --chart-1: oklch(0.65 0.25 280);      /* Primary chart color - bright purple */
+  --chart-2: oklch(0.5 0.2 220);        /* Secondary chart color - deep blue */
+  --chart-3: oklch(0.7 0.25 320);       /* Tertiary chart color - bright pink */
+  --chart-4: oklch(0.55 0.27 250);      /* Fourth chart color - lavender */
+  --chart-5: oklch(0.6 0.25 180);       /* Fifth chart color - cyan */
+  
+  /* --- Sidebar Components --- */
+  --sidebar: oklch(0.2 0.06 280);       /* Sidebar background - slightly elevated from main background */
+  --sidebar-foreground: oklch(0.95 0.01 280); /* Sidebar text - near white */
+  --sidebar-primary: oklch(0.65 0.2 280); /* Sidebar active items - matches main primary */
+  --sidebar-primary-foreground: oklch(0.15 0.05 280); /* Text on sidebar active items */
+  --sidebar-accent: oklch(0.25 0.07 280); /* Sidebar hover/highlight - medium-dark purple */
+  --sidebar-accent-foreground: oklch(0.95 0.01 280); /* Text on sidebar hover elements */
+  --sidebar-border: oklch(1 0 0 / 20%); /* Sidebar dividers - subtle white */
+  --sidebar-ring: oklch(0.55 0.15 280); /* Sidebar focus rings - medium purple */
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ====== ORIGINAL BASE LAYER ====== */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Pagination container to prevent CLS */
+.pagination-container {
+  min-height: 3rem; /* Fixed height for pagination container */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+/* Pagination cursor styles */
+.pagination-item,
+[role="navigation"] button {
+  cursor: pointer;
+  min-width: 2rem; /* Fixed width for page numbers */
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0.25rem; /* Consistent spacing */
+}
+
+/* Pagination styles */
+.pagination-item-text {
+  @apply relative text-foreground;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.25rem 0.75rem;
+  line-height: 1.5;
+}
+
+.pagination-item-text[data-active="true"] {
+  @apply bg-primary text-primary-foreground font-medium;
+  transform: scale(1.05);
+}
+
+.pagination-item-text:not([data-active="true"]):hover {
+  @apply bg-primary/80 text-primary-foreground;
+  transform: scale(1.02);
+}
+
+/* Fixing CLS issues */
+
+/* Set fixed heights for alert containers */
+.alert-container {
+  height: 60px;
+}
+
+/* Set minimum heights for main content areas */
+.main-content {
+  min-height: calc(100vh - 64px); /* Subtract header height */
+}
+
+/* Prevent icon shifts */
+.icon-container {
+  height: 24px;
+  width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ------- ANIMATIONS ------- */
+/* Loading state animations */
+@keyframes skeletonFade {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.skeleton-fade {
+  animation: skeletonFade 0.3s ease-in-out forwards;
+  opacity: 0;
+}
+
+.animate-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Improved pulse animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-pulse {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--muted-foreground) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Heartbeat animation */
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.1);
+  }
+  40% {
+    transform: scale(1);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.3s ease-in-out infinite;
+}
+
+/* Gentle bounce animation for mascot */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+/* Sidebar Loading States */
+[data-loading=true] {
+  position: relative;
+}
+
+[data-sidebar=loader] {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+[data-loading=true] [data-sidebar=loader] {
+  opacity: 1;
+}
+
+/* Adjust spacing for items with loader */
+[data-loading=true].group {
+  padding-right: 2rem;
+}
+
+/* Adding custom responsive styles for filters */
+@layer utilities {
+  /* Filter dropdown responsive styles */
+  .filter-dropdown-container {
+    @apply flex flex-col sm:flex-row items-center justify-center gap-3;
+    width: 100%;
+  }
+
+  /* Make dropdowns full width on mobile, auto on larger screens */
+  .filter-dropdown {
+    @apply w-full sm:w-auto;
+  }
+
+  /* Center align filter section */
+  .filters-section {
+    @apply flex flex-col items-center justify-center w-full gap-4;
+  }
+
+  /* Ensure select triggers are consistent width */
+  .filter-select-trigger {
+    @apply w-full sm:w-[180px] text-center;
+  }
+
+  /* Highlight flash animation for anchor links */
+  @keyframes highlight-flash {
+    0%, 100% {
+      border-color: transparent;
+      box-shadow: none;
+    }
+    25%, 75% {
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+    }
+    50% {
+      border-color: hsl(var(--primary) / 0.6);
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
+    }
+  }
+
+  .highlight-flash {
+    animation: highlight-flash 1.5s ease-in-out 2;
+    border-radius: 0.5rem;
+  }
+}
+
+/* DEBUG STYLES - Remove before deploying to production */
+/* *{
+  outline: .05px dotted rgba(255, 0, 0, 0.2) !important;
+} */
