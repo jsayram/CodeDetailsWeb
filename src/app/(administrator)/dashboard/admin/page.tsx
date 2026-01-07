@@ -32,6 +32,8 @@ import {
   X,
   Save,
   RefreshCcw,
+  Sparkles,
+  FolderGit2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -2129,6 +2131,36 @@ function DashboardContent() {
                   </div>
                   <span className="text-[10px] md:text-xs text-muted-foreground text-left">
                     Test cache performance and efficiency
+                  </span>
+                </Button>
+              </Link>
+
+              <Link href="/llm-test">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-start p-3 md:p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                    <span className="font-semibold text-xs md:text-sm">LLM Test</span>
+                  </div>
+                  <span className="text-[10px] md:text-xs text-muted-foreground text-left">
+                    Test multi-provider LLM integrations
+                  </span>
+                </Button>
+              </Link>
+
+              <Link href="/scrapper-demo">
+                <Button
+                  variant="outline"
+                  className="w-full h-auto flex flex-col items-start p-3 md:p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <FolderGit2 className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                    <span className="font-semibold text-xs md:text-sm">Scrapper Demo</span>
+                  </div>
+                  <span className="text-[10px] md:text-xs text-muted-foreground text-left">
+                    Test GitHub repository crawling
                   </span>
                 </Button>
               </Link>

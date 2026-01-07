@@ -29,6 +29,7 @@ export enum ErrorCode {
   TAG_NOT_FOUND = "TAG_NOT_FOUND",
   CATEGORY_NOT_FOUND = "CATEGORY_NOT_FOUND",
   RESOURCE_NOT_FOUND = "RESOURCE_NOT_FOUND",
+  DOC_NOT_FOUND = "DOC_NOT_FOUND",
   
   // Validation errors (400)
   VALIDATION_ERROR = "VALIDATION_ERROR",
@@ -56,6 +57,8 @@ export enum ErrorCode {
   PROJECT_LIMIT_REACHED = "PROJECT_LIMIT_REACHED",
   PROJECT_DELETED = "PROJECT_DELETED",
   ACCOUNT_SUSPENDED = "ACCOUNT_SUSPENDED",
+  DOC_ALREADY_LINKED = "DOC_ALREADY_LINKED",
+  PROJECT_HAS_DOC = "PROJECT_HAS_DOC",
 }
 
 /**
@@ -92,6 +95,8 @@ export const ERROR_HINTS: Record<ErrorCode, string> = {
     "The specified category does not exist. Check available categories.",
   [ErrorCode.RESOURCE_NOT_FOUND]: 
     "The requested resource was not found.",
+  [ErrorCode.DOC_NOT_FOUND]: 
+    "The requested generated documentation was not found. It may have been deleted.",
   
   // Validation
   [ErrorCode.VALIDATION_ERROR]: 
@@ -136,6 +141,10 @@ export const ERROR_HINTS: Record<ErrorCode, string> = {
     "This project has been deleted and cannot be accessed.",
   [ErrorCode.ACCOUNT_SUSPENDED]: 
     "Your account has been suspended. Contact support for assistance.",
+  [ErrorCode.DOC_ALREADY_LINKED]: 
+    "This documentation is already linked to a project. Unlink it first to assign to a different project.",
+  [ErrorCode.PROJECT_HAS_DOC]: 
+    "This project already has documentation linked. Unlink the existing documentation first or replace it.",
 };
 
 /**
@@ -159,6 +168,7 @@ export const ERROR_STATUS_CODES: Record<ErrorCode, number> = {
   [ErrorCode.TAG_NOT_FOUND]: 404,
   [ErrorCode.CATEGORY_NOT_FOUND]: 404,
   [ErrorCode.RESOURCE_NOT_FOUND]: 404,
+  [ErrorCode.DOC_NOT_FOUND]: 404,
   
   // 400 Bad Request
   [ErrorCode.VALIDATION_ERROR]: 400,
@@ -186,4 +196,6 @@ export const ERROR_STATUS_CODES: Record<ErrorCode, number> = {
   [ErrorCode.PROJECT_LIMIT_REACHED]: 403,
   [ErrorCode.PROJECT_DELETED]: 410, // Gone
   [ErrorCode.ACCOUNT_SUSPENDED]: 403,
+  [ErrorCode.DOC_ALREADY_LINKED]: 409,
+  [ErrorCode.PROJECT_HAS_DOC]: 409,
 };

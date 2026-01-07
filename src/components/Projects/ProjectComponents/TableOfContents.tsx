@@ -19,6 +19,7 @@ import {
   Tags,
   Info,
   Clock,
+  BookOpen,
 } from "lucide-react";
 
 export interface TOCSection {
@@ -34,6 +35,7 @@ interface TableOfContentsProps {
 
 // Default sections for project view
 export const DEFAULT_PROJECT_SECTIONS: TOCSection[] = [
+  { id: "architecture-docs", label: "Docs", icon: <BookOpen className="h-4 w-4" /> },
   { id: "images", label: "Images", icon: <ImageIcon className="h-4 w-4" /> },
   { id: "about", label: "About", icon: <FileText className="h-4 w-4" /> },
   { id: "links", label: "Links", icon: <Link2 className="h-4 w-4" /> },

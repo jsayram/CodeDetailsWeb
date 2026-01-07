@@ -67,6 +67,7 @@ import {
   validateCategoryData,
   type CategoryChangeConfirmationModalProps,
 } from "@/components/Projects/CategoryFields";
+import { LinkedDocumentationSection } from "./LinkedDocumentationSection";
 
 interface UserProfile extends SelectProject {
   user_id: string;
@@ -1093,6 +1094,14 @@ export function ProjectContent({
               <div className="lg:grid lg:grid-cols-[1fr_250px] lg:gap-8">
                 {/* Main Content Column */}
                 <div className="space-y-6 sm:space-y-8">
+                  {/* Architecture Documentation Section - Featured at Top */}
+                  {project.slug && (
+                    <LinkedDocumentationSection
+                      projectSlug={project.slug}
+                      isOwner={isOwner}
+                    />
+                  )}
+
                   {/* Images Section */}
                   <section id="images">
                     {project.id && userId && (

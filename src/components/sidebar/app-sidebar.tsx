@@ -22,6 +22,7 @@ import {
   Send,
   Folder,
   Search,
+  FolderGit2,
 } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
@@ -89,6 +90,21 @@ const data = {
         {
           title: "My Deleted",
           url: "/projects/deleted",
+        },
+      ],
+    },
+    {
+      title: "GitHub Scrapper",
+      url: "/github-scrapper",
+      icon: FolderGit2,
+      items: [
+        {
+          title: "Generate Docs",
+          url: "/github-scrapper",
+        },
+        {
+          title: "My Generated Docs",
+          url: "/github-scrapper/my-docs",
         },
       ],
     },
