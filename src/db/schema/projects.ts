@@ -1,5 +1,9 @@
-import { pgTable, text, varchar, timestamp, uuid, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, uuid, numeric, jsonb, index } from "drizzle-orm/pg-core";
 import { ProjectCategory } from "@/constants/project-categories";
+import { ProjectLink } from "@/types/project-links";
+
+// Type for storing category-specific field values (flexible key-value storage)
+export type CategoryData = Record<string, unknown>;
 
 // Define the projects table schema
 export const projects = pgTable("projects", {
@@ -12,31 +16,42 @@ export const projects = pgTable("projects", {
     .notNull()
     .default("web"),
   total_favorites: numeric("total_favorites").notNull().default("0"), // Track total favorites for popularity sorting
+  url_links: jsonb("url_links").$type<ProjectLink[]>(), // Flexible array of project links
+  category_data: jsonb("category_data").$type<CategoryData>(), // Stores all category field values (visible + hidden)
+  field_order: jsonb("field_order").$type<string[]>(), // Stores visible field IDs in display order
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"), // For soft delete functionality
-});
+}, (table) => ({
+  userIdIdx: index("projects_user_id_idx").on(table.user_id),
+}));
 
-// Type definitions that include tags for backwards compatibility
+// Extended type definitions that include tags from the relation
 export type InsertProject = typeof projects.$inferInsert & {
   tags?: string[];
+  category_data?: CategoryData;
+  field_order?: string[];
 };
 
 export type SelectProject = typeof projects.$inferSelect & {
   tags?: string[];
+  category_data?: CategoryData | null;
+  field_order?: string[] | null;
 };
 
 //relationship is project to user profile image
 export type SelectProjectWithOwner = SelectProject & {
-  owner_id?: string;
-  owner_user_id?: string;
-  owner_username?: string;
-  owner_full_name?: string;
-  owner_profile_image_url?: string;
-  owner_tier?: string;
-  owner_email_address?: string;
-  owner_created_at?: Date;
-  owner_updated_at?: Date;
+  owner_id?: string | null;
+  owner_user_id?: string | null;
+  owner_username?: string | null;
+  owner_full_name?: string | null;
+  owner_profile_image_url?: string | null;
+  owner_tier?: string | null;
+  owner_email_address?: string | null;
+  owner_created_at?: Date | null;
+  owner_updated_at?: Date | null;
+  category_data?: CategoryData | null;
+  field_order?: string[] | null;
 };
 
 //user information from gathering project

@@ -30,6 +30,9 @@ export function ProjectCreateComponent({
     deleted_at: null,
     tags: [],
     total_favorites: "0",
+    url_links: null,
+    category_data: null,
+    field_order: null,
   };
 
   return (

@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
 
 interface LogoProps {
   showText?: boolean;
@@ -30,6 +31,18 @@ export function Logo({
 }: LogoProps) {
   const { resolvedTheme } = useTheme();
   const isDarkMode = resolvedTheme === "dark";
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (href) {
+      e.preventDefault();
+      setIsLoading(true);
+      router.push(href);
+      // Reset loading after navigation starts
+      setTimeout(() => setIsLoading(false), 1000);
+    }
+  };
 
   // Size mappings for logo and main text
   const sizeMap = {
@@ -98,14 +111,20 @@ export function Logo({
           )}
         </div>
       )}
+      
+      <div className="w-1 h-4 ml-2 flex items-center justify-center">
+        {isLoading && (
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        )}
+      </div>
     </div>
   );
 
   // Return with or without link wrapper based on href
   return href ? (
-    <Link href={href} className="focus:outline-none">
+    <div onClick={handleClick} className="focus:outline-none cursor-pointer">
       {logoContent}
-    </Link>
+    </div>
   ) : (
     logoContent
   );

@@ -12,11 +12,24 @@ import {
 } from "@/db/actions";
 import { InsertProject } from "@/db/schema/projects";
 import { projects } from "@/db/schema/projects";
-import { revalidatePath } from "next/cache";
+import { project_tags } from "@/db/schema/project_tags";
+import { revalidatePath, unstable_cache, revalidateTag } from "next/cache";
 import { mapDrizzleProjectToProject } from "@/types/models/project";
 import { executeQuery } from "@/db/server";
 import { favorites } from "@/db/schema/favorites";
 import { getProfileByUserId } from "@/db/operations";
+import { createProjectSchema, updateProjectSchema } from "@/types/schemas";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
+import { 
+  unauthorizedError, 
+  notOwnerError, 
+  notFoundError, 
+  zodValidationError, 
+  serverError,
+  actionSuccess,
+  type ActionResult
+} from "@/lib/action-errors";
+import { ErrorCode } from "@/constants/error-codes";
 
 const pathToRevalidate = "/projects";
 
@@ -32,6 +45,9 @@ export async function getProjectById(projectId: string) {
         category: projects.category,
         user_id: projects.user_id,
         total_favorites: projects.total_favorites,
+        url_links: projects.url_links,
+        category_data: projects.category_data,
+        field_order: projects.field_order,
         created_at: projects.created_at,
         updated_at: projects.updated_at,
         deleted_at: projects.deleted_at
@@ -43,6 +59,15 @@ export async function getProjectById(projectId: string) {
     return results[0] || null;
   });
 }
+
+export const getCachedProjectById = unstable_cache(
+  async (projectId: string) => getProjectById(projectId),
+  ['project-by-id'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects', 'project-detail']
+  }
+);
 
 // Get a single project by slug
 export async function getProjectBySlugServer(slug: string) {
@@ -57,49 +82,67 @@ export async function getProjectBySlugServer(slug: string) {
   });
 }
 
+export const getCachedProjectBySlug = unstable_cache(
+  async (slug: string) => getProjectBySlugServer(slug),
+  ['project-by-slug'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects', 'project-detail']
+  }
+);
+
 // Server action to create a new project
 export async function createProject(project: InsertProject, userId: string) {
   try {
     // Ensure there is a user ID
     if (!userId) {
-      return {
-        success: false,
-        error: "User ID is required to create a project",
-      };
+      return unauthorizedError("User ID is required to create a project");
     }
 
-    // Trim title and slug to ensure no leading/trailing spaces
+    // Validate input with Zod schema
+    const validationResult = createProjectSchema.safeParse({
+      title: project.title,
+      slug: project.slug,
+      description: project.description,
+      category: project.category,
+      url_links: project.url_links,
+      tags: project.tags || [],
+      category_data: project.category_data,
+      field_order: project.field_order,
+    });
+
+    if (!validationResult.success) {
+      return zodValidationError(validationResult);
+    }
+
+    // Use validated and transformed data
+    const validatedData = validationResult.data;
+
     const trimmedProject = {
       ...project,
-      title: project.title.trim(),
-      slug: project.slug.trim(),
-      user_id: userId, // Always assign the user ID to the project
+      title: validatedData.title,
+      slug: validatedData.slug,
+      description: validatedData.description,
+      category: validatedData.category,
+      user_id: userId,
+      url_links: validatedData.url_links,
+      tags: validatedData.tags,
+      category_data: validatedData.category_data ?? undefined,
+      field_order: validatedData.field_order ?? undefined,
     };
 
-    // Basic validation
-    if (!trimmedProject.title || !trimmedProject.slug) {
-      return {
-        success: false,
-        error: "Project title and slug are required",
-      };
-    }
+    console.log('Creating project with data:', JSON.stringify(trimmedProject, null, 2));
 
     const newProject = await createProjectServer(trimmedProject);
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    return {
-      success: true,
-      data: mapDrizzleProjectToProject(newProject),
-    };
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    return actionSuccess(mapDrizzleProjectToProject(newProject));
   } catch (error) {
     console.error("Failed to create project:", error);
-    // Return specific error messages for duplicate titles/slugs
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
 
@@ -108,53 +151,48 @@ export async function getProject(slug: string) {
   try {
     const project = await getProjectBySlugServer(slug);
     if (!project) {
-      return { success: false, error: "Project not found" };
+      return notFoundError("Project", ErrorCode.PROJECT_NOT_FOUND);
     }
-    return {
-      success: true,
-      data: mapDrizzleProjectToProject(project),
-    };
+    return actionSuccess(mapDrizzleProjectToProject(project));
   } catch (error) {
     console.error("Failed to get project:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
+
+export const getCachedProject = unstable_cache(
+  async (slug: string) => getProject(slug),
+  ['project'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects', 'project-detail']
+  }
+);
 
 // Server action to delete a project
 export async function removeProject(id: string, userId: string) {
   try {
     // Ensure there is a user ID
     if (!userId) {
-      return {
-        success: false,
-        error: "User ID is required to delete a project",
-      };
+      return unauthorizedError("User ID is required to delete a project");
     }
 
     // First check if the user is the owner of this project
     const isOwner = await isProjectOwner(id, userId);
     if (!isOwner) {
-      return {
-        success: false,
-        error: "You don't have permission to delete this project",
-      };
+      return notOwnerError("project");
     }
 
     const deletedProject = await deleteProjectServer(id);
     revalidatePath(pathToRevalidate);
-    return {
-      success: true,
-      data: mapDrizzleProjectToProject(deletedProject),
-    };
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    return actionSuccess(mapDrizzleProjectToProject(deletedProject));
   } catch (error) {
-    console.error("Failed to delete project:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    console.error("Failed to remove project:", error);
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
 
@@ -167,64 +205,83 @@ export async function updateProject(
   try {
     // Ensure there is a user ID
     if (!userId) {
-      return {
-        success: false,
-        error: "User ID is required to update a project",
-      };
+      return unauthorizedError("User ID is required to update a project");
     }
 
     // First check if the user is the owner of this project
     const isOwner = await isProjectOwner(id, userId);
     if (!isOwner) {
-      return {
-        success: false,
-        error: "You don't have permission to update this project",
-      };
+      return notOwnerError("project");
     }
 
-    // Create a new project object with trimmed values
-    const trimmedProject = { ...project };
+    // Validate input with Zod schema
+    const validationResult = updateProjectSchema.safeParse({
+      title: project.title,
+      slug: project.slug,
+      description: project.description,
+      category: project.category,
+      url_links: project.url_links,
+      tags: project.tags,
+      category_data: project.category_data,
+      field_order: project.field_order,
+    });
 
-    // Only trim if the fields are defined
-    if (trimmedProject.title !== undefined) {
-      trimmedProject.title = trimmedProject.title.trim();
+    if (!validationResult.success) {
+      return zodValidationError(validationResult);
     }
 
-    if (trimmedProject.slug !== undefined) {
-      trimmedProject.slug = trimmedProject.slug.trim();
+    // Use validated and transformed data
+    const validatedData = validationResult.data;
+
+    // Create a new project object with validated values
+    const trimmedProject: Partial<InsertProject> = {};
+
+    // Only include fields that were provided and validated
+    if (validatedData.title !== undefined) {
+      trimmedProject.title = validatedData.title;
+    }
+    if (validatedData.slug !== undefined) {
+      trimmedProject.slug = validatedData.slug;
+    }
+    if (validatedData.description !== undefined) {
+      trimmedProject.description = validatedData.description;
+    }
+    if (validatedData.category !== undefined) {
+      trimmedProject.category = validatedData.category;
+    }
+    if (validatedData.url_links !== undefined) {
+      trimmedProject.url_links = validatedData.url_links;
+    }
+    if (validatedData.tags !== undefined) {
+      trimmedProject.tags = validatedData.tags;
+    }
+    if (validatedData.category_data !== undefined) {
+      trimmedProject.category_data = validatedData.category_data ?? undefined;
+    }
+    if (validatedData.field_order !== undefined) {
+      trimmedProject.field_order = validatedData.field_order ?? undefined;
     }
 
-    // Basic validation - if slug or title is provided, ensure they're not empty
-    if (trimmedProject.title !== undefined && !trimmedProject.title) {
-      return {
-        success: false,
-        error: "Project title is required",
-      };
-    }
-
-    if (trimmedProject.slug !== undefined && !trimmedProject.slug) {
-      return {
-        success: false,
-        error: "Project slug is required",
-      };
-    }
-
+    console.log('Updating project with data:', JSON.stringify(trimmedProject, null, 2));
     const updatedProject = await updateProjectServer(id, trimmedProject);
+    
     // Revalidate the projects list page
     revalidatePath(pathToRevalidate);
-    return {
-      success: true,
-      data: mapDrizzleProjectToProject(updatedProject),
-    };
+    
+    // Revalidate the specific project page (using the new slug if changed, otherwise the original)
+    const projectSlug = updatedProject.slug || validatedData.slug;
+    if (projectSlug) {
+      revalidatePath(`/projects/${projectSlug}`);
+    }
+    
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    return actionSuccess(mapDrizzleProjectToProject(updatedProject));
   } catch (error) {
-    console.error("Failed to update project:", error);
-    // Return specific error messages for duplicate titles/slugs
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-    return {
-      success: false,
-      error: errorMessage,
-    };
+    console.error("Failed to update project:");
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
 
@@ -255,6 +312,15 @@ export async function getUserProjects(userId: string) {
   }
 }
 
+export const getCachedUserProjects = unstable_cache(
+  async (userId: string) => getUserProjects(userId),
+  ['user-projects'],
+  {
+    revalidate: 180, // 3 minutes
+    tags: ['projects', 'user-projects']
+  }
+);
+
 // Server action to get all projects (previously free tier only)
 export async function getAllProjects() {
   try {
@@ -269,14 +335,20 @@ export async function getAllProjects() {
   }
 }
 
+export const getCachedAllProjects = unstable_cache(
+  async () => getAllProjects(),
+  ['all-projects'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['projects']
+  }
+);
+
 // Server action to get projects created by the current user
 export async function getUserOwnProjects(userId: string) {
   try {
     if (!userId) {
-      return {
-        success: false,
-        error: "User ID is required",
-      };
+      return unauthorizedError("User ID is required");
     }
 
     console.log(`Fetching projects owned by user ${userId}`);
@@ -286,37 +358,34 @@ export async function getUserOwnProjects(userId: string) {
     const mappedProjects = projects.map(mapDrizzleProjectToProject);
     console.log(`Successfully fetched ${mappedProjects.length} user projects`);
 
-    return {
-      success: true,
-      data: mappedProjects,
-    };
+    return actionSuccess(mappedProjects);
   } catch (error) {
     console.error("Failed to get user's own projects:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
+
+export const getCachedUserOwnProjects = unstable_cache(
+  async (userId: string) => getUserOwnProjects(userId),
+  ['user-own-projects'],
+  {
+    revalidate: 180, // 3 minutes
+    tags: ['projects', 'user-own-projects']
+  }
+);
 
 // Server action to permanently delete a project
 export async function permanentlyDeleteProject(id: string, userId: string) {
   try {
     // Ensure there is a user ID
     if (!userId) {
-      return {
-        success: false,
-        error: "User ID is required to delete a project",
-      };
+      return unauthorizedError("User ID is required to delete a project");
     }
 
     // First check if the user is the owner of this project
     const isOwner = await isProjectOwner(id, userId);
     if (!isOwner) {
-      return {
-        success: false,
-        error: "You don't have permission to delete this project",
-      };
+      return notOwnerError("project");
     }
 
     // Permanently delete the project
@@ -341,16 +410,14 @@ export async function permanentlyDeleteProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    return {
-      success: true,
-      data: null,
-    };
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    return actionSuccess(null);
   } catch (error) {
-    console.error("Failed to permanently delete project:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    console.error("Failed to permanently delete project:");
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
 
@@ -359,19 +426,13 @@ export async function restoreProject(id: string, userId: string) {
   try {
     // Ensure there is a user ID
     if (!userId) {
-      return {
-        success: false,
-        error: "User ID is required to restore a project",
-      };
+      return unauthorizedError("User ID is required to restore a project");
     }
 
     // First check if the user is the owner of this project
     const isOwner = await isProjectOwner(id, userId);
     if (!isOwner) {
-      return {
-        success: false,
-        error: "You don't have permission to restore this project",
-      };
+      return notOwnerError("project");
     }
 
     // Restore the project by clearing deleted_at
@@ -394,16 +455,14 @@ export async function restoreProject(id: string, userId: string) {
     });
 
     revalidatePath(pathToRevalidate);
-    return {
-      success: true,
-      data: mapDrizzleProjectToProject(restoredProject),
-    };
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_OWN_PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    return actionSuccess(mapDrizzleProjectToProject(restoredProject));
   } catch (error) {
-    console.error("Failed to restore project:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    console.error("Failed to restore project:");
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
 
@@ -414,19 +473,13 @@ export async function addProjectFavorite(
 ) {
   try {
     if (!userId || !projectId) {
-      return {
-        success: false,
-        error: "Both user ID and project ID are required",
-      };
+      return unauthorizedError("Both user ID and project ID are required");
     }
 
     // First get the profile ID for the user
     const profile = await getProfileByUserId(userId);
     if (!profile) {
-      return {
-        success: false,
-        error: "User profile not found",
-      };
+      return notFoundError("User profile", ErrorCode.PROFILE_NOT_FOUND);
     }
 
     await executeQuery(async (db) => {
@@ -466,13 +519,13 @@ export async function addProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    return { success: true };
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    return actionSuccess(undefined);
   } catch (error) {
-    console.error("Failed to add favorite:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    console.error("Failed to add favorite:");
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
 }
 
@@ -483,19 +536,13 @@ export async function removeProjectFavorite(
 ) {
   try {
     if (!userId || !projectId) {
-      return {
-        success: false,
-        error: "Both user ID and project ID are required",
-      };
+      return unauthorizedError("Both user ID and project ID are required");
     }
 
     // First get the profile ID for the user
     const profile = await getProfileByUserId(userId);
     if (!profile) {
-      return {
-        success: false,
-        error: "User profile not found",
-      };
+      return notFoundError("User profile", ErrorCode.PROFILE_NOT_FOUND);
     }
 
     await executeQuery(async (db) => {
@@ -523,12 +570,34 @@ export async function removeProjectFavorite(
     });
 
     revalidatePath(pathToRevalidate);
-    return { success: true };
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.USER_PROJECTS, {});
+    return actionSuccess(undefined);
   } catch (error) {
-    console.error("Failed to remove favorite:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
+    console.error("Failed to remove favorite:");
+    return serverError(error, error instanceof Error ? error.message : "Unknown error occurred");
   }
+}
+
+export async function getProjectTagCounts(projectIds: string[]) {
+  return executeQuery(async (db) => {
+    if (projectIds.length === 0) return {};
+    
+    const tagCounts = await db
+      .select({
+        project_id: project_tags.project_id,
+        count: sql<number>`count(*)`,
+      })
+      .from(project_tags)
+      .where(sql`${project_tags.project_id} IN (${sql.join(projectIds.map(id => sql.raw(`'${id}'`)), sql.raw(', '))})`)
+      .groupBy(project_tags.project_id);
+
+    const result: Record<string, number> = {};
+    tagCounts.forEach(({ project_id, count }) => {
+      result[project_id] = Number(count);
+    });
+
+    return result;
+  });
 }

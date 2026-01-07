@@ -47,7 +47,7 @@ export default function CategoryPage({ params }: PageProps) {
         <SidebarInset>
           <HeaderSection />
           <div className="flex justify-center w-full mb-20">
-            <div className="w-full max-w-7xl px-4">
+            <div className="w-full px-4 2xl:px-8 3xl:px-12">
               <div className="flex flex-col gap-4 mb-6 py-3">
                 <div className="mb-8">
                   <div className="flex flex-col space-y-4">

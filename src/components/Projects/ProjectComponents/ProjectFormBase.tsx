@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AnnoyedIcon, RefreshCcwIcon, ChevronDown } from "lucide-react";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 
 interface ProjectFormBaseProps {
@@ -349,6 +349,7 @@ export function ProjectFormBase({
                 variant="outline"
                 onClick={generateSlug}
                 title="Generate slug from title"
+                className="cursor-pointer"
               >
                 <RefreshCcwIcon className="h-4 w-4 mr-1" />
                 Generate
@@ -431,7 +432,7 @@ export function ProjectFormBase({
 
         <div className="flex justify-end mt-4 space-x-2">
           {showCancelButton && (
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button type="button" variant="outline" onClick={onCancel} className="cursor-pointer">
               Cancel
             </Button>
           )}

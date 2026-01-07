@@ -5,9 +5,11 @@
  * Uses shared user sync utilities to avoid duplication with webhook logic
  */
 import { auth, currentUser, clerkClient } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { createOrUpdateUserProfile, recentlyVerifiedUsers, CACHE_TTL, cleanupCache } from "@/lib/user-sync-utils";
 import { ClerkUserData } from "@/types/models/clerkUserData";
+import { unauthorized, serverError, success } from "@/lib/api-errors";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 export async function POST(request: Request) {
   try {
@@ -21,10 +23,7 @@ export async function POST(request: Request) {
       targetUserId = body.userId || "";
       
       if (!targetUserId) {
-        return NextResponse.json(
-          { error: "Not authenticated" },
-          { status: 401 }
-        );
+        return unauthorized();
       }
     }
 
@@ -47,10 +46,7 @@ export async function POST(request: Request) {
     }
     
     if (!user) {
-      return NextResponse.json(
-        { error: "Could not fetch user data" },
-        { status: 500 }
-      );
+      return serverError("Could not fetch user data from Clerk");
     }
 
     // Convert Clerk's currentUser() format to ClerkUserData format
@@ -69,17 +65,13 @@ export async function POST(request: Request) {
     // Use shared utility to create/update user
     const result = await createOrUpdateUserProfile(clerkUserData);
 
+    // Invalidate user profile cache after sync
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+
     console.log(`✅ User ${targetUserId} synced successfully (client-side): ${result.status}`);
     
-    return NextResponse.json(result);
+    return success(result);
   } catch (error) {
-    console.error("Error in user sync:", error);
-    return NextResponse.json(
-      { 
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Unknown error"
-      },
-      { status: 500 }
-    );
+    return serverError();
   }
 }

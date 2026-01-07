@@ -26,7 +26,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { useTagCache } from "@/hooks/use-tag-cache";
+import { useTags } from "@/hooks/use-tags";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
+import Link from "next/link";
+import { getProjectTagCounts } from "@/app/actions/projects";
 
 interface GroupedTagSubmission {
   tag_name: string;
@@ -36,17 +39,25 @@ interface GroupedTagSubmission {
 
 interface TagSubmissionManagementProps {
   initialSubmissions: GroupedTagSubmission[];
+  onRefresh?: () => void | Promise<void>;
 }
 
 export function TagSubmissionManagement({
   initialSubmissions,
+  onRefresh,
 }: TagSubmissionManagementProps) {
   const [submissions, setSubmissions] = useState(initialSubmissions);
   const [adminNotes, setAdminNotes] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState<Record<string, boolean>>({});
   const [projectNames, setProjectNames] = useState<Record<string, string>>({});
   const [projectTagCounts, setProjectTagCounts] = useState<Record<string, number>>({});
-  const { refreshCache } = useTagCache();
+  const [projectSlugs, setProjectSlugs] = useState<Record<string, string>>({});
+  const { refreshCache } = useTags();
+
+  // Sync state with props when initialSubmissions changes (e.g., after navigation or refresh)
+  useEffect(() => {
+    setSubmissions(initialSubmissions);
+  }, [initialSubmissions]);
 
   const handleApprove = async (groupedTag: GroupedTagSubmission) => {
     const submissionIds = groupedTag.submissions.map((s) => s.id);
@@ -72,7 +83,9 @@ export function TagSubmissionManagement({
 
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          errors.push(`Failed to approve tag for ${projectNames[groupedTag.submissions[index].project_id]}: ${result.reason?.message || 'Unknown error'}`);
+          const projectId = groupedTag.submissions[index].project_id;
+          const projectName = projectId ? projectNames[projectId] : 'Unknown Project';
+          errors.push(`Failed to approve tag for ${projectName}: ${result.reason?.message || 'Unknown error'}`);
         } else {
           successCount++;
         }
@@ -99,11 +112,16 @@ export function TagSubmissionManagement({
       }
 
       await refreshCache();
-
+      
       // Remove all submissions that were handled (either approved or rejected)
       setSubmissions((prevSubmissions) =>
         prevSubmissions.filter((group) => group.tag_name !== groupedTag.tag_name)
       );
+      
+      // Notify parent to refresh its data (don't await to avoid Suspense boundary issues)
+      if (onRefresh) {
+        void onRefresh();
+      }
     } catch (error) {
       console.error("Error approving tags:", error);
       toast.error("Failed to approve some tags");
@@ -116,21 +134,26 @@ export function TagSubmissionManagement({
     }
   };
 
-  const handleIndividualApprove = async (submissionId: string, tagName: string) => {
+  const handleIndividualApprove = async (
+    submissionId: string, 
+    tagName: string,
+    approvalType: "system" | "project"
+  ) => {
     if (isProcessing[submissionId]) return;
     
     setIsProcessing((prev) => ({ ...prev, [submissionId]: true }));
 
     try {
-      await approveTagSubmission(submissionId, adminNotes[submissionId]);
-      toast.success(`Tag "${tagName}" approved successfully`);
+      await approveTagSubmission(submissionId, adminNotes[submissionId], approvalType);
+      const approvalMessage = approvalType === "system" 
+        ? `Tag "${tagName}" approved for system only`
+        : `Tag "${tagName}" approved for system and project`;
+      toast.success(approvalMessage);
       
-      // Refresh the tag cache and wait for it to complete
+      // Refresh the tag cache
       await refreshCache();
       
-      // Force an immediate refresh of project data
-      window.location.reload();
-
+      // Update state to remove the approved submission
       setSubmissions((prevSubmissions) => {
         const updatedSubmissions = prevSubmissions
           .map((group) => ({
@@ -140,6 +163,11 @@ export function TagSubmissionManagement({
           .filter((group) => group.submissions.length > 0);
         return updatedSubmissions;
       });
+      
+      // Notify parent to refresh its data (don't await to avoid Suspense boundary issues)
+      if (onRefresh) {
+        void onRefresh();
+      }
     } catch (error) {
       console.error("Error approving tag:", error);
       toast.error(error instanceof Error ? error.message : "Failed to approve tag");
@@ -176,6 +204,11 @@ export function TagSubmissionManagement({
           })
           .filter((group) => group.count > 0)
       );
+      
+      // Notify parent to refresh its data (don't await to avoid Suspense boundary issues)
+      if (onRefresh) {
+        void onRefresh();
+      }
     } catch (error) {
       toast.error("Failed to reject tag submission");
     } finally {
@@ -189,17 +222,26 @@ export function TagSubmissionManagement({
         group.submissions.map((submission) => submission.project_id)
       );
 
-      const uniqueProjectIds = Array.from(new Set(projectIds));
+      const uniqueProjectIds = Array.from(new Set(projectIds)).filter((id): id is string => id !== null);
       const projectNameMap: Record<string, string> = {};
+      const projectSlugMap: Record<string, string> = {};
 
+      // Fetch project details
       for (const projectId of uniqueProjectIds) {
+        if (!projectId) continue; // Skip null project IDs
         const project = await getProjectById(projectId);
         if (project) {
           projectNameMap[projectId] = project.title;
+          projectSlugMap[projectId] = project.slug;
         }
       }
 
+      // Fetch tag counts for all projects at once
+      const projectTagCountMap = await getProjectTagCounts(uniqueProjectIds);
+
       setProjectNames((prev) => ({ ...prev, ...projectNameMap }));
+      setProjectTagCounts((prev) => ({ ...prev, ...projectTagCountMap }));
+      setProjectSlugs((prev) => ({ ...prev, ...projectSlugMap }));
     };
 
     if (submissions.length > 0) {
@@ -208,52 +250,79 @@ export function TagSubmissionManagement({
   }, [submissions]);
 
   return (
-    <div className="grid gap-6">
+    <div className="space-y-4">
       {submissions.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground">
           No pending tag submissions to review.
         </div>
       ) : (
         submissions.map((groupedTag) => (
-          <Card key={groupedTag.tag_name}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  Tag: <Badge>{groupedTag.tag_name}</Badge>
-                  <Badge variant="secondary">{groupedTag.count} projects</Badge>
+          <Card key={groupedTag.tag_name} className="overflow-hidden">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <span className="text-sm font-medium">Tag:</span>
+                  <Badge className="flex-shrink-0">{groupedTag.tag_name}</Badge>
+                  <Badge variant="secondary" className="flex-shrink-0">{groupedTag.count} projects</Badge>
                 </div>
                 <Button
                   onClick={() => handleApprove(groupedTag)}
                   disabled={isProcessing[groupedTag.submissions[0]?.id]}
+                  className="cursor-pointer flex-shrink-0 w-full sm:w-auto"
+                  size="sm"
                 >
                   Approve All
                 </Button>
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-xs">
                 This tag has been requested for multiple projects
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               <Accordion type="single" collapsible>
-                <AccordionItem value="submissions">
-                  <AccordionTrigger>View All Submissions</AccordionTrigger>
+                <AccordionItem value="submissions" className="border-0">
+                  <AccordionTrigger className="text-sm py-2">View All Submissions</AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-4">
-                      {groupedTag.submissions.map((submission) => (
+                    <div className="space-y-3">
+                      {groupedTag.submissions.map((submission) => {
+                        const tagCount = submission.project_id ? (projectTagCounts[submission.project_id] || 0) : 0;
+                        const isAtMax = tagCount >= MAX_PROJECT_TAGS;
+                        
+                        return (
                         <div
                           key={submission.id}
-                          className="border rounded-lg p-4 space-y-4"
+                          className={`border rounded-lg p-3 space-y-3 overflow-hidden ${
+                            isAtMax ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''
+                          }`}
                         >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium">
-                                Project:{" "}
-                                {projectNames[submission.project_id] || "Loading..."}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-medium text-sm">
+                                  Project:{" "}
+                                  {submission.project_id && projectNames[submission.project_id] && projectSlugs[submission.project_id] ? (
+                                    <Link 
+                                      href={`/projects/${projectSlugs[submission.project_id]}`}
+                                      className="text-primary hover:underline"
+                                      target="_blank"
+                                    >
+                                      {projectNames[submission.project_id]}
+                                    </Link>
+                                  ) : (
+                                    submission.project_id ? (projectNames[submission.project_id] || "Loading...") : "N/A"
+                                  )}
+                                </p>
+                                <Badge 
+                                  variant={isAtMax ? "destructive" : "secondary"}
+                                  className="text-xs"
+                                >
+                                  {tagCount}/{MAX_PROJECT_TAGS} tags
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">
                                 Submitted by: {submission.submitter_email}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-xs text-muted-foreground">
                                 Date:{" "}
                                 {submission.created_at ? (
                                   <FormattedDate date={submission.created_at} />
@@ -261,20 +330,43 @@ export function TagSubmissionManagement({
                                   "N/A"
                                 )}
                               </p>
+                              {isAtMax && (
+                                <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
+                                  ⚠️ Project has maximum tags - can only approve for system
+                                </p>
+                              )}
                             </div>
-                            <div className="space-x-2">
+                            <div className="flex gap-2 flex-shrink-0">
                               <Button
                                 variant="default"
                                 size="sm"
                                 onClick={() =>
                                   handleIndividualApprove(
                                     submission.id,
-                                    groupedTag.tag_name
+                                    groupedTag.tag_name,
+                                    "system"
                                   )
                                 }
                                 disabled={isProcessing[submission.id]}
+                                className="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-700 text-xs"
                               >
-                                Approve
+                                Approve for System
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() =>
+                                  handleIndividualApprove(
+                                    submission.id,
+                                    groupedTag.tag_name,
+                                    "project"
+                                  )
+                                }
+                                disabled={isProcessing[submission.id] || isAtMax}
+                                className="flex-1 sm:flex-initial text-xs"
+                                title={isAtMax ? "Project has maximum tags (15/15)" : "Approve and add to project"}
+                              >
+                                Approve for Project
                               </Button>
                               <Button
                                 variant="outline"
@@ -283,15 +375,16 @@ export function TagSubmissionManagement({
                                   handleReject(submission.id, groupedTag.tag_name)
                                 }
                                 disabled={isProcessing[submission.id]}
+                                className="flex-1 sm:flex-initial text-xs"
                               >
                                 Reject
                               </Button>
                             </div>
                           </div>
                           {submission.description && (
-                            <div>
-                              <h4 className="font-medium mb-2">Description:</h4>
-                              <p className="text-sm text-muted-foreground">
+                            <div className="overflow-hidden">
+                              <h4 className="font-medium text-sm mb-1">Description:</h4>
+                              <p className="text-xs text-muted-foreground break-words">
                                 {submission.description}
                               </p>
                             </div>
@@ -299,11 +392,11 @@ export function TagSubmissionManagement({
                           <div>
                             <label
                               htmlFor={`notes-${submission.id}`}
-                              className="font-medium block mb-2"
+                              className="font-medium text-sm block mb-2"
                             >
                               Admin Notes{" "}
                               {!adminNotes[submission.id]?.trim() &&
-                                "(required for rejection)"}
+                                <span className="text-xs text-muted-foreground">(required for rejection)</span>}
                             </label>
                             <Textarea
                               id={`notes-${submission.id}`}
@@ -315,10 +408,12 @@ export function TagSubmissionManagement({
                                   [submission.id]: e.target.value,
                                 }))
                               }
+                              className="text-sm min-h-[80px]"
                             />
                           </div>
                         </div>
-                      ))}
+                      )}
+                    )}
                     </div>
                   </AccordionContent>
                 </AccordionItem>

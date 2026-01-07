@@ -192,12 +192,12 @@ export function PaginationControls({
                     isActive={isActive}
                     onClick={() => handlePageChange(pageNum)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`pagination-item-text bg-transparent flex items-center justify-center h-10 w-10 transition-all duration-200 ${
+                    className={`pagination-item-text bg-transparent flex items-center justify-center h-10 w-10 transition-all duration-200 cursor-pointer ${
                       isActive
-                        ? "ring-1 ring-primary/50 bg-primary text-accent-foreground"
+                        ? "ring-2 ring-primary bg-primary text-primary-foreground"
                         : isVisited
-                        ? "text-foreground hover:bg-primary/80"
-                        : "text-muted-foreground hover:text-card hover:bg-primary/60"
+                        ? "text-foreground hover:bg-primary/80 hover:text-primary-foreground"
+                        : "text-muted-foreground hover:text-primary-foreground hover:bg-primary/60"
                     }`}
                   >
                     {pageNum}

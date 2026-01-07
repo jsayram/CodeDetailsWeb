@@ -2,16 +2,9 @@
 
 import React from "react";
 import { useProjects } from "@/providers/projects-provider";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { PROJECT_CATEGORIES, ProjectCategory } from "@/constants/project-categories";
+import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
+import { useCategoryCounts } from "@/hooks/use-category-counts";
+import { useAuth } from "@clerk/nextjs";
 
 interface FilterControlsProps {
   showControls?: boolean;
@@ -19,53 +12,46 @@ interface FilterControlsProps {
 
 export function FilterControls({ showControls = true }: FilterControlsProps) {
   const { filters, setFilters } = useProjects();
+  const { userId } = useAuth();
+
+  // Determine category counts filter based on current view
+  const categoryCountsFilters = React.useMemo(() => {
+    if (filters.showDeleted && userId) {
+      return { userId, deleted: true };
+    }
+    if (filters.showFavorites && userId) {
+      return { userId, favorites: true };
+    }
+    if (filters.showMyProjects && userId) {
+      return { userId };
+    }
+    // Community view - global counts
+    return undefined;
+  }, [filters.showMyProjects, filters.showFavorites, filters.showDeleted, userId]);
+
+  const { hasCategoryProjects } = useCategoryCounts(categoryCountsFilters);
 
   if (!showControls) return null;
 
   return (
     <div className="filters-section cursor-pointer">
       <div className="filter-dropdown-container cursor-pointer">
-        <Select
-          value={filters.sortBy}
+        <SortBySelect
+          value={filters.sortBy as SortByValue}
           onValueChange={(value) => setFilters({ sortBy: value })}
-        >
-          <SelectTrigger className="filter-select-trigger cursor-pointer">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Sort by</SelectLabel>
-              <SelectItem value="newest" className="cursor-pointer">Newest</SelectItem>
-              <SelectItem value="oldest" className="cursor-pointer">Oldest</SelectItem>
-              <SelectItem value="popular" className="cursor-pointer">Popular</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <Select
+          triggerClassName="filter-select-trigger cursor-pointer"
+          showLabel
+        />
+        <CategorySelect
           value={filters.category}
-          onValueChange={(value) => setFilters({ category: value as ProjectCategory | "all" })}
-        >
-          <SelectTrigger className="filter-select-trigger cursor-pointer">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Category</SelectLabel>
-              <SelectItem value="all" className="cursor-pointer">
-                <span className="text-muted-foreground">All Categories</span>
-              </SelectItem>
-              {Object.entries(PROJECT_CATEGORIES).map(([value, { label }]) => (
-                <SelectItem key={value} value={value} className="cursor-pointer">
-                  <div className={`filter-category-pill category-${value}`}>
-                    {label}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+          onValueChange={(value) => setFilters({ category: value })}
+          triggerClassName="filter-select-trigger cursor-pointer"
+          showLabel
+          showPills
+          hasCategoryProjects={hasCategoryProjects}
+        />
       </div>
     </div>
   );
 }
+

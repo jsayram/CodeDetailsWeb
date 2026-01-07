@@ -6,10 +6,7 @@ import { GridIcon, TableIcon, Plus, ExternalLink } from "lucide-react";
 import { ProjectCardView } from "./ProjectCardViewComponent";
 import { ProjectTableView } from "./ProjectTableViewComponent";
 import { ProjectForm } from "../ProjectComponents/ProjectFormComponent";
-import {
-  PROJECT_CATEGORIES,
-  ProjectCategory,
-} from "@/constants/project-categories";
+import { ProjectCategory } from "@/constants/project-categories";
 import { CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 
 import {
@@ -31,14 +28,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ProjectFilters } from "@/providers/projects-provider";
+import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
+import { useCategoryCounts } from "@/hooks/use-category-counts";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
 import { SignInButtonComponent } from "@/components/auth/SignInButtonComponent";
@@ -62,7 +54,7 @@ interface ProjectListProps {
   allowAnonymousView?: boolean;
 }
 
-export function ProjectList({
+export const ProjectList = React.memo(function ProjectList({
   currentPage: externalPage = CURRENT_PAGE,
   filter,
   showSortingFilters = true,
@@ -89,6 +81,23 @@ export function ProjectList({
 
   const { userId } = useAuth();
   const router = useRouter();
+
+  // Determine category counts filter based on current view
+  const categoryCountsFilters = React.useMemo(() => {
+    if (showDeletedOnly && userId) {
+      return { userId, deleted: true };
+    }
+    if (showFavoritesOnly && userId) {
+      return { userId, favorites: true };
+    }
+    if (showUserProjectsOnly && userId) {
+      return { userId };
+    }
+    // Community view - global counts
+    return undefined;
+  }, [showUserProjectsOnly, showFavoritesOnly, showDeletedOnly, userId]);
+
+  const { hasCategoryProjects } = useCategoryCounts(categoryCountsFilters);
   const [viewMode, setViewMode] = useState("card");
   const [isMobile, setIsMobile] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -103,7 +112,13 @@ export function ProjectList({
     title: string;
   } | null>(null);
   const [isUnfavoriting, setIsUnfavoriting] = useState(false);
+  const [layoutReady, setLayoutReady] = useState(false);
   const user = useSession();
+
+  // Wait for layout to be ready before showing skeleton
+  useEffect(() => {
+    setLayoutReady(true);
+  }, []);
 
   // Check for mobile screen size
   useEffect(() => {
@@ -194,7 +209,7 @@ export function ProjectList({
 
   // Handlers
   const handleViewDetails = useCallback((id: string) => {
-    console.log(`View details for project ${id}`);
+    // TODO: View details handler - currently unused but kept for future implementation
   }, []);
 
   const handleToggleFavorite = useCallback(
@@ -231,7 +246,7 @@ export function ProjectList({
       // If we're unfavoriting and on the favorites page, remove from UI immediately
       if (!isFavorite && showFavoritesOnly) {
         // Remove from current state immediately
-        setProjects((prev) => prev.filter((p) => p.id !== id));
+        setProjects((prev) => (prev ?? projects).filter((p) => p.id !== id));
 
         // Force a refresh of the projects list
         if (handleProjectDeleted) {
@@ -243,22 +258,27 @@ export function ProjectList({
       }
 
       // For all other cases, update the project in the current state
-      setProjects((prev) =>
-        prev.map((project) => {
-          if (project.id === id) {
-            const currentFavorites = Number(project.total_favorites || 0);
-            const newFavorites = isFavorite
-              ? currentFavorites + 1
-              : Math.max(0, currentFavorites - 1);
-            return {
-              ...project,
-              isFavorite,
-              total_favorites: newFavorites.toString(),
-            };
-          }
-          return project;
-        })
-      );
+      const updatedProject = projects.find((p) => p.id === id);
+      if (updatedProject) {
+        const currentFavorites = Number(updatedProject.total_favorites || 0);
+        const newFavorites = isFavorite
+          ? currentFavorites + 1
+          : Math.max(0, currentFavorites - 1);
+        const projectWithUpdatedFavorite = {
+          ...updatedProject,
+          isFavorite,
+          total_favorites: newFavorites.toString(),
+        };
+
+        // Update local state immediately for optimistic UI
+        // This preserves the current sort order (favorite actions shouldn't change "recently edited" order)
+        setProjects((prev) =>
+          (prev ?? projects).map((project) =>
+            project.id === id ? projectWithUpdatedFavorite : project
+          )
+        );
+        // No cache invalidation needed - other pages will fetch fresh data on mount
+      }
 
       toast.success(
         isFavorite ? "Added to favorites" : "Removed from favorites"
@@ -318,7 +338,7 @@ export function ProjectList({
       }
 
       // Remove from current state immediately
-      setProjects((prev) => prev.filter((p) => p.id !== projectToDelete.id));
+      setProjects((prev) => (prev ?? projects).filter((p) => p.id !== projectToDelete.id));
 
       // Call the context handler to ensure global state is updated
       if (handleProjectDeleted) {
@@ -393,7 +413,7 @@ export function ProjectList({
 
   // Sort change handler with proper typing
   const handleSortChange = useCallback(
-    (sortBy: string) => {
+    (sortBy: SortByValue) => {
       const newFilters: Partial<ProjectFilters> = { sortBy, page: 1 };
       setFilters(newFilters);
 
@@ -426,6 +446,10 @@ export function ProjectList({
 
   // Loading state
   if (loading) {
+    // Don't show skeleton until layout is ready to avoid width calculation issues
+    if (!layoutReady) {
+      return null;
+    }
     return <ProjectListLoadingState />;
   }
 
@@ -458,39 +482,20 @@ export function ProjectList({
           {showSortingFilters && (
             <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center justify-center sm:justify-end gap-3">
               {/* Sort Controls */}
-              <Select value={filters.sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="oldest">Oldest First</SelectItem>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                </SelectContent>
-              </Select>
+              <SortBySelect
+                value={filters.sortBy as SortByValue}
+                onValueChange={handleSortChange}
+                triggerClassName="w-full sm:w-[180px]"
+              />
 
               {/* Category Filter - only show if not hidden */}
               {!hideCategoryFilter && (
-                <Select
+                <CategorySelect
                   value={filters.category}
-                  onValueChange={(value) =>
-                    handleCategoryChange(value as ProjectCategory | "all")
-                  }
-                >
-                  <SelectTrigger className="w-full sm:w-auto">
-                    <SelectValue placeholder="Filter by category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {Object.entries(PROJECT_CATEGORIES).map(
-                      ([value, { label }]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
+                  onValueChange={handleCategoryChange}
+                  triggerClassName="w-full sm:w-auto"
+                  hasCategoryProjects={hasCategoryProjects}
+                />
               )}
 
               {/* View Mode Toggle */}
@@ -586,7 +591,6 @@ export function ProjectList({
             <div className="hidden md:block">
               <ProjectTableView
                 projects={projects}
-                onViewDetails={handleViewDetails}
                 onToggleFavorite={handleToggleFavorite}
                 onUpdateProject={handleUpdateProject}
                 onDeleteProject={handleProjectDeletion}
@@ -647,4 +651,4 @@ export function ProjectList({
       />
     </div>
   );
-}
+});

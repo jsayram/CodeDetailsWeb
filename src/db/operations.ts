@@ -8,10 +8,10 @@ import {
   project_tags,
   tags,
 } from "./schema";
-import { InsertProject, SelectProject } from "./schema/projects";
+import { InsertProject, SelectProject, SelectProjectWithOwner } from "./schema/projects";
 import { SelectProfile } from "./schema/profiles";
 import { SelectFavorite } from "./schema/favorites";
-import { eq, sql, desc, and, isNull, inArray } from "drizzle-orm";
+import { eq, sql, desc, and, isNull, inArray, getTableColumns } from "drizzle-orm";
 import { ProjectCategory } from "@/constants/project-categories";
 
 /**
@@ -58,17 +58,59 @@ export async function getProjectBySlug(
 }
 
 /**
- * Get all recent projects
- * @returns An array of recent projects
+ * Get all recent projects with owner info and tags
+ * @returns An array of recent projects with details
  */
-export async function getRecentProjects(): Promise<SelectProject[]> {
+export async function getRecentProjects(): Promise<SelectProjectWithOwner[]> {
   return await executeQuery(async (db) => {
-    return await db
-      .select()
+    // 1. Fetch projects with owner info
+    const projectsData = await db
+      .select({
+        ...getTableColumns(projects),
+        owner_id: profiles.id,
+        owner_user_id: profiles.user_id,
+        owner_username: profiles.username,
+        owner_full_name: profiles.full_name,
+        owner_profile_image_url: profiles.profile_image_url,
+        owner_tier: profiles.tier,
+        owner_email_address: profiles.email_address,
+        owner_created_at: profiles.created_at,
+        owner_updated_at: profiles.updated_at,
+      })
       .from(projects)
+      .leftJoin(profiles, eq(projects.user_id, profiles.user_id))
       .where(isNull(projects.deleted_at))
       .orderBy(desc(projects.created_at))
       .limit(12);
+
+    if (projectsData.length === 0) return [];
+
+    // 2. Fetch tags for these projects
+    const projectIds = projectsData.map((p) => p.id);
+    
+    const tagsData = await db
+      .select({
+        projectId: project_tags.project_id,
+        tagName: tags.name,
+      })
+      .from(project_tags)
+      .innerJoin(tags, eq(project_tags.tag_id, tags.id))
+      .where(inArray(project_tags.project_id, projectIds));
+
+    // 3. Group tags by project ID
+    const tagsByProject: Record<string, string[]> = {};
+    tagsData.forEach((t) => {
+      if (!tagsByProject[t.projectId]) {
+        tagsByProject[t.projectId] = [];
+      }
+      tagsByProject[t.projectId].push(t.tagName);
+    });
+
+    // 4. Merge tags into projects
+    return projectsData.map((p) => ({
+      ...p,
+      tags: tagsByProject[p.id] || [],
+    }));
   });
 }
 
@@ -215,6 +257,9 @@ export async function getProjectsByTag(
           category: projects.category,
           user_id: projects.user_id,
           total_favorites: projects.total_favorites,
+          url_links: projects.url_links,
+          category_data: projects.category_data,
+          field_order: projects.field_order,
           created_at: projects.created_at,
           updated_at: projects.updated_at,
           deleted_at: projects.deleted_at

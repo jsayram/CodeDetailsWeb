@@ -8,8 +8,7 @@ import React, { use, useMemo, useState } from "react";
 // Authentication (Clerk)
 import { SignedIn, SignedOut, useUser } from "@clerk/nextjs";
 
-// Custom Services
-import { getAuthenticatedClient } from "@/services/supabase";
+// Custom Hooks
 import { useSupabaseToken } from "@/hooks/use-SupabaseClerkJWTToken";
 
 // Application Components and Pages (Custom)
@@ -36,7 +35,7 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "../auth/ProtectedPage";
 import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
-import { useUserTier } from "@/hooks/use-tierServiceClient";
+import { useUserTier } from "@/hooks/use-user-tier";
 import Image from "next/image";
 import { Code2 } from "lucide-react";
 import { PageBanner } from "@/components/ui/page-banner";
@@ -44,7 +43,7 @@ import { PageBanner } from "@/components/ui/page-banner";
 export default function DashBoard() {
   const { user, isLoaded: userLoaded } = useUser(); // auth from clerk
   const { token, loading: tokenLoading } = useSupabaseToken();
-  const { userTier } = useUserTier(null, user?.id ?? null, false); // Fetch user tier
+  const { userTier } = useUserTier(user?.id ?? null); // Fetch user tier
 
   // At the top of your component
   const [allProjectsPage, setAllProjectsPage] = useState(CURRENT_PAGE);
@@ -54,12 +53,6 @@ export default function DashBoard() {
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
 
   const [isProjectFormOpen, setIsProjectFormOpen] = useState(false);
-
-  // Get authenticated client with token from clerk using memoization to prevent re-renders
-  const authenticatedClient = useMemo(() => {
-    const client = getAuthenticatedClient(token);
-    return client;
-  }, [token]);
 
   // Determine overall loading state
   const isLoading = !userLoaded || tokenLoading;
@@ -79,30 +72,25 @@ export default function DashBoard() {
 
   return (
     <>
-      {isLoading ? (
-        <div className="container mx-auto px-4 py-">
-          <ProjectListLoadingState />
-        </div>
-      ) : (
-        <ProjectsProvider
-          token={token}
-          userId={user?.id ?? null}
-          isLoading={isLoading}
-        >
-          <SidebarProvider>
-            <SignedIn>
-              <AppSidebar />
-            </SignedIn>
-            <SidebarInset>
-              <HeaderSection />
+      <ProjectsProvider
+        token={token}
+        userId={user?.id ?? null}
+        isLoading={isLoading}
+      >
+        <SidebarProvider>
+          <SignedIn>
+            <AppSidebar />
+          </SignedIn>
+          <SidebarInset>
+            <HeaderSection />
 
-              <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
-                {/* Centered content container */}
-                <div className="flex justify-center w-full mb-20">
-                  <div className="w-full max-w-7xl px-4">
-                    {/* Main content */}
-                    <div className="flex flex-col gap-4">
-                      <SignedIn>
+            <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
+              {/* Centered content container */}
+              <div className="flex justify-center w-full mb-20">
+                <div className="w-full px-4 2xl:px-8 3xl:px-12">
+                  {/* Main content */}
+                  <div className="flex flex-col gap-4">
+                    <SignedIn>
                         <>
                           {/* All Projects Section */}
 
@@ -110,6 +98,7 @@ export default function DashBoard() {
                             <div className="flex flex-col space-y-4">
                               <PageBanner
                                 bannerTitle="Community Projects"
+                                description="Explore a diverse range of community projects. Discover, contribute, and be inspired by the creativity and innovation of fellow developers."
                                 isUserBanner={false}
                                 gradientFrom="indigo-900"
                                 gradientVia="blue-800"
@@ -175,11 +164,10 @@ export default function DashBoard() {
                   </div>
                 </div>
               </ProtectedPage>
-              <FooterSection />
-            </SidebarInset>
-          </SidebarProvider>
-        </ProjectsProvider>
-      )}
+            <FooterSection />
+          </SidebarInset>
+        </SidebarProvider>
+      </ProjectsProvider>
     </>
   );
 }

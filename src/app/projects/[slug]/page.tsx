@@ -34,16 +34,19 @@ export default async function ProjectPage({
 }) {
   // Ensure params is handled as a Promise
   const resolvedParams = await Promise.resolve(params);
+  
+  // Get auth data first
+  const { userId, sessionClaims } = await auth();
+  const userEmail = sessionClaims?.email as string | undefined;
+  
   const project = (await getProjectBySlugServer(
-    resolvedParams.slug
+    resolvedParams.slug,
+    userId,
+    userEmail
   )) as SelectProjectWithOwner;
   const user = (await getProjectUsersProfileBySlugServer(
     resolvedParams.slug
   )) as SelectUserWithProject;
-
-  // Get auth data
-  const { userId } = await auth();
-  // For server components, we'll use the JWT directly from cookies //NEED TO REVISIT THIS INCASE THERE AUTH IS NOT SET
   const cookieStore = await cookies();
   const token = cookieStore.get("__supabase_auth_token")?.value || null;
 
@@ -63,24 +66,25 @@ export default async function ProjectPage({
         <SignedIn>
           <HeaderSection />
         </SignedIn>
-        <div className="container mx-auto px-4">
-          <SignedOut>
-            <div className="mb-6">
-              <PageBanner
-                icon={<LogIn className="h-6 w-6 text-primary" />}
-                bannerTitle={`You are viewing ${
-                  project.owner_full_name || "this creator"
+        <SignedOut>
+          <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 mb-6 py-3">
+            <PageBanner
+              icon={<LogIn className="h-8 w-8 text-purple-500" />}
+              userName={project.owner_full_name || "This creator"}
+              bannerTitle={`You are viewing ${
+                  project.owner_full_name || "This creator"
                 }'s project.`}
-                description={`Sign in to explore more of their projects and free content.`}
-                isUserBanner={false}
-                gradientFrom="primary/10"
-                gradientTo="primary/5"
-                borderColor="border-border"
-                textGradient="from-primary via-primary to-primary"
-              />
-            </div>
-          </SignedOut>
-        </div>
+              description={`Sign in to explore more of their projects and free content.`}
+              isUserBanner={false}
+              gradientFrom="purple-900"
+              gradientVia="indigo-800"
+              gradientTo="violet-800"
+              borderColor="border-purple-700/40"
+              tierBgColor="bg-purple-700/60"
+              textGradient="from-purple-400 via-indigo-400 to-violet-400"
+            />
+          </div>
+        </SignedOut>
         <ProjectsProvider token={token} userId={userId} isLoading={false}>
           <Suspense
             fallback={

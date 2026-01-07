@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { TEXT_TYPING_SPEED_MS } from "@/constants/project-limits";
 
 export function TextTypingEffectAnimation({
   text,
-  speed = 100,
+  speed = TEXT_TYPING_SPEED_MS,
   className = "",
   onComplete,
   skipOnRerender = false,

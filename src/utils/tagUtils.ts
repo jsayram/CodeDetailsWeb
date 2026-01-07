@@ -93,27 +93,17 @@ export async function setProjectTags(
       // Create association
       await db.insert(project_tags).values({
         project_id: projectId,
-        project_slug: projectSlug,
         tag_id: tagId,
       });
     }
   });
 }
 
-/* @returns Array of all tags in the system
+/**
+ * Get all tags from the database
+ * @returns Array of all tags in the system
  */
 export async function getAllTags(): Promise<SelectTag[]> {
   return executeQuery(async (db) => db.select().from(tags).orderBy(tags.name));
 }
 
-/**
-
-/**
- * Get tag names for a project - convenient utility for backward compatibility
- * @param projectId Project ID to get tag names for 
- * @returns Array of tag names
- */
-export async function getProjectTagNames(projectId: string): Promise<string[]> {
-  const projectTags = await getProjectTags(projectId);
-  return projectTags.map((tag) => tag.name);
-}

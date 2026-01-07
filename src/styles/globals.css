@@ -8,6 +8,19 @@
 @import "./category-styles.css";
 @import "./table.css";
 
+/* Increase base font size for XL screens and above */
+@media (min-width: 1920px) {
+  html {
+    font-size: 17px;
+  }
+}
+
+@media (min-width: 2560px) {
+  html {
+    font-size: 18px;
+  }
+}
+
 :root {
   --radius: 0.625rem; /* Base border radius value for UI consistency */
   
@@ -193,12 +206,12 @@
 }
 
 .pagination-item-text[data-active="true"] {
-  @apply bg-accent text-accent-foreground font-medium;
+  @apply bg-primary text-primary-foreground font-medium;
   transform: scale(1.05);
 }
 
 .pagination-item-text:not([data-active="true"]):hover {
-  @apply bg-accent/80 text-accent-foreground;
+  @apply bg-primary/80 text-primary-foreground;
   transform: scale(1.02);
 }
 
@@ -298,6 +311,20 @@
   animation: heartbeat 1.3s ease-in-out infinite;
 }
 
+/* Gentle bounce animation for mascot */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
 /* Sidebar Loading States */
 [data-loading=true] {
   position: relative;
@@ -342,6 +369,27 @@
   /* Ensure select triggers are consistent width */
   .filter-select-trigger {
     @apply w-full sm:w-[180px] text-center;
+  }
+
+  /* Highlight flash animation for anchor links */
+  @keyframes highlight-flash {
+    0%, 100% {
+      border-color: transparent;
+      box-shadow: none;
+    }
+    25%, 75% {
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+    }
+    50% {
+      border-color: hsl(var(--primary) / 0.6);
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3);
+    }
+  }
+
+  .highlight-flash {
+    animation: highlight-flash 1.5s ease-in-out 2;
+    border-radius: 0.5rem;
   }
 }
 

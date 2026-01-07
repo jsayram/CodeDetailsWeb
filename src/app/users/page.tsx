@@ -23,12 +23,12 @@ export default function UsersIndexPage() {
         <SidebarInset>
           <HeaderSection />
           <div className="flex justify-center w-full mb-20">
-            <div className="w-full max-w-7xl px-4">
-              <div className="flex flex-col gap-4 mb-6 py-3">
+            <div className="w-full max-w-7xl mx-auto px-4 2xl:px-8 3xl:px-12">
+              <div className="flex flex-col gap-6 mb-6 py-3">
                 <PageBanner
                   icon={<Users className="h-8 w-8 text-primary" />}
                   bannerTitle="Browse by Users"
-                  description="Find projects by their creators"
+                  description="Discover projects by their creators and contributors"
                   isUserBanner={false}
                   gradientFrom="indigo-900"
                   gradientVia="blue-800"
@@ -38,8 +38,11 @@ export default function UsersIndexPage() {
                 />
 
                 <Card>
-                  <CardHeader>
-                    <CardTitle>All Users</CardTitle>
+                  <CardHeader className="text-center">
+                    <CardTitle>All Contributing Users</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Users who have shared projects with the community
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <UserList />

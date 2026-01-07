@@ -13,6 +13,8 @@ import { DarkModeButton } from "@/components/DarkModeButtonComponent";
 import { Logo } from "@/components/CodeDetailsLogoComponent";
 import { Menu } from "lucide-react";
 import { SignInButtonComponent } from "../auth/SignInButtonComponent";
+import { toast } from "sonner";
+import Image from "next/image";
 
 // Define the breadcrumb item interface
 interface BreadcrumbItemData {
@@ -40,25 +42,49 @@ export function HeaderSectionNoSideBar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const showDebug = process.env.NODE_ENV === "development";
 
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toast.dismiss();
+    toast.info(
+      <div className="relative flex flex-row items-center gap-2">
+        <Image
+          src="/images/mascot.png"
+          alt="Code Minion"
+          width={50}
+          height={50}
+          className="relative rounded-md"
+        />
+        <p>You should try to sign in to see all that Code Details has to offer</p>
+      </div>,
+      {
+        duration: 4000,
+      }
+    );
+  };
+
   return (
-    <header className="sticky top-5 z-50 border-b bg-background mx-7 mb-5">
+    <header className="sticky top-5 z-50 border-b bg-background mb-5">
       {/* Fixed top bar that won't be affected by transitions - available for all users */}
-      <div className="container mx-auto py-4 md:py-3">
+      <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-4 md:py-3">
         {/* Fixed top bar that won't be affected by transitions */}
         <div className="flex items-center justify-between">
           {/* Logo section - always maintain space even when logo is hidden */}
           <div className="flex items-center">
             {showLogo ? (
-              <div className="flex items-center hover:scale-102 z-20 transition-transform">
+              <div 
+                className="flex items-center hover:scale-102 z-20 transition-transform cursor-pointer"
+                onClick={handleLogoClick}
+              >
                 <Logo
                   size="md"
                   className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 to-primary mx-auto text-center"
                   showText={true}
                   showTagline={false}
-                  href="/"
-                  mainLogoText="code.{ d }"
+                  href=""
+                  mainLogoText="Code Details"
                   tagLineText="The More You Know"
-                  showLogo={false}
+                  showLogo={true}
                 />
               </div>
             ) : (
@@ -103,7 +129,7 @@ export function HeaderSectionNoSideBar({
             {/* Hamburger menu button - only visible on small screens if enabled */}
             {showMobileMenu && (
               <button
-                className="p-2 rounded-md hover:bg-muted/10 transition-colors h-10 w-10 flex items-center justify-center sm:hidden"
+                className="p-2 rounded-md hover:bg-muted/10 transition-colors h-10 w-10 flex items-center justify-center sm:hidden cursor-pointer"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 aria-label="Toggle menu"
               >
@@ -128,7 +154,7 @@ export function HeaderSectionNoSideBar({
                 : "none",
             }}
           >
-            <div className="container mx-auto py-4">
+            <div className="w-full max-w-[1920px] 4xl:max-w-none mx-auto px-4 2xl:px-8 3xl:px-12 py-4">
               <div className="flex flex-col space-y-4 items-center text-center">
                 <div className="w-full max-w-xs flex flex-col items-center space-y-3">
                   <SignedIn>

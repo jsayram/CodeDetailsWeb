@@ -13,6 +13,10 @@ import {
   User,
   Undo2,
   Share2,
+  ImageIcon,
+  Github,
+  FileText,
+  Video,
 } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -34,6 +38,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ProjectLink } from "@/types/project-links";
+import { MAX_TAGS_ON_CARD_DESKTOP, MAX_TAGS_ON_CARD_MOBILE } from "@/constants/project-limits";
+import { getProjectCoverImageAction } from "@/app/actions/project-images";
+import { SelectProjectImage } from "@/db/schema/project_images";
 
 interface ProjectCardProps {
   project: Project;
@@ -64,14 +72,35 @@ export const ProjectCard = React.memo(
       useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showAllTags, setShowAllTags] = useState(false);
+    const [showFullDescription, setShowFullDescription] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
     const [loadingTag, setLoadingTag] = useState<string | null>(null);
     const [isCategoryLoading, setIsCategoryLoading] = useState(false);
     const [isNavigatingUser, setIsNavigatingUser] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isNavigatingUserProjects, setIsNavigatingUserProjects] = useState(false);
+    const [coverImage, setCoverImage] = useState<SelectProjectImage | null>(null);
+    
 
     // Check if current user is the owner
     const isOwner = project.user_id === userId;
+
+    // Fetch cover image for the project
+    useEffect(() => {
+      const fetchCoverImage = async () => {
+        if (!project.id) return;
+        try {
+          const result = await getProjectCoverImageAction(project.id);
+          if (result.success && result.data) {
+            setCoverImage(result.data);
+          }
+        } catch (error) {
+          // Silently fail - will show emoji fallback
+          console.error("Error fetching cover image:", error);
+        }
+      };
+      fetchCoverImage();
+    }, [project.id]);
 
     useEffect(() => {
       const checkScreenSize = () => {
@@ -85,9 +114,9 @@ export const ProjectCard = React.memo(
 
     // This is the number of tags that will be shown on the card
     // If there are more than this number of tags, a "+N" button will be displayed
-    let tagShowLimitOnCard = 5;
+    let tagShowLimitOnCard: number = MAX_TAGS_ON_CARD_DESKTOP;
     if (isMobile) {
-      tagShowLimitOnCard = 2;
+      tagShowLimitOnCard = MAX_TAGS_ON_CARD_MOBILE;
     }
 
     // Handle permanent deletion
@@ -209,6 +238,9 @@ export const ProjectCard = React.memo(
       return user?.id === project.user_id;
     }, [user?.id, project.user_id]);
 
+    // Check if we can navigate to the user profile (has valid username)
+    const canNavigateToUser = !!project.profile?.username;
+
     // Display username logic
     const displayUsername = useMemo(() => {
       // First try full name
@@ -242,6 +274,19 @@ export const ProjectCard = React.memo(
         "??";
       return getInitials(nameForInitials);
     }, [project.profile]);
+
+    // Get consistent random emoji for project placeholder
+    const projectEmoji = useMemo(() => {
+      const emojis = [
+        "🎨", "🚀", "💡", "⚡", "🔥", "✨", "🌟", "💻", 
+        "🎯", "🎪", "🎭", "🎬", "🎮", "🎲", "🎰", "🎸",
+        "🎹", "🎺", "🎻", "🎼", "🔮", "💎", "🏆", "🚁",
+        "🛸", "🌈", "🦄", "🐉", "🦋", "🌺", "🌸", "🍄"
+      ];
+      // Use project ID to get consistent emoji
+      const hash = project.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return emojis[hash % emojis.length];
+    }, [project.id]);
 
     const handleTagClick = async (e: React.MouseEvent, tag: string) => {
       e.preventDefault();
@@ -355,6 +400,10 @@ export const ProjectCard = React.memo(
     };
 
     const handleCardClick = async () => {
+      // Prevent navigation for soft-deleted projects unless user is owner
+      if (project.deleted_at && !isOwner) {
+        return;
+      }
       if (isNavigating) return;
       setIsNavigating(true);
       router.push(`/projects/${project.slug}`);
@@ -363,6 +412,10 @@ export const ProjectCard = React.memo(
     const handleViewDetailsClick = async (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
+      // Prevent navigation for soft-deleted projects unless user is owner
+      if (project.deleted_at && !isOwner) {
+        return;
+      }
       if (isNavigating) return;
       setIsNavigating(true);
       router.push(`/projects/${project.slug}`);
@@ -396,6 +449,34 @@ export const ProjectCard = React.memo(
       }
     };
 
+    const handleNavigatetoUsersProjects = async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!user) {
+        toast.dismiss();
+        toast.info(
+          <div className="relative flex flex-row items-center gap-2">
+            <Image
+              src="/images/mascot.png"
+              alt="Code Minion"
+              width={50}
+              height={50}
+              className="relative rounded-md"
+            />
+            <p>{`You have to sign in to view ${project.profile?.full_name}'s projects`}</p>
+          </div>
+        );
+        return;
+      }
+      const username = project.profile?.username;
+      if (isNavigatingUser || !username) return;
+      setIsNavigatingUserProjects(true);
+      try {
+        router.push(`/projects/users/${encodeURIComponent(username)}`);
+      } finally {
+        setIsNavigatingUserProjects(false);
+      }
+    };
+
     const handleShareClick = (e: React.MouseEvent) => {
       e.stopPropagation();
       const shareUrl = `${window.location.origin}/projects/${encodeURIComponent(
@@ -422,7 +503,7 @@ export const ProjectCard = React.memo(
               </div>
               <ExternalLink
                 size={30}
-                className="text-muted-foreground ml-2 hover:cursor-pointer"
+                className="text-muted-foreground ml-2 hover:cursor-pointer cursor-pointer"
                 onClick={() => {
                   window.open(`/projects/${project.slug}`, "_blank");
                 }}
@@ -438,22 +519,26 @@ export const ProjectCard = React.memo(
     return (
       <>
         <Card
-          className={`group relative overflow-hidden w-full transition-all duration-200 project-card cursor-pointer hover:scale-[1.02] border-2 border-transparent category-${
+          className={`group relative overflow-hidden w-full flex flex-col transition-all duration-200 project-card ${
+            project.deleted_at && !isOwner 
+              ? "cursor-not-allowed opacity-70 bg-muted/30 border-dashed border-red-300 dark:border-red-800" 
+              : "cursor-pointer hover:scale-[1.02]"
+          } border-2 border-transparent category-${
             project.category
           }
             ${project.deleted_at ? "deleted" : ""} ${
             isNavigating ? "opacity-70 pointer-events-none" : ""
           }`}
-          onClick={handleCardClick}
+          onClick={project.deleted_at && !isOwner ? undefined : handleCardClick}
         >
           {isNavigating && (
             <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-10">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           )}
-          <div className="flex justify-between items-start px-4 -mt-1 absolute w-full">
-            {/* Category Badge */}
-            <div className={` category-${project.category} border-0`}>
+          <div className="flex justify-between items-start px-4 -mt-1 absolute w-full z-[5]">
+            {/* Category Badge and Link Badges */}
+            <div className={`flex items-center gap-2 category-${project.category} border-0`}>
               <Badge
                 variant={project.deleted_at ? "outline" : "secondary"}
                 className={`category-${
@@ -474,6 +559,60 @@ export const ProjectCard = React.memo(
                   project.category
                 )}
               </Badge>
+              
+              {/* Link badges - show small icons for available links */}
+              {project.url_links && (project.url_links as ProjectLink[]).length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'repository' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-gray-600 dark:text-gray-400">
+                          <Github className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Repository available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'demo' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-blue-600 dark:text-blue-400">
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Live demo available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'documentation' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-green-600 dark:text-green-400">
+                          <FileText className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Documentation available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                  {(project.url_links as ProjectLink[]).some(link => link.type === 'video' && link.url) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="text-red-600 dark:text-red-400">
+                          <Video className="h-3.5 w-3.5" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Video demo available</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Action buttons */}
@@ -546,6 +685,26 @@ export const ProjectCard = React.memo(
                     </div>
                   )}
                 </>
+              ) : project.deleted_at && !isOwner ? (
+                // Soft-deleted project viewed by non-owner: show graveyard badge and unfavorite button
+                <div className="flex items-center gap-1">
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 text-xs pointer-events-auto">
+                    🪦 In Graveyard
+                  </Badge>
+                  {isFavorite && user && onToggleFavorite && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs hover:bg-red-100 dark:hover:bg-red-950 pointer-events-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleFavorite(project.id, false);
+                      }}
+                    >
+                      Unfavorite
+                    </Button>
+                  )}
+                </div>
               ) : (
                 isOwner && (
                   <div className="action-buttons-group">
@@ -573,117 +732,173 @@ export const ProjectCard = React.memo(
             </div>
           </div>
 
-          {/* Content area */}
-          <div className="card-content mx-2">
-            {/* Project title and description */}
-            <h3
-              className={`text-lg sm:text-xl font-semibold mb-2 line-clamp-2 min-h-[3rem] ${
-                project.deleted_at ? "text-foreground dark:text-foreground" : ""
-              }`}
-            >
-              {project.title}
-            </h3>
+          {/* Content area with fixed heights */}
+          <div className="card-content mx-2 flex flex-col flex-1 min-h-0">
+            {/* Image/Emoji section */}
+            <div className="h-[120px] mb-3 rounded-lg bg-muted/30 border border-muted flex items-center justify-center overflow-hidden flex-shrink-0 relative">
+              {coverImage?.storage_url ? (
+                <Image
+                  src={coverImage.storage_url}
+                  alt={coverImage.alt_text || project.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 300px"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="text-7xl">
+                    {projectEmoji}
+                  </div>
+                </div>
+              )}
+            </div>
 
-            <div className="min-h-[4rem]">
-              <p
-                className={`card-description text-xs sm:text-sm ${
+            {/* Project title - fixed height */}
+            <div className="h-[60px] flex items-start mb-1 flex-shrink-0">
+              <h3
+                className={`text-lg sm:text-xl font-semibold line-clamp-2 ${
+                  project.deleted_at ? "text-foreground dark:text-foreground" : ""
+                }`}
+              >
+                {project.title}
+              </h3>
+            </div>
+
+            {/* Description - fills remaining space and fully scrollable */}
+            <div className="flex-1 min-h-0 mb-2 rounded-md p-3">
+              <div
+                className={`card-description text-xs sm:text-sm leading-relaxed h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 ${
                   project.deleted_at
                     ? "text-foreground dark:text-foreground/90"
                     : ""
                 }`}
               >
                 {project.description || "No description provided"}
-              </p>
+              </div>
             </div>
           </div>
 
-          {/* Card footer with extended section for tags */}
-          <div className="flex flex-col">
-            <div className="card-footer border-t">
-              <div className="flex items-center space-x-2">
-                {/* Avatar navigates to user profile */}
-                <button
-                  type="button"
-                  disabled={isNavigatingUser}
-                  onClick={handleNavigateUser}
-                  className={
-                    isNavigatingUser
-                      ? "opacity-50 cursor-wait p-0"
-                      : "cursor-pointer p-0"
-                  }
-                >
-                  <Avatar className="h-8 w-8">
-                    {project.profile?.profile_image_url ? (
-                      <AvatarImage
-                        src={project.profile.profile_image_url}
-                        alt={displayUsername}
-                      />
-                    ) : (
+          {/* Card footer with extended section for tags - fixed at bottom */}
+          <div className="flex flex-col flex-shrink-0 -mt-5">
+            {project.deleted_at && !isOwner && (
+              <div className="px-4 py-2 bg-red-50/50 dark:bg-red-950/20 border-t border-red-200 dark:border-red-800">
+                <p className="text-xs text-muted-foreground italic text-center">
+                  This project was sent to the owner's graveyard
+                </p>
+              </div>
+            )}
+            <div className="card-footer border-t h-[60px] flex items-center justify-between">
+              <div className="flex items-center space-x-2 min-w-0 flex-1">
+                {/* Avatar - only clickable if user exists */}
+                {canNavigateToUser ? (
+                  <button
+                    type="button"
+                    disabled={isNavigatingUser}
+                    onClick={handleNavigateUser}
+                    className={`flex-shrink-0 ${
+                      isNavigatingUser
+                        ? "opacity-50 cursor-wait p-0"
+                        : "cursor-pointer p-0"
+                    } ${project.deleted_at && !isOwner ? "pointer-events-auto" : ""}`}
+                  >
+                    <Avatar className="h-8 w-8">
+                      {project.profile?.profile_image_url ? (
+                        <AvatarImage
+                          src={project.profile.profile_image_url}
+                          alt={displayUsername}
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-muted text-xs font-medium">
+                          {userInitials || <User className="h-4 w-4" />}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </button>
+                ) : (
+                  <div className="flex-shrink-0 cursor-not-allowed opacity-60">
+                    <Avatar className="h-8 w-8">
                       <AvatarFallback className="bg-muted text-xs font-medium">
-                        {userInitials || <User className="h-4 w-4" />}
+                        <User className="h-4 w-4" />
                       </AvatarFallback>
-                    )}
-                  </Avatar>
-                </button>
+                    </Avatar>
+                  </div>
+                )}
                 {/* Username navigates to user profile */}
-                <button
-                  type="button"
-                  disabled={isNavigatingUser}
-                  onClick={handleNavigateUser}
-                  className={`text-xs truncate max-w-[120px] cursor-pointer hover:underline ${
-                    isNavigatingUser ? "opacity-50 cursor-wait" : ""
-                  } ${project.deleted_at ? "text-red-400/50" : ""}`}
-                  title={displayUsername}
-                >
-                  {displayUsername}
-                </button>
+                <div className="flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+                  <Badge
+                    variant="outline"
+                    className={`${canNavigateToUser ? "cursor-pointer hover:bg-primary/10" : "cursor-not-allowed opacity-60"} transition-colors truncate max-w-full ${
+                      isNavigatingUser ? "opacity-50 cursor-wait" : ""
+                    } ${
+                      project.deleted_at && !isOwner 
+                        ? "bg-primary/10 text-primary font-semibold border-primary/30 pointer-events-auto" 
+                        : project.deleted_at 
+                        ? "text-red-400/50" 
+                        : ""
+                    }`}
+                    onClick={canNavigateToUser ? (project.deleted_at && !isOwner ? handleNavigatetoUsersProjects : handleNavigateUser) : undefined}
+                    title={canNavigateToUser ? displayUsername : "User no longer exists"}
+                  >
+                    {displayUsername}
+                  </Badge>
+                  {project.deleted_at && !isOwner && (
+                    <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap hidden sm:inline">
+                      Browse user's projects
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Share button moved to the left of View Project button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0"
-                      onClick={handleShareClick}
-                      aria-label="Share project"
-                    >
-                      <Share2 size={18} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copy project link to clipboard</p>
-                  </TooltipContent>
-                </Tooltip>
+                {/* Share button - disabled for non-owners of deleted projects */}
+                {!(project.deleted_at && !isOwner) && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="action-button hover:text-purple-500 h-8 w-8 p-0 flex-shrink-0 cursor-pointer"
+                        onClick={handleShareClick}
+                        aria-label="Share project"
+                      >
+                        <Share2 size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copy project link to clipboard</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
 
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={handleViewDetailsClick}
-                  className={`card-button ${
-                    project.deleted_at
-                      ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
-                      : ""
-                  } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
-                  disabled={isNavigating}
-                >
-                  {isNavigating ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                      Loading...
-                    </div>
-                  ) : (
-                    "View Project"
-                  )}
-                </Button>
+                {/* View Details button - disabled for non-owners of deleted projects */}
+                {!(project.deleted_at && !isOwner) && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleViewDetailsClick}
+                    className={`card-button ${
+                      project.deleted_at
+                        ? "bg-[oklch(0.3_0.05_280)] text-[oklch(0.9_0.02_280)] hover:bg-[oklch(0.35_0.05_280)]"
+                        : ""
+                    } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                    disabled={isNavigating}
+                  >
+                    {isNavigating ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        Loading...
+                      </div>
+                    ) : (
+                      "View Project"
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Tags section below footer with minimum height */}
-            <div className="px-6 py-6 border-t bg-muted/5 min-h-[4rem] relative">
-              <div className="flex flex-wrap gap-1.5">
+            {/* Tags section below footer with fixed height and scroll */}
+            <div className="px-6 py-3 border-t bg-muted/5 h-[100px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent hover:scrollbar-thumb-muted-foreground/40 flex-shrink-0">
+              <div className="flex flex-wrap gap-1.5 content-start">
                 {tags.length > 0 ? (
                   <>
                     {(showAllTags
@@ -695,9 +910,11 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } ${
+                        } cursor-pointer text-xs px-2 py-0.5 ${
                           loadingTag === tag
                             ? "opacity-70 pointer-events-none"
+                            : project.deleted_at && !isOwner
+                            ? "pointer-events-auto"
                             : ""
                         }`}
                         onClick={(e) => handleTagClick(e, tag)}
@@ -717,25 +934,26 @@ export const ProjectCard = React.memo(
                         variant="secondary"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } hover:bg-accent cursor-pointer`}
+                        } hover:bg-accent cursor-pointer text-xs px-2 py-0.5`}
                         onClick={handleTagExpandClick}
                       >
                         +{tags.length - tagShowLimitOnCard}
                       </Badge>
                     )}
                     {showAllTags && tags.length > tagShowLimitOnCard && (
-                      <Badge
-                        variant="secondary"
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className={`${
                           project.deleted_at ? "tag-badge-deleted" : "tag-badge"
-                        } hover:bg-accent cursor-pointer ml-auto mt-2`}
+                        } bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-600 dark:hover:bg-purple-700 cursor-pointer ml-auto mt-2 text-xs px-3 py-1 rounded-sm`}
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowAllTags(false);
                         }}
                       >
-                        close tags
-                      </Badge>
+                        ❌ Close Tags
+                      </Button>
                     )}
                   </>
                 ) : (

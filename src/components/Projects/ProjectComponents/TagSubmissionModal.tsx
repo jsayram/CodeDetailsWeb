@@ -20,8 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/providers/projects-provider";
 import { ClientOnly } from "@/components/ClientOnly";
 import { searchTagsAction } from "@/app/actions/tags";
-import { useTagCache } from "@/hooks/use-tag-cache";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { useTags } from "@/hooks/use-tags";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 
 interface TagSubmissionModalProps {
   projectId: string;
@@ -70,7 +70,7 @@ export function TagSubmissionModal({
 }: TagSubmissionModalProps) {
   const { user, isLoaded } = useUser();
   const { projects } = useProjects();
-  const { refreshCache } = useTagCache();
+  const { refreshCache } = useTags();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [tagInput, setTagInput] = useState("");
@@ -223,22 +223,21 @@ export function TagSubmissionModal({
       const autoApproved = [];
 
       for (const tag of validTags) {
-        try {
-          const result = await submitNewTag(
-            tag.name,
-            projectId,
-            email,
-            description
-          );
-          if (result.status === "auto_approved") {
-            autoApproved.push(tag.name);
-          } else {
-            results.push(result);
-          }
-        } catch (error: any) {
-          const errorMessage = error?.message || "Unknown error occurred";
-          errors.push(`${tag.name}: ${errorMessage}`);
-          console.error(`Error submitting tag ${tag.name}:`, error);
+        const result = await submitNewTag(
+          tag.name,
+          projectId,
+          email,
+          description
+        );
+        
+        // Check if this is an error response (from validation failure)
+        if ('success' in result && result.success === false) {
+          errors.push(`${tag.name}: ${result.error}`);
+          console.error(`Error submitting tag ${tag.name}:`, result.error);
+        } else if ('status' in result && result.status === "auto_approved") {
+          autoApproved.push(tag.name);
+        } else {
+          results.push(result);
         }
       }
 
@@ -317,6 +316,9 @@ export function TagSubmissionModal({
                     <span className="font-medium">
                       ({currentTagCount}/{MAX_PROJECT_TAGS} tags used)
                     </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-2 rounded-md border border-blue-200 dark:border-blue-900">
+                    💡 <strong>Why {MAX_PROJECT_TAGS} tags?</strong> Research shows 6-15 tags is the sweet spot for discoverability. Too few limits searchability, too many dilutes relevance. {MAX_PROJECT_TAGS} tags perfectly balance detailed categorization with optimal cognitive processing.
                   </p>
                   {remainingTagSlots > 0 ? (
                     <p className="text-sm bg-muted/50 p-2 rounded-md">

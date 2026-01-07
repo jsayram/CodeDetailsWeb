@@ -8,6 +8,7 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { ClerkUserData } from "@/types/models/clerkUserData";
+import { MIN_USERNAME_LENGTH, MAX_USERNAME_LENGTH } from "@/constants/project-limits";
 
 // Create a Supabase client with service role (bypasses RLS)
 const supabaseServer = createClient(
@@ -83,30 +84,10 @@ async function extractClerkUserData(data: ClerkUserData) {
   // Get tier from metadata if provided
   let tier = data.public_metadata?.tier;
 
-  // If tier is not provided, try to get it from the database
-  if (!tier && user_id) {
-    try {
-      // Try to get the existing user data from the database
-      const { data: existingUser } = await supabaseServer
-        .from("profiles")
-        .select("tier")
-        .eq("user_id", user_id)
-        .single();
-
-      // If the user exists, use their current tier
-      if (existingUser && existingUser.tier) {
-        console.log(
-          `🎫 Using existing tier from database: ${existingUser.tier} for user ${user_id}`
-        );
-        tier = existingUser.tier;
-      } else {
-        // For new users, default to 'free'
-        tier = "free";
-      }
-    } catch (error) {
-      console.log("Could not fetch existing tier, defaulting to 'free'");
-      tier = "free";
-    }
+  // If tier is not provided in metadata, default to 'free' for new users
+  // Existing users will keep their current tier during update (won't be overwritten)
+  if (!tier) {
+    tier = "free";
   }
 
   return {
@@ -126,9 +107,21 @@ async function extractClerkUserData(data: ClerkUserData) {
  * Create or update user profile in Supabase
  * This is the main sync function used by both webhooks and middleware
  */
-export async function createOrUpdateUserProfile(data: any) {
+export async function createOrUpdateUserProfile(data: ClerkUserData) {
   const userData = await extractClerkUserData(data);
   const { user_id } = userData;
+
+  // Validate username length matches Clerk's requirements (5-64 characters)
+  if (userData.username) {
+    if (userData.username.length < MIN_USERNAME_LENGTH) {
+      console.error(`Username too short: ${userData.username.length} characters`);
+      throw new Error(`Username must be at least ${MIN_USERNAME_LENGTH} characters`);
+    }
+    if (userData.username.length > MAX_USERNAME_LENGTH) {
+      console.error(`Username too long: ${userData.username.length} characters`);
+      throw new Error(`Username must be at most ${MAX_USERNAME_LENGTH} characters`);
+    }
+  }
 
   console.log(`🔄 Syncing user ${user_id} to Supabase profiles`);
 
@@ -147,22 +140,69 @@ export async function createOrUpdateUserProfile(data: any) {
     }
 
     if (existingProfile) {
-      // User exists - update their profile
+      // User exists - update their profile (preserve tier if not provided in metadata)
       console.log(`✅ User ${user_id} already exists, updating profile`);
+      
+      // Check if username is changing
+      const oldUsername = existingProfile.username;
+      const newUsername = userData.username;
+      const usernameChanged = oldUsername && newUsername && oldUsername !== newUsername;
+      
+      if (usernameChanged) {
+        console.log(`📝 Username changed from "${oldUsername}" to "${newUsername}", logging to history`);
+        
+        // Log the old username to history table for redirect support
+        const { error: historyError } = await supabaseServer
+          .from("username_history")
+          .upsert({
+            old_username: oldUsername,
+            user_id: user_id,
+            new_username: newUsername,
+            changed_at: new Date().toISOString(),
+          }, {
+            onConflict: 'old_username'
+          });
+        
+        if (historyError) {
+          console.error("Error logging username change to history:", historyError);
+          // Don't throw - we still want to update the profile even if history fails
+        } else {
+          console.log(`✅ Username history logged: "${oldUsername}" -> "${newUsername}"`);
+        }
+      }
+      
+      interface ProfileUpdateData {
+        email_address: string | null;
+        first_name: string;
+        last_name: string;
+        full_name: string;
+        username: string;
+        profile_image_url: string | undefined;
+        role: string;
+        updated_at: string;
+        tier?: string;
+      }
+
+      const updateData: ProfileUpdateData = {
+        email_address: userData.email_address,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        full_name: userData.full_name,
+        username: userData.username,
+        profile_image_url: userData.profile_image_url,
+        role: userData.role,
+        updated_at: new Date().toISOString(),
+      };
+      
+      // Only update tier if it's explicitly provided in metadata
+      // This prevents overwriting existing tier with default 'free'
+      if (data.public_metadata?.tier) {
+        updateData.tier = userData.tier;
+      }
       
       const { error: updateError } = await supabaseServer
         .from("profiles")
-        .update({
-          email_address: userData.email_address,
-          first_name: userData.first_name,
-          last_name: userData.last_name,
-          full_name: userData.full_name,
-          username: userData.username,
-          profile_image_url: userData.profile_image_url,
-          role: userData.role,
-          tier: userData.tier,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("user_id", user_id);
 
       if (updateError) {
@@ -174,6 +214,9 @@ export async function createOrUpdateUserProfile(data: any) {
         status: "updated",
         message: `User ${user_id} profile updated successfully`,
         user: existingProfile,
+        usernameChanged,
+        oldUsername: usernameChanged ? oldUsername : undefined,
+        newUsername: usernameChanged ? newUsername : undefined,
       };
     } else {
       // User doesn't exist - create new profile

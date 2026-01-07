@@ -158,3 +158,6 @@ export async function executeQuery<T>(
 
 // Re-export schema types for convenience - this is just TypeScript types, not actual values
 export type Schema = typeof schema;
+
+// Export DrizzleClient type for use in other files
+export type DrizzleClient = ReturnType<typeof drizzle>;

@@ -10,7 +10,7 @@ import { HeaderSection } from "@/components/layout/HeaderSection";
 import { FooterSection } from "@/components/layout/FooterSection";
 import ProtectedPage from "@/app/auth/ProtectedPage";
 import { PROTECTED_PAGES_TIERS } from "@/app/auth/protectedPageConstants";
-import { useUserTier } from "@/hooks/use-tierServiceClient";
+import { useUserTier } from "@/hooks/use-user-tier";
 import { useState } from "react";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { CURRENT_PAGE } from "@/components/navigation/Pagination/paginationConstants";
@@ -20,7 +20,7 @@ import { GemIcon } from "lucide-react";
 export default function MyProjectsShowcase() {
   const { user, isLoaded: userLoaded } = useUser();
   const { token, loading: tokenLoading } = useSupabaseToken();
-  const { userTier } = useUserTier(null, user?.id ?? null, false);
+  const { userTier } = useUserTier(user?.id ?? null);
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
 
   // Determine overall loading state
@@ -29,8 +29,12 @@ export default function MyProjectsShowcase() {
   return (
     <>
       {isLoading ? (
-        <div className="container mx-auto px-4 py-">
-          <ProjectListLoadingState />
+        <div className="flex justify-center w-full mb-20">
+          <div className="w-full px-4 2xl:px-8 3xl:px-12">
+            <div className="flex flex-col gap-4 mb-6 py-3">
+              <ProjectListLoadingState />
+            </div>
+          </div>
         </div>
       ) : (
         <ProjectsProvider
@@ -44,7 +48,7 @@ export default function MyProjectsShowcase() {
               <HeaderSection />
               <ProtectedPage allowedTiers={PROTECTED_PAGES_TIERS}>
                 <div className="flex justify-center w-full mb-20">
-                  <div className="w-full max-w-7xl px-4">
+                  <div className="w-full px-4 2xl:px-8 3xl:px-12">
                     <div className="flex flex-col gap-4 mb-6 py-3">
                       <div className="mb-8">
                         <div className="flex flex-col space-y-4">
@@ -54,6 +58,7 @@ export default function MyProjectsShowcase() {
                             }
                             userName={user?.fullName || "User"}
                             bannerTitle="Projects Portfolio"
+                            description="Showcase of your projects by sharing them individually or your entire portfolio to anyone."
                             userTier={userTier}
                             isUserBanner={true}
                             gradientFrom="indigo-900"

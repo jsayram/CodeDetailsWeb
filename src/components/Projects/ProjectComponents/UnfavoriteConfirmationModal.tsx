@@ -47,7 +47,7 @@ export function UnfavoriteConfirmationModal({
             variant="outline" 
             onClick={onClose} 
             disabled={isUnfavoriting}
-            className="border-red-900/30 hover:bg-red-950/30 text-red-200/70"
+            className="border-red-900/30 hover:bg-red-950/30 text-red-200/70 cursor-pointer"
           >
             Keep in Favorites
           </Button>
@@ -55,7 +55,7 @@ export function UnfavoriteConfirmationModal({
             variant="destructive"
             onClick={onConfirm}
             disabled={isUnfavoriting}
-            className="flex items-center gap-2 bg-red-950/80 hover:bg-red-900/80"
+            className="flex items-center gap-2 bg-red-950/80 hover:bg-red-900/80 cursor-pointer"
           >
             {isUnfavoriting ? (
               "Removing..."

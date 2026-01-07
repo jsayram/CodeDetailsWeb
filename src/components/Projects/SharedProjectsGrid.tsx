@@ -1,23 +1,16 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ProjectCardView } from "./ProjectComponents/ProjectCardViewComponent";
 import { Project } from "@/types/models/project";
 import { PaginationControls } from "@/components/navigation/Pagination/PaginationControlComponent";
 import { PROJECTS_PER_PAGE } from "@/components/navigation/Pagination/paginationConstants";
 import { ProjectListLoadingState } from "@/components/LoadingState/ProjectListLoadingState";
 import { API_ROUTES } from "@/constants/api-routes";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  PROJECT_CATEGORIES,
-  ProjectCategory,
-} from "@/constants/project-categories";
+import { SortBySelect, CategorySelect, SortByValue } from "@/components/filters";
+import { ProjectCategory } from "@/constants/project-categories";
+import { useUserCategoryCounts } from "@/hooks/use-user-category-counts";
 
 interface SharedProjectsGridProps {
   username: string;
@@ -30,12 +23,14 @@ export function SharedProjectsGrid({
   currentPage = 1,
   onPageChange,
 }: SharedProjectsGridProps) {
+  const router = useRouter();
+  const { hasCategoryProjects } = useUserCategoryCounts(username);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<
     ProjectCategory | "all"
   >("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [sortBy, setSortBy] = useState<SortByValue>("random");
   const [pagination, setPagination] = useState({
     total: 0,
     totalPages: 1,
@@ -68,13 +63,44 @@ export function SharedProjectsGrid({
       }
 
       const result = await response.json();
+      
+      // Check if this is a redirect response (old username was used)
+      if (result.redirect && result.currentUsername) {
+        router.replace(`/shared-projects/${encodeURIComponent(result.currentUsername)}`);
+        return;
+      }
 
-      if (!result.data || !Array.isArray(result.data)) {
+      // Handle RFC 7807 success response format: { success: true, data: { data: [...], pagination: {...} } }
+      const responseData = result.success ? result.data : result;
+      
+      if (!responseData.data || !Array.isArray(responseData.data)) {
         throw new Error("Invalid response format");
       }
 
+      interface SharedProjectData {
+        project: {
+          id: string;
+          title: string;
+          slug: string;
+          description: string | null;
+          category: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          user_id: string;
+          deleted_at: string | null;
+          total_favorites: number;
+          isFavorite?: boolean;
+        };
+        profile: {
+          username: string | null;
+          profile_image_url: string | null;
+          full_name: string | null;
+        };
+        tags: string[] | null;
+      }
+
       setProjects(
-        result.data.map((projectData: any) => {
+        responseData.data.map((projectData: SharedProjectData) => {
           const category = projectData.project.category || "other";
           return {
             ...projectData.project,
@@ -86,9 +112,9 @@ export function SharedProjectsGrid({
         })
       );
       setPagination({
-        total: result.pagination?.total ?? 0,
-        totalPages: result.pagination?.totalPages ?? 1,
-        currentPage: result.pagination?.page ?? currentPage,
+        total: responseData.pagination?.total ?? 0,
+        totalPages: responseData.pagination?.totalPages ?? 1,
+        currentPage: responseData.pagination?.page ?? currentPage,
       });
     } catch (error) {
       console.error("❌ Error in fetchSharedProjects:", error);
@@ -96,7 +122,7 @@ export function SharedProjectsGrid({
     } finally {
       setLoading(false);
     }
-  }, [username, currentPage, sortBy, selectedCategory]);
+  }, [username, currentPage, sortBy, selectedCategory, router]);
 
   useEffect(() => {
     fetchSharedProjects();
@@ -106,18 +132,12 @@ export function SharedProjectsGrid({
     onPageChange?.(page);
   };
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category as ProjectCategory | "all");
+  const handleCategoryChange = (category: ProjectCategory | "all") => {
+    setSelectedCategory(category);
   };
 
-  const handleSortChange = (value: string) => {
+  const handleSortChange = (value: SortByValue) => {
     setSortBy(value);
-  };
-  const hasCategoryProjects = (categoryKey: string) => {
-    const hasProjects = projects.some(
-      (project) => project.category === categoryKey
-    );
-    return hasProjects;
   };
 
   if (loading) {
@@ -132,46 +152,19 @@ export function SharedProjectsGrid({
           {/* Left side filters */}
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Category Filter */}
-            <Select
+            <CategorySelect
               value={selectedCategory}
               onValueChange={handleCategoryChange}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {Object.entries(PROJECT_CATEGORIES).map(([key, { label }]) => {
-                  const hasProjects = hasCategoryProjects(key);
-                  return (
-                    <SelectItem
-                      key={key}
-                      value={key}
-                      disabled={!hasProjects}
-                      className={
-                        !hasProjects
-                          ? "text-muted-foreground cursor-not-allowed"
-                          : ""
-                      }
-                    >
-                      {label}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+              triggerClassName="w-[180px]"
+              hasCategoryProjects={hasCategoryProjects}
+            />
 
             {/* Sort Filter */}
-            <Select value={sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="oldest">Oldest First</SelectItem>
-                <SelectItem value="popular">Most Popular</SelectItem>
-              </SelectContent>
-            </Select>
+            <SortBySelect
+              value={sortBy}
+              onValueChange={handleSortChange}
+              triggerClassName="w-[180px]"
+            />
           </div>
         </div>
       </div>

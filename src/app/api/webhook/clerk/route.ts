@@ -4,20 +4,22 @@
  * Processes Clerk auth events and synchronizes user data with Supabase.
  * Handles: user.created, user.updated, user.deleted, session.created, session.removed
  */
-import { NextResponse } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { ClerkUserData } from "@/types/models/clerkUserData";
+import { serverError, invalidInput, notFound, success } from "@/lib/api-errors";
 import { fetchClerkUser } from "@/services/clerkServerFetchUserService";
 import { ClerkSessionData } from "@/types/models/clerkSessionData";
 import { Webhook } from "svix";
 import { headers } from "next/headers";
+import { revalidateTag } from "next/cache";
 import {
   createOrUpdateUserProfile,
   recentlyVerifiedUsers,
   CACHE_TTL,
   cleanupCache,
 } from "@/lib/user-sync-utils";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 // Create a Supabase client (not public) for server-side operations
 const supabaseServer = createClient(
@@ -31,16 +33,13 @@ async function handleUserCreated(data: ClerkUserData) {
   
   try {
     const result = await createOrUpdateUserProfile(data);
-    return NextResponse.json(result);
+    
+    // Invalidate user profile cache so fresh data is served immediately
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+    
+    return success(result);
   } catch (error) {
-    console.error("Error in handleUserCreated:", error);
-    return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : "Error creating profile",
-        status: "error"
-      },
-      { status: 500 }
-    );
+    return serverError(error instanceof Error ? error.message : "Error creating profile");
   }
 }
 
@@ -50,20 +49,31 @@ async function handleUserUpdated(data: ClerkUserData) {
   
   try {
     const result = await createOrUpdateUserProfile(data);
-    return NextResponse.json(result);
+    
+    // Invalidate user profile cache so fresh data is served immediately
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+    
+    return success(result);
   } catch (error) {
-    console.error("Error in handleUserUpdated:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Error updating profile",
-        status: "error"
-      },
-      { status: 500 }
-    );
+    return serverError(error instanceof Error ? error.message : "Error updating profile");
   }
 }
 
-// TODO: Need to handle this more grcefully , disabled for now in Clerk.Handle user.deleted
+/**
+ * Handle user deletion from Clerk
+ * 
+ * IMPORTANT: This event is currently DISABLED in Clerk dashboard to prevent accidental data loss.
+ * 
+ * When re-enabling this feature, consider implementing:
+ * 1. Soft delete (set deleted_at timestamp) instead of hard delete
+ * 2. Cascade deletion of user's projects, favorites, and related data
+ * 3. Archive user data for compliance/audit purposes
+ * 4. Send notification to user about account deletion
+ * 5. Implement grace period (30 days) before permanent deletion
+ * 6. Add logging and audit trail for deletion events
+ * 
+ * Current implementation performs immediate hard delete - use with caution!
+ */
 async function handleUserDeleted(data: ClerkUserData) {
   const { id: user_id } = data;
 
@@ -77,24 +87,17 @@ async function handleUserDeleted(data: ClerkUserData) {
       .eq("user_id", user_id);
 
     if (error) {
-      console.error("Supabase deletion error:", error);
-      return NextResponse.json(
-        { error: "Error deleting profile" },
-        { status: 500 }
-      );
+      return serverError("Error deleting profile");
     }
 
     console.log(`✅ User ${user_id} successfully deleted from profiles`);
-    return NextResponse.json({ message: "User deleted successfully" });
+    
+    // Invalidate user profile cache
+    revalidateTag(CACHE_TAGS.USER_PROFILE, {});
+    
+    return success({ message: "User deleted successfully" });
   } catch (error) {
-    console.error("Error in handleUserDeleted:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Error deleting profile",
-        status: "error"
-      },
-      { status: 500 }
-    );
+    return serverError(error instanceof Error ? error.message : "Error deleting profile");
   }
 }
 
@@ -104,14 +107,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
   const userId = data.user_id;
 
   if (!userId) {
-    console.error("No user ID found in session data");
-    return NextResponse.json(
-      {
-        error: "Invalid session data",
-        redirect: "/auth/sign-in",
-      },
-      { status: 400 }
-    );
+    return invalidInput("No user ID found in session data");
   }
 
   // Check if we've recently verified this user to avoid redundant DB checks
@@ -120,7 +116,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
 
   if (cachedTimestamp && now - cachedTimestamp < CACHE_TTL) {
     console.log(`🔍 User ${userId} was recently verified, skipping DB check`);
-    return NextResponse.json({
+    return success({
       message: "User recently verified, profile in sync",
     });
   }
@@ -138,11 +134,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
       .maybeSingle();
 
     if (fetchError && !fetchError.details?.includes("0 rows")) {
-      console.error("Error checking profile existence:", fetchError);
-      return NextResponse.json(
-        { error: "Error verifying user profile" },
-        { status: 500 }
-      );
+      return serverError("Error verifying user profile");
     }
 
     // User exists in database - update cache and return success
@@ -152,9 +144,8 @@ async function handleSessionCreated(data: ClerkSessionData) {
       if (recentlyVerifiedUsers.size > 100) {
         cleanupCache();
       }
-      return NextResponse.json({
+      return success({
         message: "User profile verified and in sync",
-        status: "ok",
       });
     }
 
@@ -167,14 +158,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
     const { data: clerkUser, error } = await fetchClerkUser(userId);
 
     if (error || !clerkUser) {
-      console.error(`Failed to fetch Clerk user data for ${userId}:`, error);
-      return NextResponse.json(
-        {
-          error: "User not found",
-          redirect: "/auth/sign-in",
-        },
-        { status: 404 }
-      );
+      return notFound("user", { identifier: userId });
     }
 
     // Use existing handleUserCreated function to create profile
@@ -182,14 +166,7 @@ async function handleSessionCreated(data: ClerkSessionData) {
     recentlyVerifiedUsers.set(userId, now);
     return result;
   } catch (error) {
-    console.error("Error syncing profile from session:", error);
-    return NextResponse.json(
-      {
-        error: "Error synchronizing user profile",
-        redirect: "/auth/sign-in",
-      },
-      { status: 500 }
-    );
+    return serverError("Error synchronizing user profile");
   }
 }
 
@@ -206,9 +183,8 @@ async function handleSessionRemoved(data: ClerkSessionData) {
     console.log(`🧹 Cleaned up cache entry for user: ${userId}`);
   }
 
-  return NextResponse.json({
+  return success({
     message: "Session removal processed",
-    status: "ok"
   });
 }
 
@@ -217,11 +193,7 @@ export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
 
   if (!WEBHOOK_SECRET) {
-    console.error("Missing CLERK_WEBHOOK_SIGNING_SECRET");
-    return NextResponse.json(
-      { error: "Webhook secret not configured" },
-      { status: 500 }
-    );
+    return serverError("Webhook secret not configured");
   }
 
   // Get the headers asynchronously
@@ -232,10 +204,7 @@ export async function POST(req: Request) {
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
-    return NextResponse.json(
-      { error: "Missing svix headers" },
-      { status: 400 }
-    );
+    return invalidInput("Missing svix headers");
   }
 
   // Get the body
@@ -254,11 +223,7 @@ export async function POST(req: Request) {
       "svix-signature": svix_signature,
     }) as WebhookEvent;
   } catch (err) {
-    console.error("Error verifying webhook:", err);
-    return NextResponse.json(
-      { error: "Error verifying webhook" },
-      { status: 400 }
-    );
+    return invalidInput("Error verifying webhook signature");
   }
 
   const { type: eventType } = evt;
@@ -312,14 +277,9 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.warn(`Unhandled event type: ${eventType}`);
-        return NextResponse.json({ error: "Unhandled event" }, { status: 400 });
+        return invalidInput(`Unhandled event type: ${eventType}`);
     }
   } catch (error) {
-    console.error("Error processing webhook:", error);
-    return NextResponse.json(
-      { error: "Error processing webhook" },
-      { status: 500 }
-    );
+    return serverError("Error processing webhook");
   }
 }

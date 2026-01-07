@@ -3,6 +3,7 @@
 import { executeQuery } from "@/db/server";
 import { sql } from "drizzle-orm";
 import { ValidTier } from "@/services/tierServiceServer";
+import { unstable_cache } from "next/cache";
 
 /**
  * Server action to get a user's subscription tier from the database
@@ -35,3 +36,12 @@ export async function getUserTier(userId: string): Promise<ValidTier> {
     return "free";
   }
 }
+
+export const getCachedUserTier = unstable_cache(
+  async (userId: string) => getUserTier(userId),
+  ['user-tier'],
+  {
+    revalidate: 300, // 5 minutes - tier changes are infrequent
+    tags: ['user-tier']
+  }
+);

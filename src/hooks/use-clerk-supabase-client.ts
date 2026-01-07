@@ -39,18 +39,24 @@ export function useClerkSupabaseClient() {
     return createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         fetch: async (url, options = {}) => {
-          const clerkToken = await session?.getToken();
+          try {
+            const clerkToken = await session?.getToken({ template: "supabase" });
 
-          // Insert the Clerk token into the headers
-          const headers = new Headers(options?.headers);
-          if (clerkToken) {
-            headers.set("Authorization", `Bearer ${clerkToken}`);
+            // Insert the Clerk token into the headers
+            const headers = new Headers(options?.headers);
+            if (clerkToken) {
+              headers.set("Authorization", `Bearer ${clerkToken}`);
+            }
+
+            return fetch(url, {
+              ...options,
+              headers,
+            });
+          } catch (error) {
+            console.error("Error getting Clerk token:", error);
+            // Fall back to unauthenticated request
+            return fetch(url, options);
           }
-
-          return fetch(url, {
-            ...options,
-            headers,
-          });
         },
       },
       auth: {

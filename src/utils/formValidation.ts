@@ -1,7 +1,10 @@
 import { FormEvent } from "react";
 import { PROJECT_CATEGORIES, ProjectCategory as BaseProjectCategory } from "@/constants/project-categories";
 import { TagInfo } from "@/db/operations/tag-operations";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { 
+  MAX_PROJECT_TAGS, 
+  PROJECT_TEXT_LIMITS,
+} from "@/constants/project-limits";
 
 export type ProjectCategory = BaseProjectCategory;
 
@@ -41,10 +44,10 @@ export const validateProjectForm = (
   // Title validation
   if (!data.title || data.title.trim().length === 0) {
     errors.title = "Title is required";
-  } else if (data.title.length < 3) {
-    errors.title = "Title must be at least 3 characters";
-  } else if (data.title.length > 100) {
-    errors.title = "Title must be less than 100 characters";
+  } else if (data.title.length < PROJECT_TEXT_LIMITS.MIN_TITLE_LENGTH) {
+    errors.title = `Title must be at least ${PROJECT_TEXT_LIMITS.MIN_TITLE_LENGTH} characters`;
+  } else if (data.title.length > PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH) {
+    errors.title = `Title must be less than ${PROJECT_TEXT_LIMITS.MAX_TITLE_LENGTH} characters`;
   }
 
   // Slug validation
@@ -52,8 +55,8 @@ export const validateProjectForm = (
     errors.slug = "Slug is required";
   } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug)) {
     errors.slug = "Slug must contain only lowercase letters, numbers, and hyphens";
-  } else if (data.slug.length > 100) {
-    errors.slug = "Slug must be less than 100 characters";
+  } else if (data.slug.length > PROJECT_TEXT_LIMITS.MAX_SLUG_LENGTH) {
+    errors.slug = `Slug must be less than ${PROJECT_TEXT_LIMITS.MAX_SLUG_LENGTH} characters`;
   }
 
   // Category validation
@@ -62,8 +65,8 @@ export const validateProjectForm = (
   }
 
   // Description length validation
-  if (data.description && data.description.length > 1000) {
-    errors.description = "Description must be less than 1000 characters";
+  if (data.description && data.description.length > PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH) {
+    errors.description = `Description must be less than ${PROJECT_TEXT_LIMITS.MAX_DESCRIPTION_LENGTH} characters`;
   }
 
   // Tag limit validation

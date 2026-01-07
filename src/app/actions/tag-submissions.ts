@@ -5,9 +5,20 @@ import { tag_submissions } from "@/db/schema/tag_submissions";
 import { tags } from "@/db/schema/tags";
 import { project_tags } from "@/db/schema/project_tags";
 import { eq, and, not } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { sql } from "drizzle-orm/sql";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS, MAX_ADMIN_NOTES_LENGTH } from "@/constants/project-limits";
+import { z } from "zod";
+import { tagNameSchema, tagDescriptionSchema } from "@/types/schemas";
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
+
+// Schema for submitNewTag input validation
+const submitNewTagSchema = z.object({
+  tagName: tagNameSchema,
+  projectId: z.string().uuid("Invalid project ID format"),
+  submitterEmail: z.string().email("Invalid email format"),
+  description: tagDescriptionSchema,
+});
 
 export async function submitNewTag(
   tagName: string,
@@ -15,8 +26,21 @@ export async function submitNewTag(
   submitterEmail: string,
   description?: string
 ) {
+  // Validate input with Zod schema
+  const validationResult = submitNewTagSchema.safeParse({
+    tagName,
+    projectId,
+    submitterEmail,
+    description,
+  });
+
+  if (!validationResult.success) {
+    const firstError = validationResult.error.issues[0];
+    return { success: false, error: firstError.message };
+  }
+
   return executeQuery(async (db) => {
-    const normalizedTagName = tagName.trim().toLowerCase();
+    const normalizedTagName = validationResult.data.tagName;
 
     // First check if tag already exists in approved tags (case-insensitive)
     const existingTag = await db
@@ -53,6 +77,11 @@ export async function submitNewTag(
         tag_id: existingTag[0].id,
       });
 
+      // Invalidate caches after auto-approving tag addition
+      revalidateTag(CACHE_TAGS.TAGS, {});
+      revalidateTag(CACHE_TAGS.PROJECTS, {});
+      revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
       return {
         status: "auto_approved",
         tag_name: normalizedTagName,
@@ -60,7 +89,7 @@ export async function submitNewTag(
       };
     }
 
-    // Check for existing pending submission from the same user for the same project and tag
+    // Check for any existing submission from the same user for the same project and tag
     const existingSubmission = await db
       .select()
       .from(tag_submissions)
@@ -68,14 +97,22 @@ export async function submitNewTag(
         and(
           eq(tag_submissions.project_id, projectId),
           eq(tag_submissions.tag_name, normalizedTagName),
-          eq(tag_submissions.submitter_email, submitterEmail),
-          eq(tag_submissions.status, "pending")
+          eq(tag_submissions.submitter_email, submitterEmail)
         )
       )
       .limit(1);
 
     if (existingSubmission.length > 0) {
-      throw new Error("You already have a pending submission for this tag");
+      const status = existingSubmission[0].status;
+      
+      if (status === "pending") {
+        throw new Error("You already have a pending submission for this tag");
+      } else if (status === "approved") {
+        throw new Error("This tag has already been approved for this project");
+      }
+      // Note: We don't block rejected submissions here because the tag might have been
+      // approved by another user since the rejection. The check at the top of this function
+      // will auto-approve if the tag now exists in the tags table.
     }
 
     // Create new tag submission for review
@@ -134,26 +171,57 @@ export async function getPendingTagSubmissions() {
   });
 }
 
-export async function approveTagSubmission(submissionId: string, adminNotes?: string) {
+// Schema for approveTagSubmission input validation
+const approveTagSubmissionSchema = z.object({
+  submissionId: z.string().uuid("Invalid submission ID format"),
+  adminNotes: z.string().max(MAX_ADMIN_NOTES_LENGTH, `Admin notes must be at most ${MAX_ADMIN_NOTES_LENGTH} characters`).optional(),
+  approvalType: z.enum(["system", "project"]).default("project"),
+});
+
+export async function approveTagSubmission(
+  submissionId: string, 
+  adminNotes?: string,
+  approvalType: "system" | "project" = "project"
+) {
+  // Validate input with Zod schema
+  const validationResult = approveTagSubmissionSchema.safeParse({
+    submissionId,
+    adminNotes,
+    approvalType,
+  });
+
+  if (!validationResult.success) {
+    const firstError = validationResult.error.issues[0];
+    return { success: false, error: firstError.message };
+  }
+
+  const validated = validationResult.data;
+
   return executeQuery(async (db) => {
     // Get the submission
     const [submission] = await db
       .select()
       .from(tag_submissions)
-      .where(eq(tag_submissions.id, submissionId));
+      .where(eq(tag_submissions.id, validated.submissionId));
 
     if (!submission) throw new Error("Submission not found");
 
-    // Count current project tags
-    const currentProjectTags = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(project_tags)
-      .where(eq(project_tags.project_id, submission.project_id));
+    // Count current project tags only if we're approving for the project
+    if (validated.approvalType === "project") {
+      if (!submission.project_id) {
+        throw new Error("Cannot approve tag for project - submission has no project_id");
+      }
+      
+      const currentProjectTags = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(project_tags)
+        .where(eq(project_tags.project_id, submission.project_id));
 
-    const currentTagCount = Number(currentProjectTags[0]?.count) || 0;
+      const currentTagCount = Number(currentProjectTags[0]?.count) || 0;
 
-    if (currentTagCount >= MAX_PROJECT_TAGS) {
-      throw new Error(`Cannot approve tag - project already has the maximum of ${MAX_PROJECT_TAGS} tags`);
+      if (currentTagCount >= MAX_PROJECT_TAGS) {
+        throw new Error(`Cannot approve tag for project - project already has the maximum of ${MAX_PROJECT_TAGS} tags`);
+      }
     }
 
     // Create or get the tag
@@ -177,16 +245,19 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
     }
 
     // Check if the project already has this specific tag
-    const existingProjectTag = await db
-      .select()
-      .from(project_tags)
-      .where(
-        and(
-          eq(project_tags.project_id, submission.project_id),
-          eq(project_tags.tag_id, tagId)
+    let existingProjectTag: { project_id: string; tag_id: string }[] = [];
+    if (submission.project_id) {
+      existingProjectTag = await db
+        .select()
+        .from(project_tags)
+        .where(
+          and(
+            eq(project_tags.project_id, submission.project_id),
+            eq(project_tags.tag_id, tagId)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+    }
 
     // Begin collecting updates
     const updates = [];
@@ -197,14 +268,16 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
         .update(tag_submissions)
         .set({
           status: "approved",
-          admin_notes: adminNotes,
+          admin_notes: validated.adminNotes || (validated.approvalType === "system" 
+            ? "Approved for system-wide use only" 
+            : "Approved for system and project"),
           reviewed_at: new Date(),
         })
-        .where(eq(tag_submissions.id, submissionId))
+        .where(eq(tag_submissions.id, validated.submissionId))
     );
 
-    // Only create project-tag association if it doesn't exist
-    if (existingProjectTag.length === 0) {
+    // Only create project-tag association if approving for project AND it doesn't exist
+    if (validated.approvalType === "project" && submission.project_id && existingProjectTag.length === 0) {
       updates.push(
         db.insert(project_tags).values({
           project_id: submission.project_id,
@@ -227,6 +300,22 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
 
     // Update other pending submissions for the same tag
     for (const pendingSubmission of otherPendingSubmissions) {
+      // Only count tags if the submission has a project_id
+      if (!pendingSubmission.project_id) {
+        // Auto-approve system-wide tag submissions without a project
+        updates.push(
+          db
+            .update(tag_submissions)
+            .set({
+              status: "approved",
+              admin_notes: "Auto-approved - tag approved for system-wide use",
+              reviewed_at: new Date(),
+            })
+            .where(eq(tag_submissions.id, pendingSubmission.id))
+        );
+        continue;
+      }
+      
       // Count tags for this project
       const projectTags = await db
         .select({ count: sql<number>`count(*)` })
@@ -286,7 +375,14 @@ export async function approveTagSubmission(submissionId: string, adminNotes?: st
     // Execute all updates
     await Promise.all(updates);
 
-    // Force clear ALL tag-related caches with wildcards to ensure complete invalidation
+    // Force clear ALL tag-related caches with revalidateTag
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+    revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
+    revalidateTag(CACHE_TAGS.TAG_SUBMISSIONS, {});
+    
+    // Also revalidate paths for immediate page updates
     revalidatePath("/projects", "layout");
     revalidatePath("/administrator/dashboard", "layout");
     revalidatePath("/api/tags", "layout");
@@ -309,6 +405,43 @@ export async function rejectTagSubmission(submissionId: string, adminNotes: stri
       })
       .where(eq(tag_submissions.id, submissionId));
 
+    revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
+    revalidateTag(CACHE_TAGS.TAG_SUBMISSIONS, {});
     revalidatePath("/administrator/dashboard");
+  });
+}
+
+export async function approveRejectedTagSubmission(
+  projectId: string,
+  tagName: string,
+  submitterEmail: string
+) {
+  return executeQuery(async (db) => {
+    const normalizedTagName = tagName.trim().toLowerCase();
+
+    // Update the rejected submission to approved status
+    await db
+      .update(tag_submissions)
+      .set({
+        status: "approved",
+        reviewed_at: new Date(),
+        admin_notes: "Auto-approved: Tag was added to project after becoming available system-wide",
+      })
+      .where(
+        and(
+          eq(tag_submissions.project_id, projectId),
+          eq(tag_submissions.tag_name, normalizedTagName),
+          eq(tag_submissions.submitter_email, submitterEmail),
+          eq(tag_submissions.status, "rejected")
+        )
+      );
+
+    // Revalidate relevant caches and paths
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.ADMIN_DASHBOARD, {});
+    revalidatePath("/administrator/dashboard");
+    revalidatePath("/dashboard");
+    revalidatePath(`/projects/${projectId}`);
   });
 }

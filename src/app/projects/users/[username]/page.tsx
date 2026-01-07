@@ -20,6 +20,8 @@ import { toast } from "sonner";
 import Image from "next/image";
 import { TerminalWindowSection } from "@/components/layout/TerminalWindowSection";
 import { CodeParticlesElement } from "@/components/Elements/CodeParticlesElement";
+import { useRouter } from "next/navigation";
+import { USER_PROJECTS_DEFAULT_LIMIT } from "@/constants/project-limits";
 
 interface PageProps {
   params: Promise<{ username: string }> | { username: string };
@@ -31,6 +33,7 @@ export default function UserProjectsPage({ params }: PageProps) {
   const { token, loading: tokenLoading } = useSupabaseToken();
   const [currentPage, setCurrentPage] = useState(CURRENT_PAGE);
   const [profileData, setProfileData] = useState<SelectProfile | null>(null);
+  const router = useRouter();
 
   // derive the decoded username from route params immediately
   const decodedUsername = resolvedParams.username
@@ -76,9 +79,16 @@ export default function UserProjectsPage({ params }: PageProps) {
         }
 
         // Safely parse JSON
-        const data = await response.json();
-        if (data.profile) {
-          setProfileData(data.profile);
+        const result = await response.json();
+        
+        // Check if this is a redirect response (old username was used)
+        if (result.success && result.data?.redirect && result.data?.currentUsername) {
+          router.replace(`/projects/users/${encodeURIComponent(result.data.currentUsername)}`);
+          return;
+        }
+        
+        if (result.success && result.data?.profile) {
+          setProfileData(result.data.profile);
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -86,7 +96,7 @@ export default function UserProjectsPage({ params }: PageProps) {
     };
 
     fetchProfile();
-  }, [decodedUsername]);
+  }, [decodedUsername, user, router]);
 
   // Only consider loading if we're waiting for auth-related data AND we don't have profile data yet
   const isLoading = (!userLoaded || tokenLoading) && !profileData;
@@ -106,7 +116,7 @@ export default function UserProjectsPage({ params }: PageProps) {
             username: decodedUsername,
             showAll: false,
             page: currentPage,
-            limit: 10,
+            limit: USER_PROJECTS_DEFAULT_LIMIT,
           }}
         >
           <SidebarProvider>
@@ -123,7 +133,7 @@ export default function UserProjectsPage({ params }: PageProps) {
               <SignedIn>
                 <div className="container mx-auto px-4">
                   <div className="flex justify-center w-full mb-20">
-                    <div className="w-full max-w-7xl">
+                    <div className="w-full px-4 2xl:px-8 3xl:px-12">
                       <div className="flex flex-col gap-4 mb-6 py-3">
                         <PageBanner
                           icon={<User className="h-8 w-8 text-primary" />}

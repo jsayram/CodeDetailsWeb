@@ -40,7 +40,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </AlertDescription>
             <Button
               variant="outline"
-              className="mt-4"
+              className="mt-4 cursor-pointer"
               onClick={() => this.setState({ hasError: false })}
             >
               Try again

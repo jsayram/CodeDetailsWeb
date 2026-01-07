@@ -12,16 +12,28 @@ import {
 import { executeQuery } from "@/db/server";
 import { tags } from "@/db/schema";
 import { searchTags as dbSearchTags } from "@/db/operations/tag-operations";
+import { unstable_cache, revalidateTag } from 'next/cache';
+import { CACHE_TAGS } from "@/lib/swr-fetchers";
 
 // Fixed content type for this file
 const PROJECT_CONTENT_TYPE = "project" as const;
+
+// Cache project tags for 5 minutes
+export const getCachedProjectTags = unstable_cache(
+  async (projectId: string) => getTagsForContent(PROJECT_CONTENT_TYPE, projectId),
+  ['project-tags'],
+  {
+    revalidate: 300, // 5 minutes
+    tags: ['tags', 'projects']
+  }
+);
 
 /**
  * Fetch tags for a specific project
  */
 export async function fetchProjectTags(projectId: string): Promise<TagInfo[]> {
   try {
-    return await getTagsForContent(PROJECT_CONTENT_TYPE, projectId);
+    return await getCachedProjectTags(projectId);
   } catch (error) {
     console.error("Error fetching project tags:", error);
     return [];
@@ -42,6 +54,11 @@ export async function addTagToProjectAction(
     // Connect the tag to the project
     await addTagToContent("project", projectId, tag.id);
 
+    // Invalidate relevant caches
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
     return { success: true };
   } catch (error) {
     console.error("Error adding tag to project:", error);
@@ -61,6 +78,12 @@ export async function removeTagFromProjectAction(
 ) {
   try {
     await removeTagFromContent(PROJECT_CONTENT_TYPE, projectId, tagId);
+
+    // Invalidate relevant caches
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
     return { success: true };
   } catch (error) {
     console.error("Error removing tag from project:", error);
@@ -80,6 +103,12 @@ export async function replaceProjectTagsAction(
 ) {
   try {
     await replaceContentTags(PROJECT_CONTENT_TYPE, projectId, tagIds);
+
+    // Invalidate relevant caches
+    revalidateTag(CACHE_TAGS.TAGS, {});
+    revalidateTag(CACHE_TAGS.PROJECTS, {});
+    revalidateTag(CACHE_TAGS.PROJECT_DETAIL, {});
+
     return { success: true };
   } catch (error) {
     console.error("Error replacing project tags:", error);
@@ -138,6 +167,9 @@ export async function createTagAction(name: string) {
       throw new Error("Failed to create tag");
     }
 
+    // Invalidate tags cache
+    revalidateTag(CACHE_TAGS.TAGS, {});
+
     return {
       success: true,
       id: newTag.id,
@@ -152,12 +184,22 @@ export async function createTagAction(name: string) {
   }
 }
 
+// Cache all tags for 10 minutes
+export const getCachedAllTags = unstable_cache(
+  async () => dbSearchTags(),
+  ['all-tags'],
+  {
+    revalidate: 600, // 10 minutes
+    tags: ['tags']
+  }
+);
+
 /**
  * Fetch all tags
  */
 export async function getTags(): Promise<TagInfo[]> {
   try {
-    return await dbSearchTags();
+    return await getCachedAllTags();
   } catch (error) {
     console.error('Error fetching tags:', error);
     throw new Error('Failed to fetch tags');

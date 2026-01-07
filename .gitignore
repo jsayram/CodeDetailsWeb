@@ -10,6 +10,9 @@ out/
 dist/
 .cache/
 
+# TypeScript build cache
+*.tsbuildinfo
+
 # Environment variables
 .env
 .env.local
@@ -45,6 +48,10 @@ public/sw.js
 public/workbox-*.js
 public/workbox-*.json
 
+# Generated documentation output (keep .gitkeep)
+src/app/output/*
+!src/app/output/.gitkeep
+
 # Ignore build artifacts
 build/
 dist/
@@ -59,3 +66,4 @@ __pycache__/
 # python virtual environments
 venv/
 .env/
+.github/copilot-instructions.md

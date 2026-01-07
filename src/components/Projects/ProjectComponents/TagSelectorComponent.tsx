@@ -3,13 +3,13 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { TagInput } from "@/components/ui/tag-input";
 import { TagInfo } from "@/db/operations/tag-operations";
-import { useTagCache } from "@/hooks/use-tag-cache";
+import { useTags } from "@/hooks/use-tags";
 import { TagSubmissionModal } from "./TagSubmissionModal";
 import { useUser } from "@clerk/nextjs";
 import { useProjects } from "@/providers/projects-provider";
 import { SelectTagSubmission } from "@/db/schema/tag_submissions";
 import { toast } from "sonner";
-import { MAX_PROJECT_TAGS } from "@/constants/tag-constants";
+import { MAX_PROJECT_TAGS } from "@/constants/project-limits";
 
 interface TagSelectorProps {
   projectId?: string;
@@ -33,7 +33,7 @@ export function TagSelector({
     tags: cachedTags,
     isLoading: isTagCacheLoading,
     refreshCache,
-  } = useTagCache();
+  } = useTags();
   const isMounted = useRef(false);
   const { user } = useUser();
   const { projects } = useProjects();
@@ -159,17 +159,17 @@ export function TagSelector({
     if (projectId === "new" || !user?.primaryEmailAddress?.emailAddress) return;
 
     try {
-      const submissions = await fetch(
+      const result = await fetch(
         `/api/projects/${projectId}/tag-submissions?status=pending&email=${encodeURIComponent(
           user.primaryEmailAddress.emailAddress
         )}`,
         { cache: "no-store" }
       ).then((res) => res.json());
 
-      if (Array.isArray(submissions)) {
-        setPendingTags(submissions);
+      if (result.success && Array.isArray(result.data)) {
+        setPendingTags(result.data);
       } else {
-        console.error("Invalid submissions response:", submissions);
+        console.error("Invalid submissions response:", result);
         setPendingTags([]);
       }
     } catch (error) {
@@ -197,27 +197,57 @@ export function TagSelector({
   return (
     <div className={className}>
       <div className="space-y-4">
-        <div className="flex gap-2 items-center">
-          <TagInput
-            tags={selectedTags}
-            onAddTag={handleAddTag}
-            onRemoveTag={handleRemoveTag}
-            searchTags={handleSearchTags}
-            placeholder={
-              isOwner
-                ? "Search for tags..."
-                : "Only project owners can edit tags"
-            }
-            disabled={isTagCacheLoading || !isOwner}
-            className="flex-1"
-          />
-          {projectId !== "new" && isOwner && (
-            <TagSubmissionModal
-              projectId={projectId}
-              onSubmit={loadPendingSubmissions}
-              isOwner={isOwner}
-            />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">
+              Project Tags ({selectedTags.length}/{MAX_PROJECT_TAGS})
+            </label>
+            <p className="text-xs text-muted-foreground">
+              Optimal: 6-10 tags for best discoverability
+            </p>
+          </div>
+          {!isTagCacheLoading && cachedTags.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                💡 {cachedTags.length} tags available in the system. Start typing to search and add tags.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                🎯 <strong>Choose tags that match your project&apos;s tech stack and purpose</strong> for better discoverability. Select the most relevant tags from the available list.
+              </p>
+              {projectId !== "new" && selectedTags.length < MAX_PROJECT_TAGS && (
+                <p className="text-xs text-muted-foreground">
+                  💭 Don&apos;t see a perfect tag? You can suggest new tags after creating your project (approval required). Suggested tags become available system-wide for all users if approved.
+                </p>
+              )}
+              {projectId === "new" && (
+                <p className="text-xs text-muted-foreground">
+                  💭 After creating your project, you can suggest new tags if you don&apos;t find what you need (approval required).
+                </p>
+              )}
+            </div>
           )}
+          <div className="flex gap-2 items-center">
+            <TagInput
+              tags={selectedTags}
+              onAddTag={handleAddTag}
+              onRemoveTag={handleRemoveTag}
+              searchTags={handleSearchTags}
+              placeholder={
+                isOwner
+                  ? "Search for tags..."
+                  : "Only project owners can edit tags"
+              }
+              disabled={isTagCacheLoading || !isOwner}
+              className="flex-1"
+            />
+            {projectId !== "new" && isOwner && (
+              <TagSubmissionModal
+                projectId={projectId}
+                onSubmit={loadPendingSubmissions}
+                isOwner={isOwner}
+              />
+            )}
+          </div>
         </div>
 
         {pendingTags.length > 0 && (
