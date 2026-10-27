@@ -1,5 +1,7 @@
 # Code Details Search Architecture
 
+Historical design policy below is superseded by Jose's 2026-10-26 commercial requirements: Algolia profile/global tool/tag search and creator search analytics are core intended features. No Algolia runtime integration or owner query analytics exists in the current source. Performance, free-capacity and illustrative-code claims below are not current verified behavior. See [PRODUCT_VISION_AUDIT.md](audit/PRODUCT_VISION_AUDIT.md) for the source crosswalk and proposed contract. No implementation is authorized yet.
+
 ## Overview
 
 Code Details uses a **hybrid search architecture** that prioritizes resilience and cost-effectiveness. Our database-driven search is the **primary and permanent** search mechanism, while optional analytics layers serve as **non-blocking enhancement** for insights and optimization.
