@@ -52,7 +52,6 @@ const DEFAULT_MODEL = process.env.OPEN_AI_MODEL || OPENAI_MODELS.GPT_4O_MINI;
  */
 export function getApiKey(providerId: string, customKey?: string): string {
   console.log('[getApiKey] Starting for provider:', providerId);
-  console.log('[getApiKey] Custom key provided:', customKey ? `Yes (length: ${customKey.length})` : 'No');
   
   // If a custom key is provided, use it
   if (customKey && customKey.trim()) {
@@ -87,7 +86,6 @@ export function getApiKey(providerId: string, customKey?: string): string {
 
   for (const key of allCandidates) {
     const value = process.env[key];
-    console.log(`[getApiKey] Checking ${key}:`, value ? `Found (length: ${value.length}, starts with: ${value.substring(0, 8)}...)` : 'NOT FOUND');
     if (value) {
       console.log('[getApiKey] SUCCESS - Using key from:', key);
       return value;
@@ -310,7 +308,6 @@ export async function callLLM({
   console.log('[callLLM] Starting LLM call...');
   console.log('[callLLM] Provider:', providerId);
   console.log('[callLLM] Model:', modelId);
-  console.log('[callLLM] Custom API Key:', customApiKey ? `Provided (length: ${customApiKey.length})` : 'Not provided');
   console.log('[callLLM] Custom Base URL:', customBaseUrl || 'Not provided');
   
   // Get provider config
@@ -340,7 +337,6 @@ export async function callLLM({
       ? getApiKey(providerId, customApiKey) 
       : customApiKey || PROVIDER_IDS.OLLAMA;
     
-    console.log('[callLLM] API key obtained:', apiKey ? `Yes (length: ${apiKey.length}, starts: ${apiKey.substring(0, 10)}...)` : 'Empty (local provider)');
     
     // Get base URL
     const baseUrl = customBaseUrl || getProviderBaseUrl(providerId);

@@ -15,7 +15,7 @@ import { PageBanner } from "@/components/ui/page-banner";
 import { Tag } from "lucide-react";
 
 interface PageProps {
-  params: Promise<{ tag: string }> | { tag: string };
+  params: Promise<{ tag: string }>;
 }
 
 export default function TagPage({ params }: PageProps) {

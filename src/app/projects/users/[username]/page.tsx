@@ -24,7 +24,7 @@ import { useRouter } from "next/navigation";
 import { USER_PROJECTS_DEFAULT_LIMIT } from "@/constants/project-limits";
 
 interface PageProps {
-  params: Promise<{ username: string }> | { username: string };
+  params: Promise<{ username: string }>;
 }
 
 export default function UserProjectsPage({ params }: PageProps) {

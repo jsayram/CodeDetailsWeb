@@ -122,8 +122,6 @@ export async function serverGithubCrawler(options: CrawlerOptions): Promise<Craw
   console.log('[Server Crawler] Starting crawl for:', repoUrl);
   console.log('[Server Crawler] Include patterns:', includePatterns);
   console.log('[Server Crawler] Exclude patterns:', excludePatterns);
-  console.log('[Server Crawler] Token provided:', token ? `Yes (length: ${token.length}, starts: ${token.substring(0, 10)}...)` : 'No');
-  console.log('[Server Crawler] Env GITHUB_TOKEN:', process.env.GITHUB_TOKEN ? `Set (length: ${process.env.GITHUB_TOKEN.length})` : 'NOT SET');
 
   // Parse the GitHub URL
   const parsed = parseGitHubUrl(repoUrl);

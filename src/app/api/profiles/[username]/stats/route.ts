@@ -9,7 +9,7 @@ import { success, notFound, databaseError } from "@/lib/api-errors";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ username: string }> | { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
   try {
     // Properly resolve params as a Promise

@@ -8,7 +8,7 @@ import { success, notFound, invalidInput, databaseError } from "@/lib/api-errors
 
 export async function GET(
   req: Request,
-  { params }: { params: Promise<{ userId: string }> | { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   // Properly resolve params as a Promise
   const resolvedParams = await Promise.resolve(params);
@@ -153,7 +153,7 @@ export async function GET(
 
 export async function POST(
   req: Request,
-  { params }: { params: Promise<{ userId: string }> | { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   const resolvedParams = await Promise.resolve(params);
   const userId = resolvedParams.userId;

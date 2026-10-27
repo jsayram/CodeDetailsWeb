@@ -23,14 +23,14 @@ import { ProjectsProvider } from "@/providers/projects-provider";
 import { cookies } from "next/headers";
 
 type Props = {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
 export default async function ProjectPage({
   params,
 }: {
-  params: Promise<{ slug: string }> | { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   // Ensure params is handled as a Promise
   const resolvedParams = await Promise.resolve(params);

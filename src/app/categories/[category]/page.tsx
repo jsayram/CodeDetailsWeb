@@ -15,7 +15,7 @@ import { Folder } from "lucide-react";
 import { PROJECT_CATEGORIES } from "@/constants/project-categories";
 
 interface PageProps {
-  params: Promise<{ category: string }> | { category: string };
+  params: Promise<{ category: string }>;
 }
 
 export default function CategoryPage({ params }: PageProps) {

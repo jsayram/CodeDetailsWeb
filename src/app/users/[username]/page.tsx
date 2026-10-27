@@ -15,7 +15,7 @@ import { SelectProfile } from "@/db/schema/profiles";
 import { useRouter } from "next/navigation";
 
 interface PageProps {
-  params: Promise<{ username: string }> | { username: string };
+  params: Promise<{ username: string }>;
 }
 
 export default function UserProfilePage({ params }: PageProps) {
