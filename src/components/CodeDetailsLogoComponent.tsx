@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
@@ -30,7 +30,9 @@ export function Logo({
   mainLogoText = "Code Details",
 }: LogoProps) {
   const { resolvedTheme } = useTheme();
-  const isDarkMode = resolvedTheme === "dark";
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDarkMode = mounted && resolvedTheme === "dark";
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
